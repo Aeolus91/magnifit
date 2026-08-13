@@ -1,7 +1,10 @@
 @import "tailwindcss";
 
 @layer base {
-  body {
-    @apply bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-400;
+  html, body {
+    @apply bg-slate-950 text-slate-100 font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-400;
+    height: 100%;
+    overflow-x: hidden;
+    overscroll-behavior: none;
   }
 }
