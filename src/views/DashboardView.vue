@@ -3,11 +3,19 @@ import { ref, onMounted, computed } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import { useAuthStore } from '../stores/authStore'
 import { useRouter } from '../lib/router'
-import type { Workout, Biometric, Meal, WaterLog } from '../types/fitness'
+import { ProfilePrefs } from '../lib/bitmask'
+import type { Workout, Biometric, Meal, WaterLog, Profile } from '../types/fitness'
+import OnboardingModal from '../components/OnboardingModal.vue'
 import { Activity, Flame, Droplets, Utensils, Scale, Plus, RefreshCw, LogOut, User as UserIcon } from '@lucide/vue'
 
 const authStore = useAuthStore()
 const { navigate } = useRouter()
+
+const userProfile = ref<Profile | null>(null)
+const isOnboardingPending = computed(() => {
+  if (!userProfile.value) return false
+  return (userProfile.value.prefs & ProfilePrefs.ONBOARDING_COMPLETED) === 0
+})
 
 const workouts = ref<Workout[]>([])
 const biometrics = ref<Biometric[]>([])
@@ -43,10 +51,32 @@ const totalCaloriesConsumed = computed(() => meals.value.reduce((acc, m) => acc 
 const totalWaterMl = computed(() => waterLogs.value.reduce((acc, w) => acc + (w.amount_ml || 0), 0))
 const latestWeight = computed(() => biometrics.value[0]?.weight_kg || 0)
 
+const fetchProfile = async (userId: string) => {
+  const { data } = await supabase.from<Profile>('profiles').select().eq('id', userId).get()
+  if (data && data.length > 0) {
+    userProfile.value = data[0]
+  } else {
+    // If not existing yet, initialize placeholder to trigger onboarding
+    userProfile.value = {
+      id: userId,
+      username: '',
+      prefs: 0,
+      micros_opt: 0
+    }
+  }
+}
+
+const onOnboardingCompleted = (updatedProfile: Profile) => {
+  userProfile.value = updatedProfile
+  fetchAll()
+}
+
 const fetchAll = async () => {
   if (!authStore.user.value?.id) return
   const userId = authStore.user.value.id
   loading.value = true
+
+  await fetchProfile(userId)
 
   const [wRes, bRes, mRes, watRes] = await Promise.all([
     supabase.from<Workout>('workouts').select().eq('user_id', userId).order('date', { ascending: false }).get(),
@@ -130,6 +160,13 @@ onMounted(() => {
 </script>
 
 <template>
+  <!-- Progressive Onboarding Gate -->
+  <OnboardingModal
+    v-if="isOnboardingPending"
+    :initial-profile="userProfile"
+    @completed="onOnboardingCompleted"
+  />
+
   <div class="max-w-4xl mx-auto px-4 py-8 space-y-8">
     <header class="flex items-center justify-between border-b border-slate-800 pb-4">
       <div>

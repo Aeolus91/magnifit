@@ -36,3 +36,16 @@ export interface WaterLog {
   amount_ml: number
   date?: string
 }
+
+export interface Profile {
+  id: string
+  username: string
+  prefs: number
+  micros_opt: number
+  height_cm?: number | null
+  target_weight_dg?: number | null
+  sex?: 'male' | 'female' | 'other' | 'unspecified'
+  activity_level?: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'
+  birth_year?: number | null
+  updated_at?: string
+}

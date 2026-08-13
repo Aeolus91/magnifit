@@ -4,10 +4,11 @@
  */
 
 export const ProfilePrefs = {
-  IMPERIAL: 1 << 0,       // Bit 0: 0=Metric (kg, cm, ml), 1=Imperial (lbs, in, oz)
-  PUBLIC_PROFILE: 1 << 1, // Bit 1: 0=Private, 1=Public
-  DARK_THEME: 1 << 2,     // Bit 2: 0=Auto, 1=Dark
-  TRACK_MICROS: 1 << 3    // Bit 3: 0=Off, 1=On
+  IMPERIAL: 1 << 0,             // Bit 0: 0=Metric (kg, cm, ml), 1=Imperial (lbs, in, oz)
+  PUBLIC_PROFILE: 1 << 1,       // Bit 1: 0=Private, 1=Public
+  DARK_THEME: 1 << 2,           // Bit 2: 0=Auto, 1=Dark
+  TRACK_MICROS: 1 << 3,         // Bit 3: 0=Off, 1=On
+  ONBOARDING_COMPLETED: 1 << 4  // Bit 4: 0=Pending Onboarding, 1=Completed
 } as const
 
 export const MicroNutrientFlags: Record<string, { bit: number; col: string }> = {
