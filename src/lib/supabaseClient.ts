@@ -1,7 +1,7 @@
 import { CustomSupabaseClient } from './cust-supabase';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUB_KEY;
 
 export const supabase = new CustomSupabaseClient({
   supabaseUrl: SUPABASE_URL,
