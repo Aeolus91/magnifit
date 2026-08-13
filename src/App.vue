@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { supabase } from './lib/supabaseClient'
 import type { Workout, Biometric, Meal, WaterLog } from './types/fitness'
-import { Activity, Flame, Droplets, Utensils, Scale, Plus, RefreshCw } from 'lucide-vue-next'
+import { Activity, Flame, Droplets, Utensils, Scale, Plus, RefreshCw } from '@lucide/vue'
 
 const workouts = ref<Workout[]>([])
 const biometrics = ref<Biometric[]>([])
