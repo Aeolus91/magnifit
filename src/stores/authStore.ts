@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabaseClient'
+import { useRouter } from '../lib/router'
 import type { User, Session } from '../lib/cust-supabase'
 
 const session = ref<Session | null>(supabase.auth.getSession())
@@ -8,9 +9,14 @@ const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
 
 // Subscribe to auth state changes
-supabase.auth.onAuthStateChange((_event, currentSession) => {
+supabase.auth.onAuthStateChange((event, currentSession) => {
   session.value = currentSession
   user.value = currentSession?.user || null
+
+  if (event === 'SESSION_INVALID' || (!currentSession && window.location.pathname.startsWith('/dash'))) {
+    const { navigate } = useRouter()
+    navigate('/auth', true)
+  }
 })
 
 export function useAuthStore() {

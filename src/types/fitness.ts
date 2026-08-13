@@ -11,11 +11,17 @@ export interface Workout {
 export interface Biometric {
   id?: string
   user_id?: string
-  weight_kg: number
+  weight_dg?: number
+  weight_kg?: number
+  chest_mm?: number
   chest_cm?: number
+  waist_mm?: number
   waist_cm?: number
+  hips_mm?: number
   hips_cm?: number
+  biceps_mm?: number
   biceps_cm?: number
+  ts?: string
   date?: string
 }
 

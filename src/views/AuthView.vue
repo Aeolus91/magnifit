@@ -2,10 +2,13 @@
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useRouter } from '../lib/router'
+import { useI18n } from '../lib/i18n'
+import FormInput from '../components/FormInput.vue'
 import { Mail, Lock, LogIn, UserPlus, AlertCircle, Loader2, ArrowLeft } from '@lucide/vue'
 
 const authStore = useAuthStore()
 const { navigate } = useRouter()
+const { t } = useI18n()
 
 const mode = ref<'signin' | 'signup'>('signin')
 const email = ref('')
@@ -15,7 +18,7 @@ const localError = ref<string | null>(null)
 const handleSubmit = async () => {
   localError.value = null
   if (!email.value || !password.value) {
-    localError.value = 'Please fill in both email and password.'
+    localError.value = t('auth.error_fill_both')
     return
   }
 
@@ -27,7 +30,7 @@ const handleSubmit = async () => {
     }
     navigate('/dash')
   } catch (err: any) {
-    localError.value = err.message || 'Authentication request failed'
+    localError.value = err.message || t('auth.error_generic')
   }
 }
 </script>
@@ -39,17 +42,17 @@ const handleSubmit = async () => {
       class="absolute top-5 left-5 flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer z-10"
     >
       <ArrowLeft class="w-4 h-4" />
-      <span>Back to Home</span>
+      <span>{{ t('auth.back_home') }}</span>
     </button>
 
     <div class="w-full max-w-md bg-slate-900/90 border border-slate-800/80 rounded-2xl p-6 sm:p-8 backdrop-blur-md shadow-2xl space-y-6">
       <!-- Brand Header -->
       <div class="text-center space-y-2">
         <h1 class="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
-          mFit Tracker
+          {{ t('brand.name') }}
         </h1>
         <p class="text-slate-400 text-sm">
-          {{ mode === 'signin' ? 'Sign in to access your dashboard' : 'Create your account to start tracking' }}
+          {{ mode === 'signin' ? t('auth.signin_desc') : t('auth.signup_desc') }}
         </p>
       </div>
 
@@ -65,7 +68,7 @@ const handleSubmit = async () => {
               : 'text-slate-400 hover:text-slate-200'
           ]"
         >
-          Sign In
+          {{ t('auth.signin_tab') }}
         </button>
         <button
           type="button"
@@ -77,7 +80,7 @@ const handleSubmit = async () => {
               : 'text-slate-400 hover:text-slate-200'
           ]"
         >
-          Sign Up
+          {{ t('auth.signup_tab') }}
         </button>
       </div>
 
@@ -92,35 +95,27 @@ const handleSubmit = async () => {
 
       <!-- Form -->
       <form @submit.prevent="handleSubmit" class="space-y-4">
-        <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-slate-300">Email Address</label>
-          <div class="relative">
-            <Mail class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="email"
-              v-model="email"
-              required
-              autocomplete="email"
-              placeholder="user@example.com"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-base sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition"
-            />
-          </div>
-        </div>
+        <FormInput
+          v-model="email"
+          :label="t('auth.email_label')"
+          type="email"
+          :icon="Mail"
+          icon-position="field-left"
+          icon-color="text-slate-500"
+          :placeholder="t('auth.email_placeholder')"
+          required
+        />
 
-        <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-slate-300">Password</label>
-          <div class="relative">
-            <Lock class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="password"
-              v-model="password"
-              required
-              autocomplete="current-password"
-              placeholder="••••••••"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-base sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition"
-            />
-          </div>
-        </div>
+        <FormInput
+          v-model="password"
+          :label="t('auth.password_label')"
+          type="password"
+          :icon="Lock"
+          icon-position="field-left"
+          icon-color="text-slate-500"
+          :placeholder="t('auth.password_placeholder')"
+          required
+        />
 
         <button
           type="submit"
@@ -131,7 +126,7 @@ const handleSubmit = async () => {
           <template v-else>
             <LogIn v-if="mode === 'signin'" class="w-4 h-4" />
             <UserPlus v-else class="w-4 h-4" />
-            <span>{{ mode === 'signin' ? 'Sign In' : 'Create Account' }}</span>
+            <span>{{ mode === 'signin' ? t('auth.submit_signin') : t('auth.submit_signup') }}</span>
           </template>
         </button>
       </form>

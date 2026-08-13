@@ -3,16 +3,22 @@ import { ref, onMounted, computed } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import { useAuthStore } from '../stores/authStore'
 import { useRouter } from '../lib/router'
+import { useI18n } from '../lib/i18n'
 import { ProfilePrefs } from '../lib/bitmask'
 import type { Workout, Biometric, Meal, WaterLog, Profile } from '../types/fitness'
 import OnboardingModal from '../components/OnboardingModal.vue'
-import { Activity, Flame, Droplets, Utensils, Scale, Plus, RefreshCw, LogOut, User as UserIcon } from '@lucide/vue'
+import { Activity, Flame, Droplets, Utensils, Scale, Plus, RefreshCw, LogOut, User as UserIcon, ChevronDown, Sliders } from '@lucide/vue'
 
 const authStore = useAuthStore()
 const { navigate } = useRouter()
+const { t } = useI18n()
 
 const userProfile = ref<Profile | null>(null)
+const showOnboardingModal = ref<boolean>(false)
+const showProfileMenu = ref<boolean>(false)
+
 const isOnboardingPending = computed(() => {
+  if (showOnboardingModal.value) return true
   if (!userProfile.value) return false
   return (userProfile.value.prefs & ProfilePrefs.ONBOARDING_COMPLETED) === 0
 })
@@ -49,7 +55,14 @@ const newMeal = ref<Meal>({
 const totalActiveCalories = computed(() => workouts.value.reduce((acc, w) => acc + (w.active_calories || 0), 0))
 const totalCaloriesConsumed = computed(() => meals.value.reduce((acc, m) => acc + (m.calories || 0), 0))
 const totalWaterMl = computed(() => waterLogs.value.reduce((acc, w) => acc + (w.amount_ml || 0), 0))
-const latestWeight = computed(() => biometrics.value[0]?.weight_kg || 0)
+const latestWeight = computed(() => {
+  const latest = biometrics.value[0]
+  if (!latest) return 0
+  if (latest.weight_dg !== undefined && latest.weight_dg !== null) {
+    return Number((latest.weight_dg / 10).toFixed(1))
+  }
+  return latest.weight_kg || 0
+})
 
 const fetchProfile = async (userId: string) => {
   const { data } = await supabase.from<Profile>('profiles').select().eq('id', userId).get()
@@ -68,6 +81,7 @@ const fetchProfile = async (userId: string) => {
 
 const onOnboardingCompleted = (updatedProfile: Profile) => {
   userProfile.value = updatedProfile
+  showOnboardingModal.value = false
   fetchAll()
 }
 
@@ -79,10 +93,10 @@ const fetchAll = async () => {
   await fetchProfile(userId)
 
   const [wRes, bRes, mRes, watRes] = await Promise.all([
-    supabase.from<Workout>('workouts').select().eq('user_id', userId).order('date', { ascending: false }).get(),
-    supabase.from<Biometric>('biometrics').select().eq('user_id', userId).order('date', { ascending: false }).get(),
-    supabase.from<Meal>('meals').select().eq('user_id', userId).order('date', { ascending: false }).get(),
-    supabase.from<WaterLog>('water_logs').select().eq('user_id', userId).order('date', { ascending: false }).get()
+    supabase.from<Workout>('workouts').select().eq('user_id', userId).order('ts', { ascending: false }).get(),
+    supabase.from<Biometric>('biometrics').select().eq('user_id', userId).order('ts', { ascending: false }).get(),
+    supabase.from<Meal>('meals').select().eq('user_id', userId).order('ts', { ascending: false }).get(),
+    supabase.from<WaterLog>('water_logs').select().eq('user_id', userId).order('ts', { ascending: false }).get()
   ])
 
   if (wRes.data) workouts.value = wRes.data
@@ -107,11 +121,15 @@ const addWorkout = async () => {
 
 const addBiometric = async () => {
   if (!authStore.user.value?.id) return
-  const { data, error } = await supabase.from<Biometric>('biometrics').insert([{
-    ...newBiometric.value,
+  const weightKgVal = newBiometric.value.weight_kg || 0
+  const payload = {
     user_id: authStore.user.value.id,
-    date: new Date().toISOString()
-  }])
+    weight_dg: Math.round(weightKgVal * 10),
+    waist_mm: newBiometric.value.waist_cm ? Math.round(newBiometric.value.waist_cm * 10) : null,
+    chest_mm: newBiometric.value.chest_cm ? Math.round(newBiometric.value.chest_cm * 10) : null,
+    ts: new Date().toISOString()
+  }
+  const { data, error } = await supabase.from('biometrics').insert([payload])
   if (!error && data) {
     biometrics.value.unshift(data[0])
   }
@@ -161,109 +179,148 @@ onMounted(() => {
 
 <template>
   <!-- Progressive Onboarding Gate -->
-  <OnboardingModal
-    v-if="isOnboardingPending"
-    :initial-profile="userProfile"
-    @completed="onOnboardingCompleted"
-  />
+  <OnboardingModal v-if="isOnboardingPending" :initial-profile="userProfile" :latest-biometric="biometrics[0] || null"
+    @completed="onOnboardingCompleted" @dismiss="showOnboardingModal = false" />
 
   <div class="max-w-4xl mx-auto px-4 py-8 space-y-8">
     <header class="flex items-center justify-between border-b border-slate-800 pb-4">
       <div>
         <h1 class="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
-          mFit Tracker
+          {{ t('brand.name') }}
         </h1>
-        <p class="text-slate-400 text-sm mt-1">Lightweight PWA • Offline Ready</p>
       </div>
       <div class="flex items-center gap-3">
-        <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300">
-          <UserIcon class="w-3.5 h-3.5 text-emerald-400" />
-          <span>{{ authStore.user.value?.email }}</span>
-        </div>
-        <button 
-          @click="fetchAll" 
-          title="Refresh Data"
-          class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 transition cursor-pointer"
-        >
+        <button @click="fetchAll" :title="t('dash.actions.refresh')"
+          class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 transition cursor-pointer">
           <RefreshCw class="w-4 h-4 text-slate-300" :class="{ 'animate-spin': loading }" />
         </button>
-        <button 
-          @click="handleSignOut" 
-          title="Sign Out"
-          class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:bg-rose-950/60 hover:border-rose-900 text-slate-300 hover:text-rose-300 transition cursor-pointer"
-        >
-          <LogOut class="w-4 h-4" />
-        </button>
+
+        <!-- Profile Button & Dropdown Menu -->
+        <div class="relative"
+          @focusout="(e) => { const ct = e.currentTarget as HTMLElement; if (ct && !ct.contains(e.relatedTarget as Node)) showProfileMenu = false }">
+          <button @click="showProfileMenu = !showProfileMenu"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-200 transition cursor-pointer">
+            <div
+              class="w-5 h-5 rounded-full bg-emerald-950 border border-emerald-800/60 flex items-center justify-center text-emerald-400">
+              <UserIcon class="w-3 h-3" />
+            </div>
+            <span class="font-medium max-w-[140px] truncate">
+              {{ authStore.user.value?.user_metadata?.display_name || authStore.user.value?.email }}
+            </span>
+            <ChevronDown class="w-3.5 h-3.5 text-slate-400 transition-transform"
+              :class="{ 'rotate-180': showProfileMenu }" />
+          </button>
+
+          <!-- Dropdown Popover Backdrop for Mobile / Outside Click -->
+          <div v-if="showProfileMenu" @click="showProfileMenu = false" class="fixed inset-0 z-30 bg-transparent"></div>
+
+          <!-- Dropdown Popover -->
+          <div v-if="showProfileMenu" @click="showProfileMenu = false" tabindex="-1"
+            class="absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1.5 z-40 space-y-1 animate-in fade-in zoom-in-95 duration-100 focus:outline-none">
+            <!-- User metadata header -->
+            <div class="px-3 py-2 border-b border-slate-800/80 mb-1">
+              <div class="text-xs font-semibold text-slate-200 truncate">
+                {{ authStore.user.value?.user_metadata?.display_name || 'My Profile' }}
+              </div>
+              <div class="text-[11px] text-slate-500 truncate">
+                {{ authStore.user.value?.email }}
+              </div>
+            </div>
+
+            <!-- Onboarding / Biometrics Settings Option -->
+            <button type="button" @click="showOnboardingModal = true"
+              class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-emerald-400 transition cursor-pointer">
+              <Sliders class="w-3.5 h-3.5" />
+              <span>{{ t('dash.profile.redo_onboarding') }}</span>
+            </button>
+
+            <!-- Logout Option -->
+            <button type="button" @click="handleSignOut"
+              class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-rose-400 hover:bg-rose-950/40 transition cursor-pointer">
+              <LogOut class="w-3.5 h-3.5" />
+              <span>{{ t('dash.actions.signout') }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-1">
         <div class="flex items-center text-emerald-400 gap-2 text-xs font-semibold uppercase tracking-wider">
-          <Flame class="w-4 h-4" /> Active Burn
+          <Flame class="w-4 h-4" /> {{ t('dash.stats.active_burn') }}
         </div>
-        <div class="text-2xl font-bold text-slate-100">{{ totalActiveCalories }} <span class="text-xs text-slate-400 font-normal">kcal</span></div>
+        <div class="text-2xl font-bold text-slate-100">{{ totalActiveCalories }} <span
+            class="text-xs text-slate-400 font-normal">kcal</span></div>
       </div>
 
       <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-1">
         <div class="flex items-center text-amber-400 gap-2 text-xs font-semibold uppercase tracking-wider">
-          <Utensils class="w-4 h-4" /> Consumed
+          <Utensils class="w-4 h-4" /> {{ t('dash.stats.consumed') }}
         </div>
-        <div class="text-2xl font-bold text-slate-100">{{ totalCaloriesConsumed }} <span class="text-xs text-slate-400 font-normal">kcal</span></div>
+        <div class="text-2xl font-bold text-slate-100">{{ totalCaloriesConsumed }} <span
+            class="text-xs text-slate-400 font-normal">kcal</span></div>
       </div>
 
       <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-1">
         <div class="flex items-center text-cyan-400 gap-2 text-xs font-semibold uppercase tracking-wider">
-          <Droplets class="w-4 h-4" /> Water Intake
+          <Droplets class="w-4 h-4" /> {{ t('dash.stats.water_intake') }}
         </div>
-        <div class="text-2xl font-bold text-slate-100">{{ totalWaterMl }} <span class="text-xs text-slate-400 font-normal">ml</span></div>
+        <div class="text-2xl font-bold text-slate-100">{{ totalWaterMl }} <span
+            class="text-xs text-slate-400 font-normal">ml</span></div>
       </div>
 
       <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-1">
         <div class="flex items-center text-purple-400 gap-2 text-xs font-semibold uppercase tracking-wider">
-          <Scale class="w-4 h-4" /> Latest Weight
+          <Scale class="w-4 h-4" /> {{ t('dash.stats.latest_weight') }}
         </div>
-        <div class="text-2xl font-bold text-slate-100">{{ latestWeight || '--' }} <span class="text-xs text-slate-400 font-normal">kg</span></div>
+        <div class="text-2xl font-bold text-slate-100">{{ latestWeight || '--' }} <span
+            class="text-xs text-slate-400 font-normal">kg</span></div>
       </div>
     </div>
 
     <div class="flex border-b border-slate-800 space-x-4">
-      <button 
-        v-for="tab in (['workouts', 'biometrics', 'meals', 'water'] as const)" 
-        :key="tab"
-        @click="activeTab = tab"
+      <button v-for="tab in (['workouts', 'biometrics', 'meals', 'water'] as const)" :key="tab" @click="activeTab = tab"
         :class="[
           'pb-3 font-medium capitalize transition-colors border-b-2 text-sm cursor-pointer',
-          activeTab === tab 
-            ? 'border-emerald-500 text-emerald-400' 
+          activeTab === tab
+            ? 'border-emerald-500 text-emerald-400'
             : 'border-transparent text-slate-400 hover:text-slate-200'
-        ]"
-      >
-        {{ tab }}
+        ]">
+        {{ t(`dash.nav.${tab}`) }}
       </button>
     </div>
 
     <div v-if="activeTab === 'workouts'" class="space-y-6">
-      <form @submit.prevent="addWorkout" class="bg-slate-900 border border-slate-800 p-4 rounded-xl grid sm:grid-cols-4 gap-4 items-end">
+      <form @submit.prevent="addWorkout"
+        class="bg-slate-900 border border-slate-800 p-4 rounded-xl grid sm:grid-cols-4 gap-4 items-end">
         <div>
           <label class="text-xs text-slate-400 block mb-1">Workout Type</label>
-          <input v-model="newWorkout.workout_type" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-emerald-500" required />
+          <input v-model="newWorkout.workout_type"
+            class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+            required />
         </div>
         <div>
           <label class="text-xs text-slate-400 block mb-1">Active Cal</label>
-          <input type="number" v-model.number="newWorkout.active_calories" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-emerald-500" required />
+          <input type="number" v-model.number="newWorkout.active_calories"
+            class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+            required />
         </div>
         <div>
           <label class="text-xs text-slate-400 block mb-1">Duration (min)</label>
-          <input type="number" v-model.number="newWorkout.duration_minutes" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-emerald-500" required />
+          <input type="number" v-model.number="newWorkout.duration_minutes"
+            class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
+            required />
         </div>
-        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 px-4 rounded text-sm flex items-center justify-center gap-2 cursor-pointer">
+        <button type="submit"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 px-4 rounded text-sm flex items-center justify-center gap-2 cursor-pointer">
           <Plus class="w-4 h-4" /> Log Workout
         </button>
       </form>
 
       <div class="space-y-2">
-        <div v-for="w in workouts" :key="w.id" class="bg-slate-900 border border-slate-800 p-3 rounded-lg flex items-center justify-between text-sm">
+        <div v-for="w in workouts" :key="w.id"
+          class="bg-slate-900 border border-slate-800 p-3 rounded-lg flex items-center justify-between text-sm">
           <div class="flex items-center gap-3">
             <Activity class="w-5 h-5 text-emerald-400" />
             <div>
@@ -282,13 +339,16 @@ onMounted(() => {
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl text-center space-y-4">
         <h3 class="text-lg font-semibold text-slate-200">Quick Water Add</h3>
         <div class="flex justify-center gap-4">
-          <button @click="addWater(250)" class="bg-cyan-950 border border-cyan-800 text-cyan-400 hover:bg-cyan-900 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer">
+          <button @click="addWater(250)"
+            class="bg-cyan-950 border border-cyan-800 text-cyan-400 hover:bg-cyan-900 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer">
             + 250 ml
           </button>
-          <button @click="addWater(500)" class="bg-cyan-950 border border-cyan-800 text-cyan-400 hover:bg-cyan-900 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer">
+          <button @click="addWater(500)"
+            class="bg-cyan-950 border border-cyan-800 text-cyan-400 hover:bg-cyan-900 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer">
             + 500 ml
           </button>
-          <button @click="addWater(750)" class="bg-cyan-950 border border-cyan-800 text-cyan-400 hover:bg-cyan-900 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer">
+          <button @click="addWater(750)"
+            class="bg-cyan-950 border border-cyan-800 text-cyan-400 hover:bg-cyan-900 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer">
             + 750 ml
           </button>
         </div>

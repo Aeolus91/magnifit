@@ -2,80 +2,316 @@
 import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import { useAuthStore } from '../stores/authStore'
-import { ProfilePrefs } from '../lib/bitmask'
+import { useI18n } from '../lib/i18n'
+import { ProfilePrefs, MicroNutrientFlags } from '../lib/bitmask'
 import type { Profile, Biometric } from '../types/fitness'
-import { 
-  User, 
-  Sparkles, 
-  Ruler, 
-  Scale, 
-  Target, 
-  Activity, 
-  ArrowRight, 
-  ArrowLeft, 
-  Check, 
-  AlertCircle, 
-  Loader2 
+import YearPicker from './YearPicker.vue'
+import FormInput from './FormInput.vue'
+import ToggleSwitch from './ToggleSwitch.vue'
+import DropdownPicker from './DropdownPicker.vue'
+import {
+  User,
+  Sparkles,
+  Ruler,
+  Scale,
+  Target,
+  Activity,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  AlertCircle,
+  Loader2,
+  AtSign,
+  Sliders,
+  PieChart,
+  X
 } from '@lucide/vue'
 
 const props = defineProps<{
   initialProfile?: Profile | null
+  latestBiometric?: Biometric | null
 }>()
 
 const emit = defineEmits<{
   (e: 'completed', profile: Profile): void
+  (e: 'dismiss'): void
 }>()
 
 const authStore = useAuthStore()
+const { t } = useI18n()
+
+const isOnboardingAlreadyCompleted = computed(() => {
+  if (!props.initialProfile) return false
+  return (props.initialProfile.prefs & ProfilePrefs.ONBOARDING_COMPLETED) !== 0
+})
 
 const currentStep = ref<number>(1)
-const totalSteps = 3
 const isSubmitting = ref<boolean>(false)
 const errorMessage = ref<string | null>(null)
 
 // Step 1: Identity
+const fullName = ref<string>(authStore.user.value?.user_metadata?.display_name || '')
 const username = ref<string>(props.initialProfile?.username || '')
 
 // Step 2: Physical Stats
-const sex = ref<'male' | 'female' | 'other' | 'unspecified'>('unspecified')
-const birthYear = ref<number>(2000)
-const heightCm = ref<number>(175)
-const weightKg = ref<number>(75.0)
+const sex = ref<'male' | 'female' | 'other' | 'unspecified'>(props.initialProfile?.sex || 'unspecified')
+const birthYear = ref<number>(props.initialProfile?.birth_year || 1995)
 
-// Step 3: Goals & Activity
-const activityLevel = ref<'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'>('moderate')
-const targetWeightKg = ref<number>(72.0)
-const isImperial = ref<boolean>(false)
-const trackMicros = ref<boolean>(false)
+const isImperial = ref<boolean>(
+  props.initialProfile ? (props.initialProfile.prefs & ProfilePrefs.IMPERIAL) !== 0 : false
+)
+const trackMicros = ref<boolean>(
+  props.initialProfile ? (props.initialProfile.prefs & ProfilePrefs.TRACK_MICROS) !== 0 : false
+)
 
-const progressPercent = computed(() => {
-  return Math.round((currentStep.value / totalSteps) * 100)
+// Dynamic step counter based on trackMicros toggle
+const totalSteps = computed(() => (trackMicros.value ? 4 : 3))
+
+// Step 4: Micronutrient Selection State
+const selectedMicros = ref<number>(props.initialProfile?.micros_opt || 0)
+
+const microList = Object.entries(MicroNutrientFlags).map(([key, item]) => ({
+  key,
+  bit: item.bit,
+  col: item.col,
+  label: key.replace(/_/g, ' ')
+}))
+
+const isAllMicrosSelected = computed(() => {
+  const allBits = microList.reduce((acc, m) => acc | m.bit, 0)
+  return (selectedMicros.value & allBits) === allBits
 })
 
-const nextStep = () => {
+const selectedMicrosCount = computed(() => {
+  return microList.filter(m => (selectedMicros.value & m.bit) !== 0).length
+})
+
+const toggleMicro = (bit: number) => {
+  if ((selectedMicros.value & bit) !== 0) {
+    selectedMicros.value &= ~bit
+  } else {
+    selectedMicros.value |= bit
+  }
+}
+
+const selectAllMicros = () => {
+  const allBits = microList.reduce((acc, m) => acc | m.bit, 0)
+  selectedMicros.value = allBits
+}
+
+const deselectAllMicros = () => {
+  selectedMicros.value = 0
+}
+
+// Height: if imperial, display in inches, otherwise cm
+const heightCm = ref<number | null>(
+  props.initialProfile?.height_cm
+    ? (isImperial.value ? Number((props.initialProfile.height_cm / 2.54).toFixed(1)) : props.initialProfile.height_cm)
+    : null
+)
+
+// Current Weight from latestBiometric
+const initialWeightKg = computed(() => {
+  if (!props.latestBiometric) return null
+  if (props.latestBiometric.weight_dg !== undefined && props.latestBiometric.weight_dg !== null) {
+    return props.latestBiometric.weight_dg / 10
+  }
+  return props.latestBiometric.weight_kg || null
+})
+
+const weightKg = ref<number | null>(
+  initialWeightKg.value !== null
+    ? (isImperial.value ? Number((initialWeightKg.value / 0.453592).toFixed(1)) : Number(initialWeightKg.value.toFixed(1)))
+    : null
+)
+
+const sexOptions = computed(() => [
+  { value: 'male', label: t('onboarding.step2.sex_male') },
+  { value: 'female', label: t('onboarding.step2.sex_female') },
+  { value: 'other', label: t('onboarding.step2.sex_other') },
+  { value: 'unspecified', label: t('onboarding.step2.sex_unspecified') }
+])
+
+// Step 3: Goals & Activity
+const activityLevel = ref<'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'>(
+  props.initialProfile?.activity_level || 'moderate'
+)
+
+const targetWeightKg = ref<number | null>(
+  props.initialProfile?.target_weight_dg
+    ? (isImperial.value
+        ? Number(((props.initialProfile.target_weight_dg / 10) / 0.453592).toFixed(1))
+        : Number((props.initialProfile.target_weight_dg / 10).toFixed(1)))
+    : null
+)
+
+const activityOptions = computed(() => [
+  { value: 'sedentary', label: t('onboarding.step3.activity_sedentary') },
+  { value: 'light', label: t('onboarding.step3.activity_light') },
+  { value: 'moderate', label: t('onboarding.step3.activity_moderate') },
+  { value: 'active', label: t('onboarding.step3.activity_active') },
+  { value: 'very_active', label: t('onboarding.step3.activity_very_active') }
+])
+
+const progressPercent = computed(() => {
+  return Math.round((currentStep.value / totalSteps.value) * 100)
+})
+
+const isSavingStep = ref<boolean>(false)
+
+const saveStep1 = async (): Promise<boolean> => {
+  if (!authStore.user.value?.id) return false
+  isSavingStep.value = true
+  try {
+    const userId = authStore.user.value.id
+    // 1. Update display name in auth metadata
+    if (fullName.value.trim()) {
+      await supabase.auth.updateUser({
+        data: {
+          display_name: fullName.value.trim(),
+          full_name: fullName.value.trim()
+        }
+      }).catch(() => {})
+    }
+    // 2. Persist username in profiles
+    const payload = {
+      username: username.value.trim().toLowerCase(),
+      updated_at: new Date().toISOString()
+    }
+    const { error } = await supabase.from('profiles').update(payload).eq('id', userId)
+    if (error) {
+      await supabase.from('profiles').insert([{ id: userId, ...payload }])
+    }
+    return true
+  } catch (err: any) {
+    errorMessage.value = err.message || 'Failed to save profile identity.'
+    return false
+  } finally {
+    isSavingStep.value = false
+  }
+}
+
+const saveStep2 = async (): Promise<boolean> => {
+  if (!authStore.user.value?.id) return false
+  isSavingStep.value = true
+  try {
+    const userId = authStore.user.value.id
+
+    const finalHeightCm = isImperial.value
+      ? Math.round(heightCm.value! * 2.54)
+      : Math.round(heightCm.value!)
+
+    const finalWeightKg = isImperial.value
+      ? weightKg.value! * 0.453592
+      : weightKg.value!
+
+    const currentWeightDg = Math.round(finalWeightKg * 10)
+
+    let bitmask = props.initialProfile?.prefs || 0
+    if (isImperial.value) {
+      bitmask |= ProfilePrefs.IMPERIAL
+    } else {
+      bitmask &= ~ProfilePrefs.IMPERIAL
+    }
+
+    const payload = {
+      height_cm: finalHeightCm,
+      sex: sex.value,
+      birth_year: birthYear.value,
+      prefs: bitmask,
+      updated_at: new Date().toISOString()
+    }
+    await supabase.from('profiles').update(payload).eq('id', userId)
+
+    await supabase.from('biometrics').insert([{
+      user_id: userId,
+      weight_dg: currentWeightDg,
+      ts: new Date().toISOString()
+    }])
+
+    return true
+  } catch (err: any) {
+    errorMessage.value = err.message || 'Failed to save biometrics.'
+    return false
+  } finally {
+    isSavingStep.value = false
+  }
+}
+
+const saveStep3 = async (): Promise<boolean> => {
+  if (!authStore.user.value?.id) return false
+  isSavingStep.value = true
+  try {
+    const userId = authStore.user.value.id
+
+    let bitmask = props.initialProfile?.prefs || 0
+    if (isImperial.value) {
+      bitmask |= ProfilePrefs.IMPERIAL
+    } else {
+      bitmask &= ~ProfilePrefs.IMPERIAL
+    }
+    if (trackMicros.value) {
+      bitmask |= ProfilePrefs.TRACK_MICROS
+    } else {
+      bitmask &= ~ProfilePrefs.TRACK_MICROS
+    }
+
+    const finalTargetWeightKg = targetWeightKg.value !== null
+      ? (isImperial.value ? targetWeightKg.value * 0.453592 : targetWeightKg.value)
+      : null
+
+    const targetWeightDg = finalTargetWeightKg !== null ? Math.round(finalTargetWeightKg * 10) : null
+
+    const payload = {
+      target_weight_dg: targetWeightDg,
+      activity_level: activityLevel.value,
+      prefs: bitmask,
+      updated_at: new Date().toISOString()
+    }
+    await supabase.from('profiles').update(payload).eq('id', userId)
+    return true
+  } catch (err: any) {
+    errorMessage.value = err.message || 'Failed to save lifestyle goals.'
+    return false
+  } finally {
+    isSavingStep.value = false
+  }
+}
+
+const nextStep = async () => {
   errorMessage.value = null
   if (currentStep.value === 1) {
+    if (!fullName.value.trim()) {
+      errorMessage.value = t('onboarding.step1.error_name')
+      return
+    }
     if (!username.value.trim()) {
-      errorMessage.value = 'Please enter a valid username.'
+      errorMessage.value = t('onboarding.step1.error_username')
       return
     }
-    // Check alphanumeric and underscore
     if (!/^[a-zA-Z0-9_]{3,32}$/.test(username.value.trim())) {
-      errorMessage.value = 'Username must be 3-32 characters (letters, numbers, underscores).'
+      errorMessage.value = t('onboarding.step1.error_username_format')
       return
     }
+    const ok = await saveStep1()
+    if (!ok) return
   } else if (currentStep.value === 2) {
-    if (heightCm.value < 50 || heightCm.value > 260) {
-      errorMessage.value = 'Height must be between 50 cm and 260 cm.'
+    if (heightCm.value === null || heightCm.value < 20 || heightCm.value > 260) {
+      errorMessage.value = t('onboarding.step2.error_height')
       return
     }
-    if (weightKg.value < 20 || weightKg.value > 500) {
-      errorMessage.value = 'Weight must be between 20 kg and 500 kg.'
+    if (weightKg.value === null || weightKg.value < 20 || weightKg.value > 1100) {
+      errorMessage.value = t('onboarding.step2.error_weight')
       return
     }
+    const ok = await saveStep2()
+    if (!ok) return
+  } else if (currentStep.value === 3) {
+    const ok = await saveStep3()
+    if (!ok) return
   }
 
-  if (currentStep.value < totalSteps) {
+  if (currentStep.value < totalSteps.value) {
     currentStep.value++
   }
 }
@@ -89,13 +325,17 @@ const prevStep = () => {
 
 const handleCompleteOnboarding = async () => {
   if (!authStore.user.value?.id) return
+  if (heightCm.value === null || weightKg.value === null) {
+    errorMessage.value = t('onboarding.step2.error_height')
+    return
+  }
   isSubmitting.value = true
   errorMessage.value = null
 
   try {
     const userId = authStore.user.value.id
 
-    // Compute updated prefs
+    // Compute updated prefs and seal ONBOARDING_COMPLETED
     let bitmask = (props.initialProfile?.prefs || 0) | ProfilePrefs.ONBOARDING_COMPLETED
     if (isImperial.value) {
       bitmask |= ProfilePrefs.IMPERIAL
@@ -108,52 +348,38 @@ const handleCompleteOnboarding = async () => {
       bitmask &= ~ProfilePrefs.TRACK_MICROS
     }
 
-    const targetWeightDg = Math.round(targetWeightKg.value * 10)
-    const currentWeightDg = Math.round(weightKg.value * 10)
+    const finalTargetWeightKg = targetWeightKg.value !== null
+      ? (isImperial.value ? targetWeightKg.value * 0.453592 : targetWeightKg.value)
+      : null
 
-    // 1. Update Profile row in database
+    const targetWeightDg = finalTargetWeightKg !== null ? Math.round(finalTargetWeightKg * 10) : null
+
+    // Update final profile with goals, micros_opt, and ONBOARDING_COMPLETED flag
     const profilePayload: Partial<Profile> = {
-      username: username.value.trim().toLowerCase(),
-      height_cm: heightCm.value,
       target_weight_dg: targetWeightDg,
-      sex: sex.value,
       activity_level: activityLevel.value,
-      birth_year: birthYear.value,
       prefs: bitmask,
-      micros_opt: 0,
+      micros_opt: trackMicros.value ? selectedMicros.value : 0,
       updated_at: new Date().toISOString()
     }
 
-    const { data: updatedProfileData, error: profileErr } = await supabase
+    const { error: profileErr } = await supabase
       .from<Profile>('profiles')
-      .insert([{
-        id: userId,
-        ...profilePayload
-      }])
+      .update(profilePayload)
+      .eq('id', userId)
 
-    if (profileErr) {
-      // If profile already exists, do update
-      const res = await fetch(`${(supabase as any).url}/rest/v1/profiles?id=eq.${userId}`, {
-        method: 'PATCH',
-        headers: (supabase as any).getHeaders(),
-        body: JSON.stringify(profilePayload)
-      })
-      if (!res.ok) throw new Error('Failed to update profile stats.')
-    }
-
-    // 2. Insert baseline initial weight into biometrics
-    await supabase.from<Biometric>('biometrics').insert([{
-      user_id: userId,
-      weight_kg: weightKg.value,
-      date: new Date().toISOString()
-    }])
+    if (profileErr) throw profileErr
 
     emit('completed', {
       id: userId,
+      username: username.value.trim().toLowerCase(),
+      height_cm: isImperial.value ? Math.round(heightCm.value * 2.54) : Math.round(heightCm.value),
+      sex: sex.value,
+      birth_year: birthYear.value,
       ...profilePayload
     } as Profile)
   } catch (err: any) {
-    errorMessage.value = err.message || 'Failed to save onboarding profile.'
+    errorMessage.value = err.message || 'Failed to complete onboarding.'
   } finally {
     isSubmitting.value = false
   }
@@ -161,33 +387,42 @@ const handleCompleteOnboarding = async () => {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden overscroll-none touch-none">
-    <div class="w-full max-w-lg bg-slate-900/95 border border-slate-800/90 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 flex flex-col justify-between">
-      
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden overscroll-none touch-none">
+    <div
+      class="w-full max-w-lg bg-slate-900/95 border border-slate-800/90 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 flex flex-col justify-between">
+
       <!-- Top Progress & Header -->
       <div class="space-y-4">
         <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
           <div class="flex items-center gap-1.5 text-emerald-400">
             <Sparkles class="w-4 h-4" />
-            <span>Profile Setup</span>
+            <span>{{ t('onboarding.title') }}</span>
           </div>
-          <span>Step {{ currentStep }} of {{ totalSteps }} ({{ progressPercent }}%)</span>
+          <div class="flex items-center gap-3">
+            <span>{{ t('onboarding.step_counter', { step: currentStep, total: totalSteps, percent: progressPercent }) }}</span>
+            <button
+              v-if="isOnboardingAlreadyCompleted"
+              type="button"
+              @click="emit('dismiss')"
+              class="p-1 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-800 hover:text-slate-200 text-slate-400 transition cursor-pointer"
+              title="Close"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <!-- Segmented Progress Bar -->
         <div class="w-full bg-slate-950 border border-slate-800 rounded-full h-2 overflow-hidden">
-          <div 
-            class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-300 ease-out"
-            :style="{ width: `${progressPercent}%` }"
-          ></div>
+          <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-300 ease-out"
+            :style="{ width: `${progressPercent}%` }"></div>
         </div>
       </div>
 
       <!-- Error Message -->
-      <div
-        v-if="errorMessage"
-        class="bg-rose-950/60 border border-rose-900/80 rounded-xl p-3 flex items-start gap-2.5 text-rose-300 text-xs sm:text-sm"
-      >
+      <div v-if="errorMessage"
+        class="bg-rose-950/60 border border-rose-900/80 rounded-xl p-3 flex items-start gap-2.5 text-rose-300 text-xs sm:text-sm">
         <AlertCircle class="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
         <span>{{ errorMessage }}</span>
       </div>
@@ -195,83 +430,62 @@ const handleCompleteOnboarding = async () => {
       <!-- Step 1: Identity -->
       <div v-if="currentStep === 1" class="space-y-4">
         <div class="space-y-1">
-          <h2 class="text-xl font-bold text-slate-100">Choose Your Handle</h2>
-          <p class="text-slate-400 text-xs sm:text-sm">Set your unique username for sharing recipes and profile privacy.</p>
+          <h2 class="text-xl font-bold text-slate-100">{{ t('onboarding.step1.title') }}</h2>
+          <p class="text-slate-400 text-xs sm:text-sm">{{ t('onboarding.step1.desc') }}</p>
         </div>
 
-        <div class="space-y-1.5 pt-2">
-          <label class="text-xs font-semibold text-slate-300">Username</label>
-          <div class="relative">
-            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-semibold">@</span>
-            <input
-              type="text"
-              v-model="username"
-              required
-              placeholder="alex_runner"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3.5 py-2.5 text-base sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition font-mono"
-            />
+        <div class="space-y-3 pt-2">
+          <FormInput v-model="fullName" :label="t('onboarding.step1.fullname_label')" :icon="User"
+            icon-position="field-left" icon-color="text-emerald-400"
+            :placeholder="t('onboarding.step1.fullname_placeholder')" required />
+
+          <div>
+            <FormInput v-model="username" :label="t('onboarding.step1.username_label')" :icon="AtSign"
+              icon-position="field-left" icon-color="text-emerald-400"
+              :placeholder="t('onboarding.step1.username_placeholder')" required input-class="font-mono" />
+            <p class="text-[11px] text-slate-500 mt-1">{{ t('onboarding.step1.username_hint') }}</p>
           </div>
-          <p class="text-[11px] text-slate-500">Only letters, numbers, and underscores.</p>
         </div>
       </div>
 
       <!-- Step 2: Physical Biometrics -->
       <div v-if="currentStep === 2" class="space-y-4">
         <div class="space-y-1">
-          <h2 class="text-xl font-bold text-slate-100">Baseline Biometrics</h2>
-          <p class="text-slate-400 text-xs sm:text-sm">Used for energy expenditure & calorie burn calculations.</p>
+          <h2 class="text-xl font-bold text-slate-100">{{ t('onboarding.step2.title') }}</h2>
+          <p class="text-slate-400 text-xs sm:text-sm">{{ t('onboarding.step2.desc') }}</p>
         </div>
 
         <div class="grid grid-cols-2 gap-4 pt-2">
-          <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-300">Biological Sex</label>
-            <select 
-              v-model="sex"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-base sm:text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
-            >
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-              <option value="unspecified">Prefer not to say</option>
-            </select>
-          </div>
+          <DropdownPicker
+            v-model="sex"
+            :label="t('onboarding.step2.sex_label')"
+            :options="sexOptions"
+          />
 
           <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-300">Birth Year</label>
-            <input
-              type="number"
-              v-model.number="birthYear"
-              min="1920"
-              max="2020"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-base sm:text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition"
-            />
+            <label class="text-xs font-semibold text-slate-300">{{ t('onboarding.step2.birth_year_label') }}</label>
+            <YearPicker v-model="birthYear" :min-year="1930" />
           </div>
 
-          <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-              <Ruler class="w-3.5 h-3.5 text-teal-400" /> Height (cm)
-            </label>
-            <input
-              type="number"
-              v-model.number="heightCm"
-              min="50"
-              max="260"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-base sm:text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition"
-            />
-          </div>
+          <FormInput v-model="heightCm"
+            :label="isImperial ? t('onboarding.step2.height_imperial_label') : t('onboarding.step2.height_metric_label')"
+            type="number" :min="isImperial ? 20 : 50" :max="isImperial ? 100 : 260" :icon="Ruler"
+            icon-position="field-left" icon-color="text-teal-400" :placeholder="isImperial ? 'e.g. 69' : 'e.g. 175'"
+            required />
 
-          <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-              <Scale class="w-3.5 h-3.5 text-emerald-400" /> Current Weight (kg)
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              v-model.number="weightKg"
-              min="20"
-              max="500"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-base sm:text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition"
-            />
+          <FormInput v-model="weightKg"
+            :label="isImperial ? t('onboarding.step2.weight_imperial_label') : t('onboarding.step2.weight_metric_label')"
+            type="number" step="0.1" :min="isImperial ? 45 : 20" :max="isImperial ? 1100 : 500" :icon="Scale"
+            icon-position="field-left" icon-color="text-emerald-400"
+            :placeholder="isImperial ? 'e.g. 154.0' : 'e.g. 70.0'" required />
+        </div>
+
+        <!-- Centered Unit System Toggle below Height & Weight -->
+        <div class="flex justify-center pt-2">
+          <div class="w-full sm:w-4/5">
+            <ToggleSwitch v-model="isImperial" :label="t('onboarding.step2.units_toggle_label')"
+              :left-label="t('onboarding.step2.units_metric')" :right-label="t('onboarding.step2.units_imperial')"
+              :icon="Sliders" icon-color="text-emerald-400" />
           </div>
         </div>
       </div>
@@ -279,89 +493,114 @@ const handleCompleteOnboarding = async () => {
       <!-- Step 3: Goals & Activity Level -->
       <div v-if="currentStep === 3" class="space-y-4">
         <div class="space-y-1">
-          <h2 class="text-xl font-bold text-slate-100">Goals & Lifestyle</h2>
-          <p class="text-slate-400 text-xs sm:text-sm">Configure target milestones and tracking preferences.</p>
+          <h2 class="text-xl font-bold text-slate-100">{{ t('onboarding.step3.title') }}</h2>
+          <p class="text-slate-400 text-xs sm:text-sm">{{ t('onboarding.step3.desc') }}</p>
         </div>
 
         <div class="space-y-4 pt-2">
-          <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-              <Activity class="w-3.5 h-3.5 text-cyan-400" /> Daily Activity Level
-            </label>
-            <select 
-              v-model="activityLevel"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-base sm:text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition cursor-pointer"
+          <DropdownPicker
+            v-model="activityLevel"
+            :label="t('onboarding.step3.activity_label')"
+            :options="activityOptions"
+            :icon="Activity"
+            icon-position="label-left"
+            icon-color="text-cyan-400"
+          />
+
+          <FormInput v-model="targetWeightKg"
+            :label="isImperial ? t('onboarding.step3.target_weight_imperial_label') : t('onboarding.step3.target_weight_metric_label')"
+            type="number" step="0.1" :min="isImperial ? 45 : 20" :max="isImperial ? 1100 : 500" :icon="Target"
+            icon-position="field-left" icon-color="text-purple-400"
+            :placeholder="isImperial ? 'e.g. 150.0' : 'e.g. 68.0'" />
+
+          <!-- Micronutrients Tracking Toggle -->
+          <ToggleSwitch v-model="trackMicros" :label="t('onboarding.step3.micros_toggle_label')"
+            :description="t('onboarding.step3.micros_toggle_desc')" :icon="PieChart" icon-color="text-teal-400" />
+        </div>
+      </div>
+
+      <!-- Step 4: Micronutrient Selection Grid (Shown only if trackMicros is enabled) -->
+      <div v-if="currentStep === 4 && trackMicros" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="space-y-0.5">
+            <h2 class="text-xl font-bold text-slate-100">{{ t('onboarding.step4.title') }}</h2>
+            <p class="text-slate-400 text-xs">{{ t('onboarding.step4.desc') }}</p>
+          </div>
+        </div>
+
+        <!-- Select / Deselect All Controls -->
+        <div class="flex items-center justify-between px-1 text-xs">
+          <span class="text-slate-400 font-medium">
+            {{ t('onboarding.step4.selected_count', { count: selectedMicrosCount }) }}
+          </span>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              @click="isAllMicrosSelected ? deselectAllMicros() : selectAllMicros()"
+              class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition cursor-pointer select-none"
             >
-              <option value="sedentary">Sedentary (Desk job, minimal exercise)</option>
-              <option value="light">Lightly Active (1-3 workouts / week)</option>
-              <option value="moderate">Moderately Active (3-5 workouts / week)</option>
-              <option value="active">Active (6-7 intense workouts / week)</option>
-              <option value="very_active">Very Active (Athlete / Physical job)</option>
-            </select>
+              {{ isAllMicrosSelected ? t('onboarding.step4.deselect_all') : t('onboarding.step4.select_all') }}
+            </button>
           </div>
+        </div>
 
-          <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-              <Target class="w-3.5 h-3.5 text-purple-400" /> Target Goal Weight (kg)
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              v-model.number="targetWeightKg"
-              min="20"
-              max="500"
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-base sm:text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition"
-            />
-          </div>
-
-          <div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800/80 rounded-xl">
-            <div>
-              <div class="text-xs font-semibold text-slate-200">Track Micronutrients</div>
-              <div class="text-[11px] text-slate-500">Enable detailed sugar, fiber & fat tracking</div>
+        <!-- 2-Column Compact Scrollable Checkbox Grid -->
+        <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto overscroll-contain pr-1 scrollbar-thin scrollbar-thumb-slate-800">
+          <div
+            v-for="micro in microList"
+            :key="micro.key"
+            @click="toggleMicro(micro.bit)"
+            :class="[
+              'flex items-center justify-between p-2.5 rounded-xl border transition cursor-pointer select-none text-xs',
+              (selectedMicros & micro.bit) !== 0
+                ? 'bg-emerald-950/40 border-emerald-800/80 text-emerald-300 font-semibold'
+                : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700'
+            ]"
+          >
+            <span class="capitalize truncate mr-1.5">{{ micro.label }}</span>
+            <div
+              :class="[
+                'w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition border',
+                (selectedMicros & micro.bit) !== 0
+                  ? 'bg-emerald-500 border-emerald-500 text-slate-950'
+                  : 'border-slate-700 bg-slate-900'
+              ]"
+            >
+              <Check v-if="(selectedMicros & micro.bit) !== 0" class="w-3 h-3 stroke-[3]" />
             </div>
-            <input 
-              type="checkbox" 
-              v-model="trackMicros" 
-              class="w-4 h-4 accent-emerald-500 cursor-pointer"
-            />
           </div>
         </div>
       </div>
 
       <!-- Navigation Buttons -->
       <div class="flex items-center justify-between pt-4 border-t border-slate-800/80 gap-3">
-        <button
-          type="button"
-          v-if="currentStep > 1"
-          @click="prevStep"
-          class="px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition cursor-pointer"
-        >
+        <button type="button" v-if="currentStep > 1" @click="prevStep"
+          class="px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition cursor-pointer">
           <ArrowLeft class="w-4 h-4" />
-          <span>Back</span>
+          <span>{{ t('common.back') }}</span>
         </button>
         <div v-else></div>
 
-        <button
-          type="button"
-          v-if="currentStep < totalSteps"
+        <button 
+          type="button" 
+          v-if="currentStep < totalSteps" 
+          :disabled="isSavingStep"
           @click="nextStep"
-          class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold flex items-center gap-2 transition cursor-pointer"
+          class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
-          <span>Continue</span>
-          <ArrowRight class="w-4 h-4" />
+          <Loader2 v-if="isSavingStep" class="w-4 h-4 animate-spin" />
+          <template v-else>
+            <span>{{ t('common.continue') }}</span>
+            <ArrowRight class="w-4 h-4" />
+          </template>
         </button>
 
-        <button
-          type="button"
-          v-else
-          :disabled="isSubmitting"
-          @click="handleCompleteOnboarding"
-          class="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 text-xs sm:text-sm font-bold flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-emerald-950/40"
-        >
+        <button type="button" v-else :disabled="isSubmitting" @click="handleCompleteOnboarding"
+          class="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 text-xs sm:text-sm font-bold flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-emerald-950/40">
           <Loader2 v-if="isSubmitting" class="w-4 h-4 animate-spin" />
           <template v-else>
             <Check class="w-4 h-4 stroke-[3]" />
-            <span>Finish Setup</span>
+            <span>{{ t('common.finish') }}</span>
           </template>
         </button>
       </div>
