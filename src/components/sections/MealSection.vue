@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Meal } from '../../types/fitness'
 import MealEntry from '../entries/MealEntry.vue'
-import { Plus, ArrowRight } from '@lucide/vue'
+import { Plus } from '@lucide/vue'
 
 interface Props {
   meals: Meal[]

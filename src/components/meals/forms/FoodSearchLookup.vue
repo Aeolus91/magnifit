@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Search, Loader2, Plus, AlertCircle, X, QrCode, Camera } from '@lucide/vue'
+import { Search, Loader2, Plus, AlertCircle, X, QrCode } from '@lucide/vue'
 import { useI18n } from '../../../lib/i18n'
 import Modal from '../../modals/Modal.vue'
 
@@ -41,49 +41,77 @@ const scannerError = ref<string | null>(null)
 let scannerInterval: any = null
 let mediaStream: MediaStream | null = null
 
+import { nextTick } from 'vue'
+
 const startBarcodeScan = async () => {
-  showScannerModal.value = true
+  console.log('[BarcodeScanner] startBarcodeScan triggered')
   scannerError.value = null
   isScanningActive.value = true
+  showScannerModal.value = true
+
+  await nextTick()
+  console.log('[BarcodeScanner] Modal opened, nextTick completed. videoRef:', scannerVideoRef.value)
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    console.error('[BarcodeScanner] navigator.mediaDevices.getUserMedia is undefined (insecure context or unsupported browser)')
+    scannerError.value = 'Camera API is not supported in this browser context (HTTPS required).'
+    return
+  }
 
   try {
+    console.log('[BarcodeScanner] Requesting getUserMedia...')
     mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' }
+      video: {
+        facingMode: { ideal: 'environment' }
+      },
+      audio: false
     })
+    console.log('[BarcodeScanner] getUserMedia success. Stream active:', mediaStream.active)
 
-    setTimeout(() => {
-      if (scannerVideoRef.value && mediaStream) {
-        scannerVideoRef.value.srcObject = mediaStream
-        scannerVideoRef.value.play()
-
-        // Check native BarcodeDetector API support
-        if ('BarcodeDetector' in window) {
-          const barcodeDetector = new (window as any).BarcodeDetector({
-            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'code_128']
-          })
-
-          scannerInterval = setInterval(async () => {
-            if (scannerVideoRef.value && !scannerVideoRef.value.paused) {
-              try {
-                const barcodes = await barcodeDetector.detect(scannerVideoRef.value)
-                if (barcodes.length > 0) {
-                  const code = barcodes[0].rawValue
-                  stopBarcodeScan()
-                  searchQuery.value = code
-                  performSearch()
-                }
-              } catch {
-                // Keep detecting
-              }
-            }
-          }, 300)
-        } else {
-          scannerError.value = 'Live barcode camera API not supported by this browser. You can type the barcode number into the search bar.'
-        }
+    if (scannerVideoRef.value && mediaStream) {
+      scannerVideoRef.value.srcObject = mediaStream
+      scannerVideoRef.value.setAttribute('playsinline', 'true')
+      scannerVideoRef.value.setAttribute('autoplay', 'true')
+      scannerVideoRef.value.setAttribute('muted', 'true')
+      
+      try {
+        await scannerVideoRef.value.play()
+        console.log('[BarcodeScanner] video.play() started successfully')
+      } catch (playErr) {
+        console.warn('[BarcodeScanner] video.play() error:', playErr)
       }
-    }, 200)
+
+      // Check native BarcodeDetector API support
+      if ('BarcodeDetector' in window) {
+        console.log('[BarcodeScanner] BarcodeDetector supported in window')
+        const barcodeDetector = new (window as any).BarcodeDetector({
+          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'code_128', 'code_39']
+        })
+
+        scannerInterval = setInterval(async () => {
+          if (scannerVideoRef.value && scannerVideoRef.value.readyState >= 2 && !scannerVideoRef.value.paused) {
+            try {
+              const barcodes = await barcodeDetector.detect(scannerVideoRef.value)
+              if (barcodes.length > 0) {
+                const code = barcodes[0].rawValue
+                console.log('[BarcodeScanner] Barcode detected:', code)
+                stopBarcodeScan()
+                searchQuery.value = code
+                performSearch()
+              }
+            } catch (detErr) {
+              // Frame dropped
+            }
+          }
+        }, 250)
+      } else {
+        console.warn('[BarcodeScanner] BarcodeDetector is NOT supported on this browser')
+        scannerError.value = 'Live barcode detection is not supported on this browser engine. Please type the barcode number in the search box.'
+      }
+    }
   } catch (err: any) {
-    scannerError.value = 'Camera permission denied or camera unavailable.'
+    console.error('[BarcodeScanner] getUserMedia failed:', err)
+    scannerError.value = `Camera Error (${err?.name || 'Error'}): ${err?.message || 'Access failed'}`
     isScanningActive.value = false
   }
 }

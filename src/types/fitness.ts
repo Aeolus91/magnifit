@@ -7,6 +7,7 @@ export interface Workout {
   duration_sec: number
   avg_hr?: number | null
   effort?: number | null
+  flags?: number
   log_date?: string
   ts?: string
 }
@@ -45,6 +46,7 @@ export interface RecipeItem {
   id?: string
   recipe_id?: string
   item_name: string
+  name?: string
   amount: number
   unit: string
   cal: number
@@ -52,6 +54,8 @@ export interface RecipeItem {
   carb_g: number
   fat_g: number
 }
+
+export type RecipeIngredient = RecipeItem
 
 export interface Micronutrients {
   sugar_g?: number

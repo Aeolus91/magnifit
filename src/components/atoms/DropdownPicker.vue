@@ -68,7 +68,6 @@ const selectedOption = computed(() => {
   return normalizedOptions.value.find((opt) => opt.value === props.modelValue)
 })
 
-const menuRef = ref<HTMLElement | null>(null)
 const menuPlacement = ref<'bottom' | 'top'>('bottom')
 const maxHeightStyle = ref<string>('18rem')
 

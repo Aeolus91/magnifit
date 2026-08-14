@@ -46,6 +46,7 @@ const ingFat = ref<number | null>(null)
 const addIngredient = () => {
   if (!ingName.value.trim() || ingCal.value === null) return
   newIngredients.value.push({
+    item_name: ingName.value.trim(),
     name: ingName.value.trim(),
     amount: ingAmount.value || 100,
     unit: ingUnit.value || 'g',
@@ -65,6 +66,7 @@ const addIngredient = () => {
 
 const handleFoodSelectedForRecipe = (food: { meal_name: string; cal: number; prot_g: number; carb_g: number; fat_g: number }) => {
   newIngredients.value.push({
+    item_name: food.meal_name,
     name: food.meal_name,
     amount: 1,
     unit: 'serving',
@@ -78,6 +80,7 @@ const handleFoodSelectedForRecipe = (food: { meal_name: string; cal: number; pro
 const handleOcrSelectedForRecipe = (data: { meal_name?: string; cal?: number; prot_g?: number; carb_g?: number; fat_g?: number }) => {
   if (data.cal !== undefined) {
     newIngredients.value.push({
+      item_name: data.meal_name || 'Scanned Ingredient',
       name: data.meal_name || 'Scanned Ingredient',
       amount: 1,
       unit: 'serving',
@@ -102,10 +105,10 @@ const removeIngredient = (idx: number) => {
 
 const handleCreateTemplate = () => {
   if (!newName.value.trim()) return
-  const totalCal = newIngredients.value.reduce((acc, i) => acc + i.cal, 0)
-  const totalProt = newIngredients.value.reduce((acc, i) => acc + i.prot_g, 0)
-  const totalCarb = newIngredients.value.reduce((acc, i) => acc + i.carb_g, 0)
-  const totalFat = newIngredients.value.reduce((acc, i) => acc + i.fat_g, 0)
+  const totalCal = newIngredients.value.reduce((acc: number, i: any) => acc + (i.cal || 0), 0)
+  const totalProt = newIngredients.value.reduce((acc: number, i: any) => acc + (i.prot_g || 0), 0)
+  const totalCarb = newIngredients.value.reduce((acc: number, i: any) => acc + (i.carb_g || 0), 0)
+  const totalFat = newIngredients.value.reduce((acc: number, i: any) => acc + (i.fat_g || 0), 0)
 
   // Clean empty micros
   const cleanedMicros: Record<string, number> = {}
@@ -123,7 +126,7 @@ const handleCreateTemplate = () => {
     carb_g: totalCarb,
     fat_g: totalFat,
     servings: newServings.value || 1,
-    items: newIngredients.value.map(i => ({
+    items: newIngredients.value.map((i: any) => ({
       item_name: i.name,
       amount: i.amount,
       unit: i.unit,
@@ -231,9 +234,9 @@ const confirmLog = () => {
           </div>
         </div>
 
-        <!-- Ingredients Preview -->
-        <div v-if="tmpl.ingredients && tmpl.ingredients.length > 0" class="text-[11px] text-slate-400 truncate">
-          <span>{{ tmpl.ingredients.map(i => `${i.name} (${i.amount}${i.unit})`).join(', ') }}</span>
+        <!-- Ingredients / Items Preview -->
+        <div v-if="tmpl.items && tmpl.items.length > 0" class="text-[11px] text-slate-400 truncate">
+          <span>{{ tmpl.items.map((i: any) => `${i.item_name || i.name} (${i.amount}${i.unit})`).join(', ') }}</span>
         </div>
 
         <!-- Log Button -->

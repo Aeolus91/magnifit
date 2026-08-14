@@ -102,6 +102,7 @@ const calendarDays = computed(() => {
     isFuture: boolean
     isSelected: boolean
     isToday: boolean
+    hasData?: boolean
   }> = []
 
   // Fill preceding blanks
@@ -112,7 +113,8 @@ const calendarDays = computed(() => {
       isCurrentMonth: false,
       isFuture: false,
       isSelected: false,
-      isToday: false
+      isToday: false,
+      hasData: false
     })
   }
 

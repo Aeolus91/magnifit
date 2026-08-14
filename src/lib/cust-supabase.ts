@@ -196,7 +196,7 @@ export class CustomSupabaseClient {
     }
   }
 
-  private notifyAuth(event: 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED' | 'USER_UPDATED'): void {
+  private notifyAuth(event: 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED' | 'USER_UPDATED' | 'SESSION_INVALID'): void {
     this.authListeners.forEach(cb => cb(event, this.session))
   }
 
@@ -338,17 +338,23 @@ export class QueryBuilder<T> {
   private pendingBody: any = null
   private isSingle: boolean = false
   private upsertResolution: 'ignore-duplicates' | 'merge-duplicates' | null = null
+  private refreshSession?: () => Promise<any>
+  private getSession?: () => Session | null
 
   constructor(
     url: string,
     getHeaders: () => Record<string, string>,
     onAuthFailure?: () => void,
-    getNonce?: () => Promise<string | null>
+    getNonce?: () => Promise<string | null>,
+    refreshSession?: () => Promise<any>,
+    getSession?: () => Session | null
   ) {
     this.url = url
     this.getHeaders = getHeaders
     this.onAuthFailure = onAuthFailure
     this.getNonce = getNonce
+    this.refreshSession = refreshSession
+    this.getSession = getSession
   }
 
   // Filter Builders

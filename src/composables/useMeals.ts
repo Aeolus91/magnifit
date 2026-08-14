@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import { uuidv7 } from '../lib/uuidv7'
 import { getLocalISODate } from '../lib/dateUtils'
 import { offlineSync } from '../lib/offlineSync'
-import type { Meal } from '../types/fitness'
+import type { Meal, Recipe, RecipeItem } from '../types/fitness'
 
 export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<string>, loggedDates: Ref<string[]>) {
   const meals = ref<Meal[]>([])
@@ -42,7 +42,7 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
 
     if (data) {
       meals.value = data
-      data.forEach(m => {
+      data.forEach((m: Meal) => {
         const d = m.log_date || getLocalISODate(m.ts)
         if (d && !loggedDates.value.includes(d)) {
           loggedDates.value.push(d)
@@ -199,7 +199,7 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
 
   const deleteRecipe = async (recipeId: string) => {
     if (!userId.value || !recipeId) return
-    const idx = recipes.value.findIndex(r => r.id === recipeId)
+    const idx = recipes.value.findIndex((r: Recipe) => r.id === recipeId)
     if (idx !== -1) {
       recipes.value.splice(idx, 1)
     }

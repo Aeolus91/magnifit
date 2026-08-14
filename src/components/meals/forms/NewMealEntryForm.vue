@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Plus, Search, Camera, PenTool, Check } from '@lucide/vue'
+import { Plus, Search, Camera, PenTool } from '@lucide/vue'
 import { MealFlags } from '../../../lib/bitmask'
 import { useI18n } from '../../../lib/i18n'
 import FoodSearchLookup from './FoodSearchLookup.vue'

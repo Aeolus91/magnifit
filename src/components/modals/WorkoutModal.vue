@@ -5,9 +5,8 @@ import type { Workout } from '../../types/fitness'
 import Modal from './Modal.vue'
 import DropdownPicker from '../atoms/DropdownPicker.vue'
 import FormInput from '../atoms/FormInput.vue'
-import ToggleSwitch from '../atoms/ToggleSwitch.vue'
-import { WORKOUT_CATEGORIES, AttributeFlags, encodeWorkoutFlags, decodeWorkoutFlags } from '../../lib/bitmask'
-import { Dumbbell, Plus, Check, Trees, Navigation, Flame, Timer, Pencil, Heart, Zap } from '@lucide/vue'
+import { WORKOUT_CATEGORIES, encodeWorkoutFlags } from '../../lib/bitmask'
+import { Dumbbell, Check, Trees, Navigation, Flame, Timer, Pencil, Heart, Zap } from '@lucide/vue'
 
 const props = defineProps<{
   show: boolean
@@ -99,7 +98,8 @@ const handleSubmit = () => {
     total_cal: totalCalories.value || activeCalories.value,
     duration_sec: totalDurationSec,
     avg_hr: avgHeartRate.value || null,
-    effort: effortLevel.value || null
+    effort: effortLevel.value || null,
+    flags
   })
   emit('close')
 }

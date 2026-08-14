@@ -37,7 +37,7 @@ export function useWater(
 
     if (data) {
       waterLogs.value = data
-      data.forEach(w => {
+      data.forEach((w: WaterLog) => {
         const d = w.log_date || getLocalISODate(w.ts)
         if (d && !loggedDates.value.includes(d)) {
           loggedDates.value.push(d)

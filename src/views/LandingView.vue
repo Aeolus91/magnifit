@@ -2,9 +2,7 @@
 import { useRouter } from '../lib/router'
 import { useI18n } from '../lib/i18n'
 import { 
-  Flame, 
   Activity, 
-  Droplets, 
   ShieldCheck, 
   Zap, 
   Smartphone, 

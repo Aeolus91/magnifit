@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { watchEffect } from 'vue'
-import { onMounted } from 'vue'
 import { useAuthStore } from './stores/authStore'
 import { useRouter } from './lib/router'
-import AuthGate from './components/layout/AuthGate.vue'
 import LandingView from './views/LandingView.vue'
 import AuthView from './views/AuthView.vue'
 import DashboardView from './views/DashboardView.vue'

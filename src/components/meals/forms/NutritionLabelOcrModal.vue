@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Camera, Upload, Loader2, Sparkles, AlertCircle, Check, X } from '@lucide/vue'
+import { Camera, Upload, Loader2, Sparkles, AlertCircle, Check } from '@lucide/vue'
 import { useI18n } from '../../../lib/i18n'
 
 const emit = defineEmits<{

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Droplets, GlassWater, Plus, RotateCcw, Settings, Check, Loader2 } from '@lucide/vue'
+import { Droplets, GlassWater, Plus, RotateCcw, Settings, Check } from '@lucide/vue'
 import FluidGaugeCard from './FluidGaugeCard.vue'
 import Modal from '../modals/Modal.vue'
 
@@ -25,7 +25,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const showTargetModal = ref(false)
 const inputTargetMl = ref<number>(props.targetMl)
-const isSaving = ref(false)
 
 const openTargetModal = () => {
   inputTargetMl.value = props.targetMl || 2500

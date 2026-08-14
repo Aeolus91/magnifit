@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Utensils, Flame, Target, TrendingUp, TrendingDown, Settings, Check, Calendar, ChevronRight } from '@lucide/vue'
+import { Utensils, Flame, Target, TrendingUp, TrendingDown, Settings, Check } from '@lucide/vue'
 import FluidGaugeCard from './FluidGaugeCard.vue'
 import Modal from '../modals/Modal.vue'
 

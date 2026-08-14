@@ -3,9 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import { useAuthStore } from '../stores/authStore'
 import { useRouter } from '../lib/router'
-import { useI18n } from '../lib/i18n'
 import { ProfilePrefs } from '../lib/bitmask'
-import type { Meal, Profile } from '../types/fitness'
+import type { Profile } from '../types/fitness'
 import { useWorkouts } from '../composables/useWorkouts'
 import { useBiometrics } from '../composables/useBiometrics'
 import { useWater } from '../composables/useWater'
@@ -21,20 +20,18 @@ import DashboardTabSection from '../components/sections/DashboardTabSection.vue'
 import CalorieTrackerCard from '../components/cards/CalorieTrackerCard.vue'
 import WaterTrackerCard from '../components/cards/WaterTrackerCard.vue'
 import DatePickerPopover from '../components/atoms/DatePickerPopover.vue'
-import { getTodayDateString, getLocalISODate, getUserTimezone } from '../lib/dateUtils'
-import { uuidv7 } from '../lib/uuidv7'
-import { Plus, RefreshCw, LogOut, User as UserIcon, ChevronDown, Sliders } from '@lucide/vue'
+import { getTodayDateString, getUserTimezone } from '../lib/dateUtils'
+import { offlineSync } from '../lib/offlineSync'
+import { Plus } from '@lucide/vue'
 
 const authStore = useAuthStore()
 const { navigate } = useRouter()
-const { t } = useI18n()
 
 const userProfile = ref<Profile | null>(null)
 const showOnboardingModal = ref<boolean>(false)
 const showAddModal = ref<boolean>(false)
 const showWorkoutModal = ref<boolean>(false)
 const showBiometricsModal = ref<boolean>(false)
-const showProfileMenu = ref<boolean>(false)
 const selectedDate = ref<string>(getTodayDateString())
 const loggedDates = ref<string[]>([])
 
@@ -70,7 +67,6 @@ const {
 } = useEnergyExpenditure(userProfile, biometrics)
 
 const {
-  waterLogs,
   filteredWaterLogs,
   totalWaterMl,
   fetchWater,
@@ -82,13 +78,9 @@ const {
 } = useWater(currentUserId, userProfile, selectedDate, loggedDates)
 
 const {
-  meals,
   filteredMeals,
   totalCaloriesConsumed,
-  fetchMeals,
-  addMeal,
-  editMeal,
-  deleteMeal
+  fetchMeals
 } = useMeals(currentUserId, selectedDate, loggedDates)
 
 const loading = ref(false)
@@ -100,50 +92,36 @@ const isOnboardingPending = computed(() => {
   return (userProfile.value.prefs & ProfilePrefs.ONBOARDING_COMPLETED) === 0
 })
 
-const fetchProfile = async (userId: string) => {
-  const { data } = await supabase.from<Profile>('profiles').select().eq('id', userId).get()
-  if (data && data.length > 0) {
-    userProfile.value = data[0]
-  } else {
-    userProfile.value = {
-      id: userId,
-      username: '',
-      prefs: 0,
-      micros_opt: 0
-    }
+const fetchUserProfile = async (uid: string) => {
+  const { data } = await supabase
+    .from<Profile>('profiles')
+    .select()
+    .eq('id', uid)
+    .single()
+
+  if (data) {
+    userProfile.value = data
   }
 }
 
-const onOnboardingCompleted = (updatedProfile: Profile) => {
-  userProfile.value = updatedProfile
+const onOnboardingCompleted = async (updated: Profile) => {
+  userProfile.value = updated
   showOnboardingModal.value = false
-  fetchAll()
-}
-
-const fetchDailySummaries = async (userId: string) => {
-  const { data } = await supabase
-    .from<{ log_date: string }>('daily_summaries')
-    .select('log_date')
-    .eq('user_id', userId)
-    .get()
-  if (data) {
-    data.forEach(s => {
-      if (!loggedDates.value.includes(s.log_date)) loggedDates.value.push(s.log_date)
-    })
+  if (currentUserId.value) {
+    await fetchUserProfile(currentUserId.value)
+    await fetchBiometrics(currentUserId.value)
   }
 }
 
 const fetchAll = async () => {
-  if (!authStore.user.value?.id) return
-  const userId = authStore.user.value.id
+  if (!currentUserId.value) return
   loading.value = true
-  await Promise.all([
-    fetchProfile(userId),
-    fetchWorkouts(userId),
-    fetchBiometrics(userId),
-    fetchMeals(userId),
-    fetchWater(userId),
-    fetchDailySummaries(userId)
+  await Promise.allSettled([
+    fetchUserProfile(currentUserId.value),
+    fetchWorkouts(currentUserId.value),
+    fetchBiometrics(currentUserId.value),
+    fetchMeals(currentUserId.value),
+    fetchWater(currentUserId.value)
   ])
   loading.value = false
 }
@@ -184,7 +162,7 @@ onMounted(async () => {
   }
 
   supabase.channel('public:workouts')
-    .on('INSERT', (payload) => {
+    .on('INSERT', (payload: any) => {
       if (payload.new && payload.new.user_id === authStore.user.value?.id) {
         workouts.value.unshift(payload.new)
       }

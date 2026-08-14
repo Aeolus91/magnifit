@@ -4,7 +4,6 @@ import { Pencil, Trash2, Scale, Activity, Heart, Sparkles, Zap, HeartPulse } fro
 import {
   BIOMETRIC_TYPES,
   BIOMETRIC_CATEGORY_LABELS,
-  BIOMETRIC_UNITS,
   BiometricFlags,
   hasFlag
 } from '../../lib/bitmask'

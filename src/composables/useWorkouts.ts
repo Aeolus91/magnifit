@@ -33,7 +33,7 @@ export function useWorkouts(userId: Ref<string | undefined>, selectedDate: Ref<s
 
     if (data) {
       workouts.value = data
-      data.forEach(w => {
+      data.forEach((w: Workout) => {
         const d = w.log_date || getLocalISODate(w.ts)
         if (d && !loggedDates.value.includes(d)) {
           loggedDates.value.push(d)

@@ -139,34 +139,40 @@ export type Database = {
       }
       biometrics: {
         Row: {
-          biceps_mm: number | null
-          chest_mm: number | null
-          hips_mm: number | null
+          cat: number
+          flags: number
           id: string
+          log_date: string
           ts: string
+          type: number
+          unit: number
           user_id: string
-          waist_mm: number | null
-          weight_dg: number
+          val: number
+          val_sec: number | null
         }
         Insert: {
-          biceps_mm?: number | null
-          chest_mm?: number | null
-          hips_mm?: number | null
+          cat?: number
+          flags?: number
           id?: string
+          log_date?: string
           ts?: string
+          type?: number
+          unit?: number
           user_id?: string
-          waist_mm?: number | null
-          weight_dg: number
+          val?: number
+          val_sec?: number | null
         }
         Update: {
-          biceps_mm?: number | null
-          chest_mm?: number | null
-          hips_mm?: number | null
+          cat?: number
+          flags?: number
           id?: string
+          log_date?: string
           ts?: string
+          type?: number
+          unit?: number
           user_id?: string
-          waist_mm?: number | null
-          weight_dg?: number
+          val?: number
+          val_sec?: number | null
         }
         Relationships: []
       }
@@ -288,61 +294,187 @@ export type Database = {
           vit_d_mcg?: number | null
           zinc_mg?: number | null
         }
+        Relationships: []
+      }
+      meal_templates: {
+        Row: {
+          cal: number
+          carb_g: number
+          created_at: string
+          description: string | null
+          fat_g: number
+          flags: number
+          id: string
+          ingredients: Json | null
+          name: string
+          prot_g: number
+          servings: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cal: number
+          carb_g: number
+          created_at?: string
+          description?: string | null
+          fat_g: number
+          flags?: number
+          id?: string
+          ingredients?: Json | null
+          name: string
+          prot_g: number
+          servings?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          cal?: number
+          carb_g?: number
+          created_at?: string
+          description?: string | null
+          fat_g?: number
+          flags?: number
+          id?: string
+          ingredients?: Json | null
+          name?: string
+          prot_g?: number
+          servings?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meals: {
+        Row: {
+          cal: number
+          carb_g: number
+          fat_g: number
+          flags: number
+          id: string
+          log_date: string
+          meal_name: string
+          prot_g: number
+          ts: string
+          user_id: string
+        }
+        Insert: {
+          cal: number
+          carb_g: number
+          fat_g: number
+          flags?: number
+          id?: string
+          log_date?: string
+          meal_name: string
+          prot_g: number
+          ts?: string
+          user_id?: string
+        }
+        Update: {
+          cal?: number
+          carb_g?: number
+          fat_g?: number
+          flags?: number
+          id?: string
+          log_date?: string
+          meal_name?: string
+          prot_g?: number
+          ts?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      micronutrients: {
+        Row: {
+          added_sugar_g: number | null
+          caffeine_mg: number | null
+          calcium_mg: number | null
+          cholesterol_mg: number | null
+          hdl_mg: number | null
+          iron_mg: number | null
+          ldl_mg: number | null
+          magnesium_mg: number | null
+          meal_id: string
+          mono_fat_g: number | null
+          omega_3_mg: number | null
+          omega_6_mg: number | null
+          poly_fat_g: number | null
+          potassium_mg: number | null
+          sat_fat_g: number | null
+          sodium_mg: number | null
+          sugar_g: number | null
+          trans_fat_g: number | null
+          vit_a_mcg: number | null
+          vit_b12_mcg: number | null
+          vit_c_mg: number | null
+          vit_d_mcg: number | null
+          zinc_mg: number | null
+        }
+        Insert: {
+          added_sugar_g?: number | null
+          caffeine_mg?: number | null
+          calcium_mg?: number | null
+          cholesterol_mg?: number | null
+          hdl_mg?: number | null
+          iron_mg?: number | null
+          ldl_mg?: number | null
+          magnesium_mg?: number | null
+          meal_id: string
+          mono_fat_g?: number | null
+          omega_3_mg?: number | null
+          omega_6_mg?: number | null
+          poly_fat_g?: number | null
+          potassium_mg?: number | null
+          sat_fat_g?: number | null
+          sodium_mg?: number | null
+          sugar_g?: number | null
+          trans_fat_g?: number | null
+          vit_a_mcg?: number | null
+          vit_b12_mcg?: number | null
+          vit_c_mg?: number | null
+          vit_d_mcg?: number | null
+          zinc_mg?: number | null
+        }
+        Update: {
+          added_sugar_g?: number | null
+          caffeine_mg?: number | null
+          calcium_mg?: number | null
+          cholesterol_mg?: number | null
+          hdl_mg?: number | null
+          iron_mg?: number | null
+          ldl_mg?: number | null
+          magnesium_mg?: number | null
+          meal_id?: string
+          mono_fat_g?: number | null
+          omega_3_mg?: number | null
+          omega_6_mg?: number | null
+          poly_fat_g?: number | null
+          potassium_mg?: number | null
+          sat_fat_g?: number | null
+          sodium_mg?: number | null
+          sugar_g?: number | null
+          trans_fat_g?: number | null
+          vit_a_mcg?: number | null
+          vit_b12_mcg?: number | null
+          vit_c_mg?: number | null
+          vit_d_mcg?: number | null
+          zinc_mg?: number | null
+        }
         Relationships: [
           {
-            foreignKeyName: "meal_micros_meal_id_fkey"
+            foreignKeyName: "micronutrients_meal_id_fkey"
             columns: ["meal_id"]
             isOneToOne: true
             referencedRelation: "meals"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "meal_micros_meal_id_fkey"
+            foreignKeyName: "micronutrients_meal_id_fkey"
             columns: ["meal_id"]
             isOneToOne: true
             referencedRelation: "v_my_meals"
             referencedColumns: ["id"]
           },
         ]
-      }
-      meals: {
-        Row: {
-          cal: number
-          carb_g: number | null
-          fat_g: number | null
-          fiber_g: number | null
-          flags_bitmask: number
-          id: string
-          name: string
-          prot_g: number | null
-          ts: string
-          user_id: string
-        }
-        Insert: {
-          cal?: number
-          carb_g?: number | null
-          fat_g?: number | null
-          fiber_g?: number | null
-          flags_bitmask?: number
-          id?: string
-          name: string
-          prot_g?: number | null
-          ts?: string
-          user_id?: string
-        }
-        Update: {
-          cal?: number
-          carb_g?: number | null
-          fat_g?: number | null
-          fiber_g?: number | null
-          flags_bitmask?: number
-          id?: string
-          name?: string
-          prot_g?: number | null
-          ts?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       nonces: {
         Row: {
@@ -373,30 +505,193 @@ export type Database = {
       }
       profiles: {
         Row: {
+          activity_level: number | null
+          avatar_url: string | null
+          bio: string | null
+          birth_year: number | null
+          created_at: string
           display_name: string | null
+          height_cm: number | null
           id: string
           micros_opt: number
           prefs: number
+          sex: number | null
+          target_cal: number
+          target_water_ml: number
+          target_weight_dg: number | null
+          tz: string
           updated_at: string
-          username: string | null
+          username: string
         }
         Insert: {
+          activity_level?: number | null
+          avatar_url?: string | null
+          bio?: string | null
+          birth_year?: number | null
+          created_at?: string
           display_name?: string | null
+          height_cm?: number | null
           id: string
           micros_opt?: number
           prefs?: number
+          sex?: number | null
+          target_cal?: number
+          target_water_ml?: number
+          target_weight_dg?: number | null
+          tz?: string
           updated_at?: string
-          username?: string | null
+          username: string
         }
         Update: {
+          activity_level?: number | null
+          avatar_url?: string | null
+          bio?: string | null
+          birth_year?: number | null
+          created_at?: string
           display_name?: string | null
+          height_cm?: number | null
           id?: string
           micros_opt?: number
           prefs?: number
+          sex?: number | null
+          target_cal?: number
+          target_water_ml?: number
+          target_weight_dg?: number | null
+          tz?: string
           updated_at?: string
-          username?: string | null
+          username?: string
         }
         Relationships: []
+      }
+      recipe_items: {
+        Row: {
+          amount: number
+          cal: number
+          carb_g: number
+          fat_g: number
+          id: string
+          item_name: string
+          prot_g: number
+          recipe_id: string
+          unit: string
+        }
+        Insert: {
+          amount: number
+          cal?: number
+          carb_g?: number
+          fat_g?: number
+          id?: string
+          item_name: string
+          prot_g?: number
+          recipe_id: string
+          unit: string
+        }
+        Update: {
+          amount?: number
+          cal?: number
+          carb_g?: number
+          fat_g?: number
+          id?: string
+          item_name?: string
+          prot_g?: number
+          recipe_id?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_micronutrients: {
+        Row: {
+          added_sugar_g: number | null
+          caffeine_mg: number | null
+          calcium_mg: number | null
+          cholesterol_mg: number | null
+          hdl_mg: number | null
+          iron_mg: number | null
+          ldl_mg: number | null
+          magnesium_mg: number | null
+          mono_fat_g: number | null
+          omega_3_mg: number | null
+          omega_6_mg: number | null
+          poly_fat_g: number | null
+          potassium_mg: number | null
+          recipe_id: string
+          sat_fat_g: number | null
+          sodium_mg: number | null
+          sugar_g: number | null
+          trans_fat_g: number | null
+          vit_a_mcg: number | null
+          vit_b12_mcg: number | null
+          vit_c_mg: number | null
+          vit_d_mcg: number | null
+          zinc_mg: number | null
+        }
+        Insert: {
+          added_sugar_g?: number | null
+          caffeine_mg?: number | null
+          calcium_mg?: number | null
+          cholesterol_mg?: number | null
+          hdl_mg?: number | null
+          iron_mg?: number | null
+          ldl_mg?: number | null
+          magnesium_mg?: number | null
+          mono_fat_g?: number | null
+          omega_3_mg?: number | null
+          omega_6_mg?: number | null
+          poly_fat_g?: number | null
+          potassium_mg?: number | null
+          recipe_id: string
+          sat_fat_g?: number | null
+          sodium_mg?: number | null
+          sugar_g?: number | null
+          trans_fat_g?: number | null
+          vit_a_mcg?: number | null
+          vit_b12_mcg?: number | null
+          vit_c_mg?: number | null
+          vit_d_mcg?: number | null
+          zinc_mg?: number | null
+        }
+        Update: {
+          added_sugar_g?: number | null
+          caffeine_mg?: number | null
+          calcium_mg?: number | null
+          cholesterol_mg?: number | null
+          hdl_mg?: number | null
+          iron_mg?: number | null
+          ldl_mg?: number | null
+          magnesium_mg?: number | null
+          mono_fat_g?: number | null
+          omega_3_mg?: number | null
+          omega_6_mg?: number | null
+          poly_fat_g?: number | null
+          potassium_mg?: number | null
+          recipe_id?: string
+          sat_fat_g?: number | null
+          sodium_mg?: number | null
+          sugar_g?: number | null
+          trans_fat_g?: number | null
+          vit_a_mcg?: number | null
+          vit_b12_mcg?: number | null
+          vit_c_mg?: number | null
+          vit_d_mcg?: number | null
+          zinc_mg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_micronutrients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: true
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recipe_shares: {
         Row: {
@@ -426,62 +721,91 @@ export type Database = {
           status?: string
           updated_at?: string
         }
+        Relationships: []
+      }
+      recipes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean
+          name: string
+          servings: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name: string
+          servings?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name?: string
+          servings?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      shared_recipes: {
+        Row: {
+          created_at: string
+          id: string
+          recipe_id: string
+          share_token: string
+          shared_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipe_id: string
+          share_token?: string
+          shared_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipe_id?: string
+          share_token?: string
+          shared_by?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "recipe_shares_recipe_id_fkey"
+            foreignKeyName: "shared_recipes_recipe_id_fkey"
             columns: ["recipe_id"]
             isOneToOne: false
             referencedRelation: "recipes"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "recipe_shares_recipe_id_fkey"
-            columns: ["recipe_id"]
-            isOneToOne: false
-            referencedRelation: "v_my_recipes"
-            referencedColumns: ["id"]
-          },
         ]
       }
-      recipes: {
+      sync_tokens: {
         Row: {
-          cal: number
-          carb_g: number | null
-          created_at: string
-          description: string | null
-          fat_g: number | null
-          fiber_g: number | null
-          id: string
-          prot_g: number | null
-          scope_bitmask: number
-          title: string
-          user_id: string | null
+          client_id: string
+          last_seq: number
+          updated_at: string
+          user_id: string
         }
         Insert: {
-          cal?: number
-          carb_g?: number | null
-          created_at?: string
-          description?: string | null
-          fat_g?: number | null
-          fiber_g?: number | null
-          id?: string
-          prot_g?: number | null
-          scope_bitmask?: number
-          title: string
-          user_id?: string | null
+          client_id: string
+          last_seq?: number
+          updated_at?: string
+          user_id: string
         }
         Update: {
-          cal?: number
-          carb_g?: number | null
-          created_at?: string
-          description?: string | null
-          fat_g?: number | null
-          fiber_g?: number | null
-          id?: string
-          prot_g?: number | null
-          scope_bitmask?: number
-          title?: string
-          user_id?: string | null
+          client_id?: string
+          last_seq?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -489,18 +813,21 @@ export type Database = {
         Row: {
           amount_ml: number
           id: string
+          log_date: string
           ts: string
           user_id: string
         }
         Insert: {
           amount_ml: number
           id?: string
+          log_date?: string
           ts?: string
           user_id?: string
         }
         Update: {
           amount_ml?: number
           id?: string
+          log_date?: string
           ts?: string
           user_id?: string
         }
@@ -509,30 +836,39 @@ export type Database = {
       workouts: {
         Row: {
           active_cal: number
-          dur_min: number
-          flags_bitmask: number
+          avg_hr: number | null
+          duration_sec: number
+          effort: number | null
           id: string
+          log_date: string
           total_cal: number
           ts: string
           user_id: string
+          workout_type: string
         }
         Insert: {
-          active_cal?: number
-          dur_min?: number
-          flags_bitmask?: number
+          active_cal: number
+          avg_hr?: number | null
+          duration_sec: number
+          effort?: number | null
           id?: string
-          total_cal?: number
+          log_date?: string
+          total_cal: number
           ts?: string
           user_id?: string
+          workout_type: string
         }
         Update: {
           active_cal?: number
-          dur_min?: number
-          flags_bitmask?: number
+          avg_hr?: number | null
+          duration_sec?: number
+          effort?: number | null
           id?: string
+          log_date?: string
           total_cal?: number
           ts?: string
           user_id?: string
+          workout_type?: string
         }
         Relationships: []
       }
@@ -540,35 +876,41 @@ export type Database = {
     Views: {
       v_my_biometrics: {
         Row: {
-          biceps_mm: number | null
-          chest_mm: number | null
-          hips_mm: number | null
+          cat: number | null
+          flags: number | null
           id: string | null
+          log_date: string | null
           ts: string | null
-          waist_mm: number | null
-          weight_dg: number | null
+          type: number | null
+          unit: number | null
+          val: number | null
+          val_sec: number | null
         }
         Insert: {
-          biceps_mm?: number | null
-          chest_mm?: number | null
-          hips_mm?: number | null
+          cat?: number | null
+          flags?: number | null
           id?: string | null
+          log_date?: string | null
           ts?: string | null
-          waist_mm?: number | null
-          weight_dg?: number | null
+          type?: number | null
+          unit?: number | null
+          val?: number | null
+          val_sec?: number | null
         }
         Update: {
-          biceps_mm?: number | null
-          chest_mm?: number | null
-          hips_mm?: number | null
+          cat?: number | null
+          flags?: number | null
           id?: string | null
+          log_date?: string | null
           ts?: string | null
-          waist_mm?: number | null
-          weight_dg?: number | null
+          type?: number | null
+          unit?: number | null
+          val?: number | null
+          val_sec?: number | null
         }
         Relationships: []
       }
-      v_my_daily_summaries: {
+      v_my_daily_summary: {
         Row: {
           active_cal: number | null
           carb_g: number | null
@@ -680,32 +1022,17 @@ export type Database = {
           vit_d_mcg?: number | null
           zinc_mg?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "meal_micros_meal_id_fkey"
-            columns: ["meal_id"]
-            isOneToOne: true
-            referencedRelation: "meals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meal_micros_meal_id_fkey"
-            columns: ["meal_id"]
-            isOneToOne: true
-            referencedRelation: "v_my_meals"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       v_my_meals: {
         Row: {
           cal: number | null
           carb_g: number | null
           fat_g: number | null
-          fiber_g: number | null
-          flags_bitmask: number | null
+          flags: number | null
           id: string | null
-          name: string | null
+          log_date: string | null
+          meal_name: string | null
           prot_g: number | null
           ts: string | null
         }
@@ -713,10 +1040,10 @@ export type Database = {
           cal?: number | null
           carb_g?: number | null
           fat_g?: number | null
-          fiber_g?: number | null
-          flags_bitmask?: number | null
+          flags?: number | null
           id?: string | null
-          name?: string | null
+          log_date?: string | null
+          meal_name?: string | null
           prot_g?: number | null
           ts?: string | null
         }
@@ -724,51 +1051,12 @@ export type Database = {
           cal?: number | null
           carb_g?: number | null
           fat_g?: number | null
-          fiber_g?: number | null
-          flags_bitmask?: number | null
+          flags?: number | null
           id?: string | null
-          name?: string | null
+          log_date?: string | null
+          meal_name?: string | null
           prot_g?: number | null
           ts?: string | null
-        }
-        Relationships: []
-      }
-      v_my_recipes: {
-        Row: {
-          cal: number | null
-          carb_g: number | null
-          created_at: string | null
-          description: string | null
-          fat_g: number | null
-          fiber_g: number | null
-          id: string | null
-          prot_g: number | null
-          scope_bitmask: number | null
-          title: string | null
-        }
-        Insert: {
-          cal?: number | null
-          carb_g?: number | null
-          created_at?: string | null
-          description?: string | null
-          fat_g?: number | null
-          fiber_g?: number | null
-          id?: string | null
-          prot_g?: number | null
-          scope_bitmask?: number | null
-          title?: string | null
-        }
-        Update: {
-          cal?: number | null
-          carb_g?: number | null
-          created_at?: string | null
-          description?: string | null
-          fat_g?: number | null
-          fiber_g?: number | null
-          id?: string | null
-          prot_g?: number | null
-          scope_bitmask?: number | null
-          title?: string | null
         }
         Relationships: []
       }
@@ -776,16 +1064,19 @@ export type Database = {
         Row: {
           amount_ml: number | null
           id: string | null
+          log_date: string | null
           ts: string | null
         }
         Insert: {
           amount_ml?: number | null
           id?: string | null
+          log_date?: string | null
           ts?: string | null
         }
         Update: {
           amount_ml?: number | null
           id?: string | null
+          log_date?: string | null
           ts?: string | null
         }
         Relationships: []
@@ -793,42 +1084,44 @@ export type Database = {
       v_my_workouts: {
         Row: {
           active_cal: number | null
-          dur_min: number | null
-          flags_bitmask: number | null
+          avg_hr: number | null
+          duration_sec: number | null
+          effort: number | null
           id: string | null
+          log_date: string | null
           total_cal: number | null
           ts: string | null
+          workout_type: string | null
         }
         Insert: {
           active_cal?: number | null
-          dur_min?: number | null
-          flags_bitmask?: number | null
+          avg_hr?: number | null
+          duration_sec?: number | null
+          effort?: number | null
           id?: string | null
+          log_date?: string | null
           total_cal?: number | null
           ts?: string | null
+          workout_type?: string | null
         }
         Update: {
           active_cal?: number | null
-          dur_min?: number | null
-          flags_bitmask?: number | null
+          avg_hr?: number | null
+          duration_sec?: number | null
+          effort?: number | null
           id?: string | null
+          log_date?: string | null
           total_cal?: number | null
           ts?: string | null
-        }
-        Relationships: []
-      }
-      v_pending_recipe_shares: {
-        Row: {
-          created_at: string | null
-          recipe_title: string | null
-          sender_username: string | null
-          share_id: string | null
+          workout_type?: string | null
         }
         Relationships: []
       }
     }
     Functions: {
       archive_old_logs: { Args: never; Returns: undefined }
+      delete_user_account: { Args: never; Returns: undefined }
+      gen_uuid_v7: { Args: never; Returns: string }
       generate_nonce: { Args: never; Returns: string }
       purge_expired_nonces: { Args: never; Returns: undefined }
       respond_to_recipe_share: {

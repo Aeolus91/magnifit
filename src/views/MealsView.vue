@@ -10,8 +10,8 @@ import DatePickerPopover from '../components/atoms/DatePickerPopover.vue'
 import NewMealEntryForm from '../components/meals/forms/NewMealEntryForm.vue'
 import RecipeCatalogSection from '../components/meals/recipes/RecipeCatalogSection.vue'
 import MealSlotCard from '../components/meals/MealSlotCard.vue'
-import type { Meal, MealTemplate } from '../types/fitness'
-import { ArrowLeft, Utensils, Plus, BookOpen, Clock, Sparkles } from '@lucide/vue'
+import type { Meal } from '../types/fitness'
+import { ArrowLeft, Utensils, Plus, BookOpen, Clock } from '@lucide/vue'
 
 const { navigate, routeState } = useRouter()
 const authStore = useAuthStore()

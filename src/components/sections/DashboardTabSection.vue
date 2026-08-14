@@ -5,7 +5,6 @@ import WorkoutSection from './WorkoutSection.vue'
 import BiometricsSection from './BiometricsSection.vue'
 import MealSection from './MealSection.vue'
 import WaterSection from './WaterSection.vue'
-import { Dumbbell, Scale, Utensils, Droplets } from '@lucide/vue'
 
 interface Props {
   modelValue: 'workouts' | 'biometrics' | 'meals' | 'water'

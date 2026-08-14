@@ -45,7 +45,7 @@ export function useBiometrics(
 
     if (data) {
       biometrics.value = data
-      data.forEach(b => {
+      data.forEach((b: Biometric) => {
         const d = b.log_date || getLocalISODate(b.ts)
         if (d && !loggedDates.value.includes(d)) {
           loggedDates.value.push(d)

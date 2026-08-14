@@ -7,13 +7,12 @@ import DropdownPicker from '../atoms/DropdownPicker.vue'
 import FormInput from '../atoms/FormInput.vue'
 import ToggleSwitch from '../atoms/ToggleSwitch.vue'
 import {
-  BIOMETRIC_CATEGORIES,
   BIOMETRIC_CATEGORY_LABELS,
   BIOMETRIC_TYPES,
   BiometricFlags,
   type BiometricTypeMeta
 } from '../../lib/bitmask'
-import { Scale, Check, Pencil, Flame, Activity } from '@lucide/vue'
+import { Scale, Check, Pencil } from '@lucide/vue'
 
 const props = defineProps<{
   show: boolean
@@ -115,7 +114,7 @@ watch(
 )
 
 // When category changes in create mode, reset type
-watch(selectedCatId, (newCat, oldCat) => {
+watch(selectedCatId, (_, oldCat) => {
   if (!props.initialBiometric && oldCat !== undefined && oldCat !== '') {
     selectedTypeId.value = ''
     inputVal.value = null

@@ -76,8 +76,8 @@ const slotFat = computed(() =>
         v-for="m in meals"
         :key="m.id"
         :meal="m"
-        @edit="(meal) => emit('edit-meal', meal)"
-        @delete="(id) => emit('delete-meal', id)"
+        @edit="emit('edit-meal', $event)"
+        @delete="emit('delete-meal', $event)"
       />
     </div>
   </div>
