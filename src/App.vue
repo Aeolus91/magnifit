@@ -5,6 +5,7 @@ import { useAuthStore } from './stores/authStore'
 import LandingView from './views/LandingView.vue'
 import AuthView from './views/AuthView.vue'
 import DashboardView from './views/DashboardView.vue'
+import MealsView from './views/MealsView.vue'
 
 const { currentRoute, navigate } = useRouter()
 const authStore = useAuthStore()
@@ -20,8 +21,8 @@ watchEffect(() => {
       navigate('/dash', true)
     }
   } else {
-    // Unauthenticated users hitting protected '/dash' get redirected to '/auth'
-    if (route === '/dash') {
+    // Unauthenticated users hitting protected '/dash' or '/meals' get redirected to '/auth'
+    if (route === '/dash' || route === '/meals') {
       navigate('/auth', true)
     }
   }
@@ -34,6 +35,7 @@ watchEffect(() => {
       <LandingView v-if="currentRoute === '/'" key="landing" />
       <AuthView v-else-if="currentRoute === '/auth'" key="auth" />
       <DashboardView v-else-if="currentRoute === '/dash'" key="dash" />
+      <MealsView v-else-if="currentRoute === '/meals'" key="meals" />
     </Transition>
   </main>
 </template>

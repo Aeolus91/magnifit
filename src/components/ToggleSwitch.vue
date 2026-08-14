@@ -41,9 +41,9 @@ const toggle = () => {
     <div class="flex items-center gap-2.5">
       <div 
         v-if="icon" 
-        :class="['w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0', iconColor]"
+        :class="['flex items-center justify-center shrink-0', iconColor]"
       >
-        <component :is="icon" class="w-3.5 h-3.5" />
+        <component :is="icon" class="w-4 h-4" />
       </div>
       <div>
         <div v-if="label" class="text-xs sm:text-sm font-semibold text-slate-200">

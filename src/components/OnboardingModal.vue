@@ -9,6 +9,7 @@ import YearPicker from './YearPicker.vue'
 import FormInput from './FormInput.vue'
 import ToggleSwitch from './ToggleSwitch.vue'
 import DropdownPicker from './DropdownPicker.vue'
+import Modal from './Modal.vue'
 import {
   User,
   Sparkles,
@@ -387,11 +388,12 @@ const handleCompleteOnboarding = async () => {
 </script>
 
 <template>
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden overscroll-none touch-none">
-    <div
-      class="w-full max-w-lg bg-slate-900/95 border border-slate-800/90 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 flex flex-col justify-between">
-
+  <Modal
+    :show-close="false"
+    max-width-class="max-w-lg"
+    @close="isOnboardingAlreadyCompleted && emit('dismiss')"
+  >
+    <template #header>
       <!-- Top Progress & Header -->
       <div class="space-y-4">
         <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
@@ -419,7 +421,9 @@ const handleCompleteOnboarding = async () => {
             :style="{ width: `${progressPercent}%` }"></div>
         </div>
       </div>
+    </template>
 
+    <template #default>
       <!-- Error Message -->
       <div v-if="errorMessage"
         class="bg-rose-950/60 border border-rose-900/80 rounded-xl p-3 flex items-start gap-2.5 text-rose-300 text-xs sm:text-sm">
@@ -571,8 +575,10 @@ const handleCompleteOnboarding = async () => {
           </div>
         </div>
       </div>
+    </template>
 
-      <!-- Navigation Buttons -->
+    <!-- Navigation Buttons -->
+    <template #footer>
       <div class="flex items-center justify-between pt-4 border-t border-slate-800/80 gap-3">
         <button type="button" v-if="currentStep > 1" @click="prevStep"
           class="px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition cursor-pointer">
@@ -604,6 +610,6 @@ const handleCompleteOnboarding = async () => {
           </template>
         </button>
       </div>
-    </div>
-  </div>
+    </template>
+  </Modal>
 </template>

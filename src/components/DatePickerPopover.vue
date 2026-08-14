@@ -33,11 +33,22 @@ const selectedDateObj = computed(() => {
 
 const isCurrentDay = computed(() => effectiveDate.value === todayStr)
 
-// Formatted Header String: e.g. "Friday, August 14 2026 (today)"
+// Formatted Header String: e.g. "Friday, August 14 2026 (today)" vs "Fri, Aug 14 2026 (today)"
 const formattedDateDisplay = computed(() => {
   const d = selectedDateObj.value
   const weekday = d.toLocaleDateString('en-US', { weekday: 'long' })
   const month = d.toLocaleDateString('en-US', { month: 'long' })
+  const day = d.getDate()
+  const year = d.getFullYear()
+
+  const base = `${weekday}, ${month} ${day} ${year}`
+  return isCurrentDay.value ? `${base} (today)` : base
+})
+
+const formattedDateDisplayShort = computed(() => {
+  const d = selectedDateObj.value
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'short' })
+  const month = d.toLocaleDateString('en-US', { month: 'short' })
   const day = d.getDate()
   const year = d.getFullYear()
 
@@ -249,7 +260,10 @@ onUnmounted(() => {
       class="group flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 transition active:scale-[0.98] cursor-pointer"
     >
       <CalendarIcon class="w-4 h-4 text-emerald-400 group-hover:text-emerald-300 transition" />
-      <span class="text-sm font-semibold text-slate-200 group-hover:text-white transition">
+      <span class="text-sm font-semibold text-slate-200 group-hover:text-white transition sm:hidden">
+        {{ formattedDateDisplayShort }}
+      </span>
+      <span class="text-sm font-semibold text-slate-200 group-hover:text-white transition hidden sm:inline">
         {{ formattedDateDisplay }}
       </span>
       <ChevronDown

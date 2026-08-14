@@ -4,16 +4,18 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuthStore } from '../stores/authStore'
 import { useRouter } from '../lib/router'
 import { useI18n } from '../lib/i18n'
-import { ProfilePrefs } from '../lib/bitmask'
+import { ProfilePrefs, WORKOUT_CATEGORIES, encodeWorkoutFlags } from '../lib/bitmask'
 import type { Workout, Biometric, Meal, WaterLog, Profile } from '../types/fitness'
 import OnboardingModal from '../components/OnboardingModal.vue'
-import StatCard from '../components/StatCard.vue'
+import QuickAddModal from '../components/QuickAddModal.vue'
+import DashboardSummaryCards from '../components/DashboardSummaryCards.vue'
+import DashboardTabSection from '../components/DashboardTabSection.vue'
 import CalorieTrackerCard from '../components/CalorieTrackerCard.vue'
 import WaterTrackerCard from '../components/WaterTrackerCard.vue'
 import DatePickerPopover from '../components/DatePickerPopover.vue'
 import { getTodayDateString, getLocalISODate, getUserTimezone } from '../lib/dateUtils'
 import { uuidv7 } from '../lib/uuidv7'
-import { Activity, Flame, Droplets, Scale, Plus, RefreshCw, LogOut, User as UserIcon, ChevronDown, Sliders } from '@lucide/vue'
+import { Plus, RefreshCw, LogOut, User as UserIcon, ChevronDown, Sliders } from '@lucide/vue'
 
 const authStore = useAuthStore()
 const { navigate } = useRouter()
@@ -21,6 +23,7 @@ const { t } = useI18n()
 
 const userProfile = ref<Profile | null>(null)
 const showOnboardingModal = ref<boolean>(false)
+const showAddModal = ref<boolean>(false)
 const showProfileMenu = ref<boolean>(false)
 const selectedDate = ref<string>(getTodayDateString())
 
@@ -38,27 +41,6 @@ const loggedDates = ref<string[]>([])
 const loading = ref(false)
 
 const activeTab = ref<'workouts' | 'biometrics' | 'meals' | 'water'>('workouts')
-
-const newWorkout = ref<Workout>({
-  workout_type: 'Strength Training',
-  active_calories: 250,
-  total_calories: 320,
-  duration_minutes: 45
-})
-
-const newBiometric = ref<Biometric>({
-  weight_kg: 70,
-  waist_cm: 80,
-  chest_cm: 95
-})
-
-const newMeal = ref<Meal>({
-  meal_name: 'Chicken Rice Bowl',
-  calories: 550,
-  protein_g: 42,
-  carbs_g: 60,
-  fat_g: 12
-})
 
 // Date-scoped collections matching the selected target log_date in context
 const filteredWorkouts = computed(() =>
@@ -137,11 +119,11 @@ const fetchAll = async () => {
   loading.value = false
 }
 
-const addWorkout = async () => {
+const addWorkout = async (workoutData: Workout) => {
   if (!authStore.user.value?.id) return
   const id = uuidv7()
   const payload: Workout = {
-    ...newWorkout.value,
+    ...workoutData,
     id,
     user_id: authStore.user.value.id,
     log_date: selectedDate.value
@@ -155,16 +137,49 @@ const addWorkout = async () => {
   }
 }
 
-const addBiometric = async () => {
+const editWorkout = async (workoutData: Workout) => {
+  if (!authStore.user.value?.id || !workoutData.id) return
+  const { data, error } = await supabase
+    .from<Workout>('workouts')
+    .update({
+      workout_type: workoutData.workout_type,
+      active_calories: workoutData.active_calories,
+      total_calories: workoutData.total_calories,
+      duration_minutes: workoutData.duration_minutes
+    })
+    .eq('id', workoutData.id)
+
+  if (!error) {
+    const idx = workouts.value.findIndex(w => w.id === workoutData.id)
+    if (idx !== -1) {
+      workouts.value[idx] = { ...workouts.value[idx], ...workoutData }
+    }
+  }
+}
+
+const deleteWorkout = async (id: string) => {
+  if (!authStore.user.value?.id || !id) return
+  const { error } = await supabase.from('workouts').delete().eq('id', id)
+  if (!error) {
+    const idx = workouts.value.findIndex(w => w.id === id)
+    if (idx !== -1) {
+      workouts.value.splice(idx, 1)
+    }
+  }
+}
+
+const addBiometric = async (bioData: { weight_kg: number; waist_cm?: number; chest_cm?: number; hips_cm?: number; biceps_cm?: number }) => {
   if (!authStore.user.value?.id) return
   const id = uuidv7()
-  const weightKgVal = newBiometric.value.weight_kg || 0
+  const weightKgVal = bioData.weight_kg || 0
   const payload: Biometric = {
     id,
     user_id: authStore.user.value.id,
     weight_dg: Math.round(weightKgVal * 10),
-    waist_mm: newBiometric.value.waist_cm ? Math.round(newBiometric.value.waist_cm * 10) : null,
-    chest_mm: newBiometric.value.chest_cm ? Math.round(newBiometric.value.chest_cm * 10) : null,
+    waist_mm: bioData.waist_cm ? Math.round(bioData.waist_cm * 10) : null,
+    chest_mm: bioData.chest_cm ? Math.round(bioData.chest_cm * 10) : null,
+    hips_mm: bioData.hips_cm ? Math.round(bioData.hips_cm * 10) : null,
+    biceps_mm: bioData.biceps_cm ? Math.round(bioData.biceps_cm * 10) : null,
     log_date: selectedDate.value
   }
   const { data, error } = await supabase.from('biometrics').insert([payload])
@@ -176,11 +191,49 @@ const addBiometric = async () => {
   }
 }
 
-const addMeal = async () => {
+const editBiometric = async (bioData: { id: string; weight_kg: number; waist_cm?: number; chest_cm?: number; hips_cm?: number; biceps_cm?: number }) => {
+  if (!authStore.user.value?.id || !bioData.id) return
+  const weightKgVal = bioData.weight_kg || 0
+  const updatePayload = {
+    weight_dg: Math.round(weightKgVal * 10),
+    waist_mm: bioData.waist_cm ? Math.round(bioData.waist_cm * 10) : null,
+    chest_mm: bioData.chest_cm ? Math.round(bioData.chest_cm * 10) : null,
+    hips_mm: bioData.hips_cm ? Math.round(bioData.hips_cm * 10) : null,
+    biceps_mm: bioData.biceps_cm ? Math.round(bioData.biceps_cm * 10) : null
+  }
+  const { error } = await supabase
+    .from('biometrics')
+    .update(updatePayload)
+    .eq('id', bioData.id)
+
+  if (!error) {
+    const idx = biometrics.value.findIndex(b => b.id === bioData.id)
+    if (idx !== -1) {
+      biometrics.value[idx] = {
+        ...biometrics.value[idx],
+        ...updatePayload,
+        weight_kg: bioData.weight_kg
+      }
+    }
+  }
+}
+
+const deleteBiometric = async (id: string) => {
+  if (!authStore.user.value?.id || !id) return
+  const { error } = await supabase.from('biometrics').delete().eq('id', id)
+  if (!error) {
+    const idx = biometrics.value.findIndex(b => b.id === id)
+    if (idx !== -1) {
+      biometrics.value.splice(idx, 1)
+    }
+  }
+}
+
+const addMeal = async (mealData: Meal) => {
   if (!authStore.user.value?.id) return
   const id = uuidv7()
   const payload: Meal = {
-    ...newMeal.value,
+    ...mealData,
     id,
     user_id: authStore.user.value.id,
     log_date: selectedDate.value
@@ -230,6 +283,17 @@ const undoLastWater = async () => {
   }
 }
 
+const updateWaterTarget = async (targetMl: number) => {
+  if (!authStore.user.value?.id) return
+  if (userProfile.value) {
+    userProfile.value.target_water_ml = targetMl
+  }
+  await supabase.from('profiles').update({
+    target_water_ml: targetMl,
+    updated_at: new Date().toISOString()
+  }).eq('id', authStore.user.value.id)
+}
+
 const handleSignOut = async () => {
   await authStore.signOut()
   navigate('/')
@@ -237,7 +301,6 @@ const handleSignOut = async () => {
 
 onMounted(async () => {
   const userTimezone = getUserTimezone()
-  console.log(`[mfit] Client timezone detected: ${userTimezone}`)
 
   await fetchAll()
 
@@ -264,6 +327,19 @@ onMounted(async () => {
     <!-- Progressive Onboarding Gate -->
     <OnboardingModal v-if="isOnboardingPending" :initial-profile="userProfile" :latest-biometric="biometrics[0] || null"
       @completed="onOnboardingCompleted" @dismiss="showOnboardingModal = false" />
+
+    <!-- Quick Add Modal -->
+    <QuickAddModal
+      :show="showAddModal"
+      @close="showAddModal = false"
+      @select="(tab) => {
+        if (tab === 'meals') {
+          navigate('/meals', false, { logDate: selectedDate })
+        } else {
+          activeTab = tab
+        }
+      }"
+    />
 
     <div class="max-w-4xl mx-auto px-4 py-8 space-y-8">
     <header class="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -328,34 +404,25 @@ onMounted(async () => {
       </div>
     </header>
 
-    <!-- Date Navigation Popover -->
-    <div class="flex items-center justify-between">
+    <!-- Date Navigation Popover & Add Quick Action -->
+    <div class="flex items-center justify-between gap-3">
       <DatePickerPopover v-model="selectedDate" :logged-dates="loggedDates" />
+      <button
+        type="button"
+        @click="showAddModal = true"
+        class="flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition active:scale-95 shadow-md shadow-emerald-950/40 cursor-pointer"
+        title="Quick Log"
+      >
+        <Plus class="w-5 h-5 stroke-[2.5]" />
+      </button>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <StatCard
-        :label="t('dash.stats.active_burn')"
-        :value="totalActiveCalories"
-        unit="kcal"
-        :icon="Flame"
-        variant="emerald"
-      />
-      <StatCard
-        :label="t('dash.stats.water_intake')"
-        :value="totalWaterMl"
-        unit="ml"
-        :icon="Droplets"
-        variant="cyan"
-      />
-      <StatCard
-        :label="t('dash.stats.latest_weight')"
-        :value="latestWeight || '--'"
-        unit="kg"
-        :icon="Scale"
-        variant="purple"
-      />
-    </div>
+    <!-- 3 Summary Metrics Component -->
+    <DashboardSummaryCards
+      :total-active-calories="totalActiveCalories"
+      :total-water-ml="totalWaterMl"
+      :latest-weight="latestWeight"
+    />
 
     <!-- Main Metric Trackers: Animated Calories & Water Gauges -->
     <div class="space-y-4">
@@ -366,84 +433,30 @@ onMounted(async () => {
       />
       <WaterTrackerCard
         :current-ml="totalWaterMl"
-        :target-ml="2500"
+        :target-ml="userProfile?.target_water_ml || 2500"
         :can-undo="filteredWaterLogs.length > 0"
         @add-water="addWater"
         @undo="undoLastWater"
+        @update-target="updateWaterTarget"
       />
     </div>
 
-    <div class="flex border-b border-slate-800 space-x-4">
-      <button v-for="tab in (['workouts', 'biometrics', 'meals', 'water'] as const)" :key="tab" @click="activeTab = tab"
-        :class="[
-          'pb-3 font-medium capitalize transition-colors border-b-2 text-sm cursor-pointer',
-          activeTab === tab
-            ? 'border-emerald-500 text-emerald-400'
-            : 'border-transparent text-slate-400 hover:text-slate-200'
-        ]">
-        {{ t(`dash.nav.${tab}`) }}
-      </button>
-    </div>
-
-    <div v-if="activeTab === 'workouts'" class="space-y-6">
-      <form @submit.prevent="addWorkout"
-        class="bg-slate-900 border border-slate-800 p-4 rounded-xl grid sm:grid-cols-4 gap-4 items-end">
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Workout Type</label>
-          <input v-model="newWorkout.workout_type"
-            class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
-            required />
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Active Cal</label>
-          <input type="number" v-model.number="newWorkout.active_calories"
-            class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
-            required />
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Duration (min)</label>
-          <input type="number" v-model.number="newWorkout.duration_minutes"
-            class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
-            required />
-        </div>
-        <button type="submit"
-          class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 px-4 rounded text-sm flex items-center justify-center gap-2 cursor-pointer">
-          <Plus class="w-4 h-4" /> Log Workout
-        </button>
-      </form>
-
-      <div class="space-y-2">
-        <div v-for="w in filteredWorkouts" :key="w.id"
-          class="bg-slate-900 border border-slate-800 p-3 rounded-lg flex items-center justify-between text-sm">
-          <div class="flex items-center gap-3">
-            <Activity class="w-5 h-5 text-emerald-400" />
-            <div>
-              <div class="font-semibold text-slate-200">{{ w.workout_type }}</div>
-              <div class="text-xs text-slate-400">{{ w.duration_minutes }} min</div>
-            </div>
-          </div>
-          <div class="text-right">
-            <span class="font-bold text-emerald-400">{{ w.active_calories }} kcal</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="activeTab === 'water'" class="space-y-6">
-      <div class="space-y-2">
-        <div v-if="filteredWaterLogs.length === 0" class="text-sm text-slate-500 py-4 text-center">
-          No water logs recorded for this date.
-        </div>
-        <div v-for="(w, idx) in filteredWaterLogs" :key="w.id"
-          class="bg-slate-900 border border-slate-800 p-3 rounded-lg flex items-center justify-between text-sm">
-          <div class="flex items-center gap-3">
-            <Droplets class="w-5 h-5 text-cyan-400" />
-            <span class="font-medium text-slate-200">Water Log #{{ filteredWaterLogs.length - idx }}</span>
-          </div>
-          <span class="font-bold text-cyan-400">+{{ w.amount_ml }} ml</span>
-        </div>
-      </div>
-    </div>
+    <!-- Granular Tabbed Feature Sections Component -->
+    <DashboardTabSection
+      v-model="activeTab"
+      :target-date="selectedDate"
+      :workouts="filteredWorkouts"
+      :biometrics="biometrics"
+      :meals="filteredMeals"
+      :water-logs="filteredWaterLogs"
+      @add-workout="addWorkout"
+      @edit-workout="editWorkout"
+      @delete-workout="deleteWorkout"
+      @add-biometric="addBiometric"
+      @edit-biometric="editBiometric"
+      @delete-biometric="deleteBiometric"
+      @add-water="addWater"
+    />
   </div>
   </div>
 </template>

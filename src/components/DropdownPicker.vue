@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import type { Component } from 'vue'
-import { ChevronDown, Check } from '@lucide/vue'
+import { ChevronDown, Check, Search, X } from '@lucide/vue'
 
 export interface DropdownOption {
   value: string | number
@@ -16,6 +16,8 @@ const props = withDefaults(
     options: DropdownOption[] | string[]
     label?: string
     placeholder?: string
+    searchable?: boolean
+    searchPlaceholder?: string
     icon?: Component
     iconPosition?: 'field-left' | 'label-left'
     iconColor?: string
@@ -24,6 +26,8 @@ const props = withDefaults(
   {
     modelValue: null,
     placeholder: 'Select an option',
+    searchable: false,
+    searchPlaceholder: 'Search categories...',
     disabled: false,
     iconPosition: 'field-left',
     iconColor: 'text-emerald-400'
@@ -35,7 +39,9 @@ const emit = defineEmits<{
 }>()
 
 const isOpen = ref(false)
+const searchQuery = ref('')
 const containerRef = ref<HTMLElement | null>(null)
+const searchInputRef = ref<HTMLInputElement | null>(null)
 
 // Normalize options to DropdownOption format
 const normalizedOptions = computed<DropdownOption[]>(() => {
@@ -47,6 +53,17 @@ const normalizedOptions = computed<DropdownOption[]>(() => {
   })
 })
 
+const filteredOptions = computed<DropdownOption[]>(() => {
+  if (!props.searchable || !searchQuery.value.trim()) {
+    return normalizedOptions.value
+  }
+  const q = searchQuery.value.toLowerCase().trim()
+  return normalizedOptions.value.filter(opt =>
+    opt.label.toLowerCase().includes(q) ||
+    (opt.description && opt.description.toLowerCase().includes(q))
+  )
+})
+
 const selectedOption = computed(() => {
   return normalizedOptions.value.find((opt) => opt.value === props.modelValue)
 })
@@ -54,11 +71,18 @@ const selectedOption = computed(() => {
 const toggle = () => {
   if (props.disabled) return
   isOpen.value = !isOpen.value
+  if (isOpen.value && props.searchable) {
+    searchQuery.value = ''
+    nextTick(() => {
+      searchInputRef.value?.focus()
+    })
+  }
 }
 
 const select = (value: string | number) => {
   emit('update:modelValue', value)
   isOpen.value = false
+  searchQuery.value = ''
 }
 
 // Auto dismiss on outside click
@@ -139,10 +163,37 @@ onUnmounted(() => {
     <div
       v-if="isOpen"
       tabindex="-1"
-      class="absolute left-0 top-full mt-2 w-full bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl p-1.5 z-50 space-y-1 max-h-60 overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-100 focus:outline-none scrollbar-thin scrollbar-thumb-slate-800"
+      class="absolute left-0 top-full mt-2 w-full bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl p-1.5 z-50 space-y-1 max-h-72 overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-100 focus:outline-none scrollbar-thin scrollbar-thumb-slate-800"
     >
+      <!-- Searchable typeahead input -->
+      <div v-if="searchable" class="p-1.5 border-b border-slate-800/80 mb-1 sticky top-0 bg-slate-900/95 backdrop-blur-md z-10">
+        <div class="relative">
+          <Search class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <input
+            ref="searchInputRef"
+            type="text"
+            v-model="searchQuery"
+            :placeholder="searchPlaceholder"
+            @click.stop
+            class="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500/80 rounded-lg pl-8 pr-7 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition"
+          />
+          <button
+            v-if="searchQuery"
+            type="button"
+            @click.stop="searchQuery = ''"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 cursor-pointer"
+          >
+            <X class="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      <div v-if="filteredOptions.length === 0" class="px-3 py-4 text-center text-xs text-slate-500">
+        No workout matching "{{ searchQuery }}"
+      </div>
+
       <button
-        v-for="opt in normalizedOptions"
+        v-for="opt in filteredOptions"
         :key="opt.value"
         type="button"
         @click="select(opt.value)"

@@ -87,13 +87,16 @@ const styles = computed(() => {
           <component :is="icon" class="w-3.5 h-3.5" />
           <span>{{ title }}</span>
         </div>
-        <span
-          v-if="showPercentage && safeTarget > 0"
-          class="text-xs font-medium px-2 py-0.5 rounded-full border"
-          :class="styles.badge"
-        >
-          {{ fillPercent }}%
-        </span>
+        <div class="flex items-center gap-1.5">
+          <span
+            v-if="showPercentage && safeTarget > 0"
+            class="text-xs font-medium px-2 py-0.5 rounded-full border"
+            :class="styles.badge"
+          >
+            {{ fillPercent }}%
+          </span>
+          <slot name="header-actions" />
+        </div>
       </div>
 
       <div class="flex items-baseline justify-between pt-1">
