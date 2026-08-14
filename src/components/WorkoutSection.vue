@@ -36,6 +36,18 @@ const handleWorkoutSubmit = (workout: Workout) => {
     emit('add-workout', workout)
   }
 }
+const formatDuration = (sec: number = 0) => {
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = sec % 60
+
+  const parts = []
+  if (h > 0) parts.push(`${h}h`)
+  if (m > 0 || h > 0) parts.push(`${m}m`)
+  if (s > 0 || (h === 0 && m === 0)) parts.push(`${s}s`)
+
+  return parts.join(' ')
+}
 </script>
 
 <template>
@@ -74,16 +86,35 @@ const handleWorkoutSubmit = (workout: Workout) => {
         No workouts recorded for this date.
       </div>
       <div v-for="w in workouts" :key="w.id"
-        class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between text-sm group">
+        class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between text-sm group hover:border-slate-700 transition">
         <div class="flex items-center gap-3">
-          <Activity class="w-5 h-5 text-emerald-400" />
+          <Activity class="w-5 h-5 text-emerald-400 shrink-0" />
           <div>
-            <div class="font-semibold text-slate-200">{{ w.workout_type }}</div>
-            <div class="text-xs text-slate-400">{{ w.duration_minutes }} min</div>
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-slate-200">{{ w.workout_type }}</span>
+              <span
+                v-if="w.avg_hr"
+                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-950/80 border border-rose-800/80 text-rose-300 flex items-center gap-1"
+              >
+                {{ w.avg_hr }} bpm
+              </span>
+              <span
+                v-if="w.effort"
+                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950/80 border border-amber-800/80 text-amber-300"
+              >
+                RPE {{ w.effort }}/10
+              </span>
+            </div>
+            <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
+              <span>{{ formatDuration(w.duration_sec) }}</span>
+              <span v-if="w.total_cal && w.total_cal !== w.active_cal" class="text-slate-500">
+                • Total: {{ w.total_cal }} kcal
+              </span>
+            </div>
           </div>
         </div>
         <div class="flex items-center gap-3">
-          <span class="font-bold text-emerald-400">{{ w.active_calories }} kcal</span>
+          <span class="font-bold text-emerald-400">{{ w.active_cal }} kcal</span>
           <div class="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             <button
               type="button"

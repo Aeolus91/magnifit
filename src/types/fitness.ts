@@ -2,9 +2,11 @@ export interface Workout {
   id?: string
   user_id?: string
   workout_type: string
-  active_calories: number
-  total_calories: number
-  duration_minutes: number
+  active_cal: number
+  total_cal?: number | null
+  duration_sec: number
+  avg_hr?: number | null
+  effort?: number | null
   log_date?: string
   ts?: string
 }

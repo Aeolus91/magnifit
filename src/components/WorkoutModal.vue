@@ -7,7 +7,7 @@ import DropdownPicker from './DropdownPicker.vue'
 import FormInput from './FormInput.vue'
 import ToggleSwitch from './ToggleSwitch.vue'
 import { WORKOUT_CATEGORIES, AttributeFlags, encodeWorkoutFlags, decodeWorkoutFlags } from '../lib/bitmask'
-import { Dumbbell, Plus, Check, Trees, Navigation, Flame, Timer, Pencil } from '@lucide/vue'
+import { Dumbbell, Plus, Check, Trees, Navigation, Flame, Timer, Pencil, Heart, Zap } from '@lucide/vue'
 
 const props = defineProps<{
   show: boolean
@@ -28,9 +28,16 @@ const workoutCategoryOptions = Object.entries(WORKOUT_CATEGORIES).map(([id, labe
 }))
 
 const workoutType = ref<string>('Traditional Strength')
-const activeCalories = ref<number>(300)
-const totalCalories = ref<number>(380)
-const durationMinutes = ref<number>(45)
+const activeCalories = ref<number | null>(null)
+const totalCalories = ref<number | null>(null)
+const avgHeartRate = ref<number | null>(null)
+const effortLevel = ref<number | null>(null)
+
+// Duration HH:MM:SS State
+const durationHours = ref<number | null>(null)
+const durationMins = ref<number | null>(null)
+const durationSecs = ref<number | null>(null)
+
 const isOutdoor = ref<boolean>(false)
 const isGpsTracked = ref<boolean>(false)
 
@@ -42,14 +49,24 @@ watch(
     if (open) {
       if (props.initialWorkout) {
         workoutType.value = props.initialWorkout.workout_type || 'Traditional Strength'
-        activeCalories.value = props.initialWorkout.active_calories || 0
-        totalCalories.value = props.initialWorkout.total_calories || props.initialWorkout.active_calories || 0
-        durationMinutes.value = props.initialWorkout.duration_minutes || 0
+        activeCalories.value = props.initialWorkout.active_cal ?? null
+        totalCalories.value = props.initialWorkout.total_cal ?? null
+        avgHeartRate.value = props.initialWorkout.avg_hr ?? null
+        effortLevel.value = props.initialWorkout.effort ?? null
+        
+        const totalSec = props.initialWorkout.duration_sec || 0
+        durationHours.value = Math.floor(totalSec / 3600) || null
+        durationMins.value = Math.floor((totalSec % 3600) / 60) || null
+        durationSecs.value = totalSec % 60 || null
       } else {
         workoutType.value = 'Traditional Strength'
-        activeCalories.value = 300
-        totalCalories.value = 380
-        durationMinutes.value = 45
+        activeCalories.value = null
+        totalCalories.value = null
+        avgHeartRate.value = null
+        effortLevel.value = null
+        durationHours.value = null
+        durationMins.value = null
+        durationSecs.value = null
         isOutdoor.value = false
         isGpsTracked.value = false
       }
@@ -58,6 +75,15 @@ watch(
 )
 
 const handleSubmit = () => {
+  if (activeCalories.value === null) return
+  
+  const totalDurationSec =
+    (Number(durationHours.value || 0) * 3600) +
+    (Number(durationMins.value || 0) * 60) +
+    Number(durationSecs.value || 0)
+
+  if (totalDurationSec <= 0) return
+
   const catEntry = Object.entries(WORKOUT_CATEGORIES).find(([_, name]) => name === workoutType.value)
   const catId = catEntry ? Number(catEntry[0]) : 0
 
@@ -69,9 +95,11 @@ const handleSubmit = () => {
   emit('submit', {
     ...props.initialWorkout,
     workout_type: workoutType.value,
-    active_calories: activeCalories.value,
-    total_calories: totalCalories.value || activeCalories.value,
-    duration_minutes: durationMinutes.value
+    active_cal: activeCalories.value,
+    total_cal: totalCalories.value || activeCalories.value,
+    duration_sec: totalDurationSec,
+    avg_hr: avgHeartRate.value || null,
+    effort: effortLevel.value || null
   })
   emit('close')
 }
@@ -100,7 +128,7 @@ const handleSubmit = () => {
         />
       </div>
 
-      <!-- Active Calories & Duration with field-left icons -->
+      <!-- Active Calories & Total Calories -->
       <div class="grid grid-cols-2 gap-3">
         <FormInput
           v-model="activeCalories"
@@ -115,17 +143,93 @@ const handleSubmit = () => {
           icon-color="text-emerald-400"
         />
         <FormInput
-          v-model="durationMinutes"
+          v-model="totalCalories"
           type="number"
-          :label="t('dash.workout.duration_label')"
-          :placeholder="t('dash.workout.duration_placeholder')"
-          :min="1"
-          :max="1440"
-          :required="true"
-          :icon="Timer"
+          label="Total Cal (Optional)"
+          placeholder="e.g. 380"
+          :min="0"
+          :max="10000"
+          :icon="Flame"
           icon-position="field-left"
-          icon-color="text-emerald-400"
+          icon-color="text-amber-400"
         />
+      </div>
+
+      <!-- Duration (HH : MM : SS) Segmented Input -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+          <Timer class="w-3.5 h-3.5 text-emerald-400" />
+          <span>{{ t('dash.workout.duration_label') }}</span>
+        </label>
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <FormInput
+              v-model="durationHours"
+              type="number"
+              placeholder="00"
+              :min="0"
+              :max="24"
+              input-class="text-center font-mono"
+            />
+            <span class="text-[10px] text-slate-500 block text-center mt-1">Hours</span>
+          </div>
+          <div>
+            <FormInput
+              v-model="durationMins"
+              type="number"
+              placeholder="00"
+              :min="0"
+              :max="59"
+              input-class="text-center font-mono"
+            />
+            <span class="text-[10px] text-slate-500 block text-center mt-1">Minutes</span>
+          </div>
+          <div>
+            <FormInput
+              v-model="durationSecs"
+              type="number"
+              placeholder="00"
+              :min="0"
+              :max="59"
+              input-class="text-center font-mono"
+            />
+            <span class="text-[10px] text-slate-500 block text-center mt-1">Seconds</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Avg Heart Rate & Perceived Effort (RPE) -->
+      <div class="space-y-3 pt-1 border-t border-slate-800/80">
+        <div class="grid grid-cols-2 gap-3">
+          <FormInput
+            v-model="avgHeartRate"
+            type="number"
+            label="Avg Heart Rate (bpm)"
+            placeholder="e.g. 142"
+            :min="30"
+            :max="260"
+            :icon="Heart"
+            icon-position="field-left"
+            icon-color="text-rose-400"
+          />
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <Zap class="w-3.5 h-3.5 text-amber-400" />
+              <span>Effort (RPE 1-10)</span>
+            </label>
+            <div class="relative">
+              <input
+                type="number"
+                v-model.number="effortLevel"
+                min="1"
+                max="10"
+                placeholder="e.g. 7"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-mono"
+              />
+              <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-500 pointer-events-none">/ 10</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Attributes 2-Column ToggleSwitch Layout (Left / Right) -->

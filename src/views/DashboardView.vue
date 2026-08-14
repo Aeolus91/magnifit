@@ -137,13 +137,15 @@ const addWorkout = async (workoutData: Workout) => {
 
 const editWorkout = async (workoutData: Workout) => {
   if (!authStore.user.value?.id || !workoutData.id) return
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from<Workout>('workouts')
     .update({
       workout_type: workoutData.workout_type,
-      active_calories: workoutData.active_calories,
-      total_calories: workoutData.total_calories,
-      duration_minutes: workoutData.duration_minutes
+      active_cal: workoutData.active_cal,
+      total_cal: workoutData.total_cal || workoutData.active_cal,
+      duration_sec: workoutData.duration_sec,
+      avg_hr: workoutData.avg_hr || null,
+      effort: workoutData.effort || null
     })
     .eq('id', workoutData.id)
 
