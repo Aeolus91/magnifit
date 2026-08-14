@@ -4,8 +4,12 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuthStore } from '../stores/authStore'
 import { useRouter } from '../lib/router'
 import { useI18n } from '../lib/i18n'
-import { ProfilePrefs, WORKOUT_CATEGORIES, encodeWorkoutFlags } from '../lib/bitmask'
-import type { Workout, Biometric, Meal, WaterLog, Profile } from '../types/fitness'
+import { ProfilePrefs } from '../lib/bitmask'
+import type { Meal, Profile } from '../types/fitness'
+import { useWorkouts } from '../composables/useWorkouts'
+import { useBiometrics } from '../composables/useBiometrics'
+import { useWater } from '../composables/useWater'
+import { useMeals } from '../composables/useMeals'
 import OnboardingModal from '../components/OnboardingModal.vue'
 import QuickAddModal from '../components/QuickAddModal.vue'
 import WorkoutModal from '../components/WorkoutModal.vue'
@@ -30,6 +34,55 @@ const showWorkoutModal = ref<boolean>(false)
 const showBiometricsModal = ref<boolean>(false)
 const showProfileMenu = ref<boolean>(false)
 const selectedDate = ref<string>(getTodayDateString())
+const loggedDates = ref<string[]>([])
+
+const currentUserId = computed(() => authStore.user.value?.id)
+
+// Composables Architecture
+const {
+  workouts,
+  filteredWorkouts,
+  totalActiveCalories,
+  fetchWorkouts,
+  addWorkout,
+  editWorkout,
+  deleteWorkout
+} = useWorkouts(currentUserId, selectedDate, loggedDates)
+
+const {
+  biometrics,
+  latestWeight,
+  latestBmi,
+  fetchBiometrics,
+  addBiometric,
+  editBiometric,
+  deleteBiometric
+} = useBiometrics(currentUserId, userProfile, selectedDate, loggedDates)
+
+const {
+  waterLogs,
+  filteredWaterLogs,
+  totalWaterMl,
+  fetchWater,
+  addWater,
+  editWater,
+  deleteWater,
+  undoLastWater,
+  updateWaterTarget
+} = useWater(currentUserId, userProfile, selectedDate, loggedDates)
+
+const {
+  meals,
+  filteredMeals,
+  totalCaloriesConsumed,
+  fetchMeals,
+  addMeal,
+  editMeal,
+  deleteMeal
+} = useMeals(currentUserId, selectedDate, loggedDates)
+
+const loading = ref(false)
+const activeTab = ref<'workouts' | 'biometrics' | 'meals' | 'water'>('workouts')
 
 const isOnboardingPending = computed(() => {
   if (showOnboardingModal.value) return true
@@ -37,50 +90,11 @@ const isOnboardingPending = computed(() => {
   return (userProfile.value.prefs & ProfilePrefs.ONBOARDING_COMPLETED) === 0
 })
 
-const workouts = ref<Workout[]>([])
-const biometrics = ref<Biometric[]>([])
-const meals = ref<Meal[]>([])
-const waterLogs = ref<WaterLog[]>([])
-const loggedDates = ref<string[]>([])
-const loading = ref(false)
-
-const activeTab = ref<'workouts' | 'biometrics' | 'meals' | 'water'>('workouts')
-
-// Date-scoped collections matching the selected target log_date in context
-const filteredWorkouts = computed(() =>
-  workouts.value.filter(w => (w.log_date || getLocalISODate(w.ts)) === selectedDate.value)
-)
-const filteredMeals = computed(() =>
-  meals.value.filter(m => (m.log_date || getLocalISODate(m.ts)) === selectedDate.value)
-)
-const filteredWaterLogs = computed(() =>
-  waterLogs.value.filter(w => (w.log_date || getLocalISODate(w.ts)) === selectedDate.value)
-)
-
-// Computed metrics scoped to selected date
-const totalActiveCalories = computed(() =>
-  filteredWorkouts.value.reduce((acc, w) => acc + (w.active_cal || 0), 0)
-)
-const totalCaloriesConsumed = computed(() =>
-  filteredMeals.value.reduce((acc, m) => acc + (m.calories || 0), 0)
-)
-const totalWaterMl = computed(() =>
-  filteredWaterLogs.value.reduce((acc, w) => acc + (w.amount_ml || 0), 0)
-)
-
-// Weight is an exception: always displays the user's latest most current weight (type: 1)
-const latestWeight = computed(() => {
-  const latestWeightRecord = biometrics.value.find(b => b.type === 1)
-  if (!latestWeightRecord) return 0
-  return Number((latestWeightRecord.val / 10).toFixed(1))
-})
-
 const fetchProfile = async (userId: string) => {
   const { data } = await supabase.from<Profile>('profiles').select().eq('id', userId).get()
   if (data && data.length > 0) {
     userProfile.value = data[0]
   } else {
-    // If not existing yet, initialize placeholder to trigger onboarding
     userProfile.value = {
       id: userId,
       username: '',
@@ -93,137 +107,35 @@ const fetchProfile = async (userId: string) => {
 const onOnboardingCompleted = (updatedProfile: Profile) => {
   userProfile.value = updatedProfile
   showOnboardingModal.value = false
-  fetchCollections(updatedProfile.id)
+  fetchAll()
 }
 
-const fetchCollections = async (userId: string) => {
-  loading.value = true
-  const [wRes, bRes, mRes, watRes, sumRes] = await Promise.all([
-    supabase.from<Workout>('workouts').select().eq('user_id', userId).order('log_date', { ascending: false }).order('id', { ascending: false }).get(),
-    supabase.from<Biometric>('biometrics').select().eq('user_id', userId).order('log_date', { ascending: false }).order('id', { ascending: false }).get(),
-    supabase.from<Meal>('meals').select().eq('user_id', userId).order('log_date', { ascending: false }).order('id', { ascending: false }).get(),
-    supabase.from<WaterLog>('water_logs').select().eq('user_id', userId).order('log_date', { ascending: false }).order('id', { ascending: false }).get(),
-    supabase.from<{ log_date: string }>('daily_summaries').select('log_date').eq('user_id', userId).get()
-  ])
-
-  if (wRes.data) workouts.value = wRes.data
-  if (bRes.data) biometrics.value = bRes.data
-  if (mRes.data) meals.value = mRes.data
-  if (watRes.data) waterLogs.value = watRes.data
-  if (sumRes.data) loggedDates.value = sumRes.data.map(s => s.log_date)
-  loading.value = false
+const fetchDailySummaries = async (userId: string) => {
+  const { data } = await supabase
+    .from<{ log_date: string }>('daily_summaries')
+    .select('log_date')
+    .eq('user_id', userId)
+    .get()
+  if (data) {
+    data.forEach(s => {
+      if (!loggedDates.value.includes(s.log_date)) loggedDates.value.push(s.log_date)
+    })
+  }
 }
 
 const fetchAll = async () => {
   if (!authStore.user.value?.id) return
   const userId = authStore.user.value.id
-  await fetchProfile(userId)
-  await fetchCollections(userId)
-}
-
-const addWorkout = async (workoutData: Workout) => {
-  if (!authStore.user.value?.id) return
-  const id = uuidv7()
-  const payload: Workout = {
-    ...workoutData,
-    id,
-    user_id: authStore.user.value.id,
-    log_date: selectedDate.value
-  }
-  const { data, error } = await supabase.from<Workout>('workouts').insert([payload])
-  if (!error && data) {
-    workouts.value.unshift(data[0] || payload)
-    if (!loggedDates.value.includes(selectedDate.value)) {
-      loggedDates.value.push(selectedDate.value)
-    }
-  }
-}
-
-const editWorkout = async (workoutData: Workout) => {
-  if (!authStore.user.value?.id || !workoutData.id) return
-  const { error } = await supabase
-    .from<Workout>('workouts')
-    .update({
-      workout_type: workoutData.workout_type,
-      active_cal: workoutData.active_cal,
-      total_cal: workoutData.total_cal || workoutData.active_cal,
-      duration_sec: workoutData.duration_sec,
-      avg_hr: workoutData.avg_hr || null,
-      effort: workoutData.effort || null
-    })
-    .eq('id', workoutData.id)
-
-  if (!error) {
-    const idx = workouts.value.findIndex(w => w.id === workoutData.id)
-    if (idx !== -1) {
-      workouts.value[idx] = { ...workouts.value[idx], ...workoutData }
-    }
-  }
-}
-
-const deleteWorkout = async (id: string) => {
-  if (!authStore.user.value?.id || !id) return
-  const { error } = await supabase.from('workouts').delete().eq('id', id)
-  if (!error) {
-    const idx = workouts.value.findIndex(w => w.id === id)
-    if (idx !== -1) {
-      workouts.value.splice(idx, 1)
-    }
-  }
-}
-
-const addBiometric = async (bioData: Biometric) => {
-  if (!authStore.user.value?.id) return
-  const id = uuidv7()
-  const payload: Biometric = {
-    ...bioData,
-    id,
-    user_id: authStore.user.value.id,
-    log_date: selectedDate.value
-  }
-  const { data, error } = await supabase.from<Biometric>('biometrics').insert([payload])
-  if (!error && data) {
-    biometrics.value.unshift(data[0] || payload)
-    if (!loggedDates.value.includes(selectedDate.value)) {
-      loggedDates.value.push(selectedDate.value)
-    }
-  }
-}
-
-const editBiometric = async (bioData: Biometric) => {
-  if (!authStore.user.value?.id || !bioData.id) return
-  const updatePayload = {
-    cat: bioData.cat,
-    type: bioData.type,
-    val: bioData.val,
-    unit: bioData.unit,
-    flags: bioData.flags || 0
-  }
-  const { error } = await supabase
-    .from('biometrics')
-    .update(updatePayload)
-    .eq('id', bioData.id)
-
-  if (!error) {
-    const idx = biometrics.value.findIndex(b => b.id === bioData.id)
-    if (idx !== -1) {
-      biometrics.value[idx] = {
-        ...biometrics.value[idx],
-        ...updatePayload
-      }
-    }
-  }
-}
-
-const deleteBiometric = async (id: string) => {
-  if (!authStore.user.value?.id || !id) return
-  const { error } = await supabase.from('biometrics').delete().eq('id', id)
-  if (!error) {
-    const idx = biometrics.value.findIndex(b => b.id === id)
-    if (idx !== -1) {
-      biometrics.value.splice(idx, 1)
-    }
-  }
+  loading.value = true
+  await Promise.all([
+    fetchProfile(userId),
+    fetchWorkouts(userId),
+    fetchBiometrics(userId),
+    fetchMeals(userId),
+    fetchWater(userId),
+    fetchDailySummaries(userId)
+  ])
+  loading.value = false
 }
 
 const addMeal = async (mealData: Meal) => {
@@ -242,68 +154,6 @@ const addMeal = async (mealData: Meal) => {
       loggedDates.value.push(selectedDate.value)
     }
   }
-}
-
-const addWater = async (amount: number) => {
-  if (!authStore.user.value?.id) return
-  const id = uuidv7()
-  const payload: WaterLog = {
-    id,
-    amount_ml: amount,
-    user_id: authStore.user.value.id,
-    log_date: selectedDate.value
-  }
-  const { data, error } = await supabase.from<WaterLog>('water_logs').insert([payload])
-  if (!error && data) {
-    waterLogs.value.unshift(data[0] || payload)
-    if (!loggedDates.value.includes(selectedDate.value)) {
-      loggedDates.value.push(selectedDate.value)
-    }
-  }
-}
-
-const editWater = async (updatedLog: WaterLog) => {
-  if (!authStore.user.value?.id || !updatedLog.id) return
-  const { error } = await supabase.from('water_logs').update({
-    amount_ml: updatedLog.amount_ml
-  }).eq('id', updatedLog.id)
-
-  if (!error) {
-    const idx = waterLogs.value.findIndex(w => w.id === updatedLog.id)
-    if (idx !== -1) {
-      waterLogs.value[idx] = { ...waterLogs.value[idx], amount_ml: updatedLog.amount_ml }
-    }
-  }
-}
-
-const deleteWater = async (id: string) => {
-  if (!authStore.user.value?.id) return
-  const { error } = await supabase.from('water_logs').delete().eq('id', id)
-  if (!error) {
-    const idx = waterLogs.value.findIndex(w => w.id === id)
-    if (idx !== -1) {
-      waterLogs.value.splice(idx, 1)
-    }
-  }
-}
-
-const undoLastWater = async () => {
-  if (!authStore.user.value?.id || filteredWaterLogs.value.length === 0) return
-  const lastLog = filteredWaterLogs.value[0]
-  if (!lastLog.id) return
-
-  await deleteWater(lastLog.id)
-}
-
-const updateWaterTarget = async (targetMl: number) => {
-  if (!authStore.user.value?.id) return
-  if (userProfile.value) {
-    userProfile.value.target_water_ml = targetMl
-  }
-  await supabase.from('profiles').update({
-    target_water_ml: targetMl,
-    updated_at: new Date().toISOString()
-  }).eq('id', authStore.user.value.id)
 }
 
 const handleSignOut = async () => {
@@ -448,12 +298,13 @@ onMounted(async () => {
       </button>
     </div>
 
-    <!-- 3 Summary Metrics Component -->
-    <DashboardSummaryCards
-      :total-active-calories="totalActiveCalories"
-      :total-water-ml="totalWaterMl"
-      :latest-weight="latestWeight"
-    />
+      <!-- Summary Cards Grid (Scoped to selected date) -->
+      <DashboardSummaryCards
+        :total-active-calories="totalActiveCalories"
+        :total-water-ml="totalWaterMl"
+        :latest-weight="latestWeight"
+        :latest-bmi="latestBmi"
+      />
 
     <!-- Main Metric Trackers: Animated Calories & Water Gauges -->
     <div class="space-y-4">

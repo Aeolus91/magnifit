@@ -2,10 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from '../lib/router'
 import { useAuthStore } from '../stores/authStore'
-import { supabase } from '../lib/supabaseClient'
-import { uuidv7 } from '../lib/uuidv7'
-import { getTodayDateString } from '../lib/dateUtils'
 import { MealFlags } from '../lib/bitmask'
+import { useMeals } from '../composables/useMeals'
 import type { Meal } from '../types/fitness'
 import { ArrowLeft, Utensils, Plus, Sparkles, BookOpen, Clock, Check, Flame, ChevronRight } from '@lucide/vue'
 
@@ -14,12 +12,24 @@ const authStore = useAuthStore()
 
 // Target date passed silently in router state or defaulted to today
 const targetDate = computed<string>(() => {
-  return routeState.value.logDate || getTodayDateString()
+  return routeState.value.logDate || new Date().toISOString().split('T')[0]
 })
 
+const loggedDates = ref<string[]>([])
+const currentUserId = computed(() => authStore.user.value?.id)
+
+const {
+  filteredMeals: meals,
+  totalCaloriesConsumed: totalDailyCalories,
+  totalProteinG: totalProtein,
+  totalCarbsG: totalCarbs,
+  totalFatG: totalFat,
+  loading,
+  fetchMeals,
+  addMeal
+} = useMeals(currentUserId, targetDate, loggedDates)
+
 const activeTab = ref<'log' | 'recipes' | 'summary'>('log')
-const meals = ref<Meal[]>([])
-const loading = ref<boolean>(false)
 const isSaving = ref<boolean>(false)
 
 // New Meal Form Model
@@ -38,59 +48,33 @@ const mealSlotOptions = [
   { bit: MealFlags.SNACK, label: 'Snack' }
 ]
 
-const totalDailyCalories = computed(() => meals.value.reduce((acc, m) => acc + (m.calories || 0), 0))
-const totalProtein = computed(() => meals.value.reduce((acc, m) => acc + (m.protein_g || 0), 0))
-const totalCarbs = computed(() => meals.value.reduce((acc, m) => acc + (m.carbs_g || 0), 0))
-const totalFat = computed(() => meals.value.reduce((acc, m) => acc + (m.fat_g || 0), 0))
-
-const fetchMealsForDate = async () => {
-  if (!authStore.user.value?.id) return
-  loading.value = true
-  const { data } = await supabase
-    .from<Meal>('meals')
-    .select()
-    .eq('user_id', authStore.user.value.id)
-    .eq('log_date', targetDate.value)
-    .order('id', { ascending: false })
-    .get()
-
-  if (data) {
-    meals.value = data
-  }
-  loading.value = false
-}
-
 const handleLogMeal = async () => {
   if (!authStore.user.value?.id || !mealName.value.trim() || calories.value === null) return
   isSaving.value = true
-  const id = uuidv7()
-  const payload: Meal = {
-    id,
-    user_id: authStore.user.value.id,
+  await addMeal({
     meal_name: mealName.value.trim(),
-    calories: calories.value || 0,
-    protein_g: proteinG.value || 0,
-    carbs_g: carbsG.value || 0,
+    cal: calories.value || 0,
+    prot_g: proteinG.value || 0,
+    carb_g: carbsG.value || 0,
     fat_g: fatG.value || 0,
+    flags: selectedMealSlot.value,
     log_date: targetDate.value
-  }
+  })
 
-  const { data, error } = await supabase.from<Meal>('meals').insert([payload])
-  if (!error && data) {
-    meals.value.unshift(data[0] || payload)
-    mealName.value = ''
-    calories.value = null
-    proteinG.value = null
-    carbsG.value = null
-    fatG.value = null
-    fiberG.value = null
-    activeTab.value = 'summary'
-  }
+  mealName.value = ''
+  calories.value = null
+  proteinG.value = null
+  carbsG.value = null
+  fatG.value = null
+  fiberG.value = null
+  activeTab.value = 'summary'
   isSaving.value = false
 }
 
 onMounted(() => {
-  fetchMealsForDate()
+  if (currentUserId.value) {
+    fetchMeals(currentUserId.value)
+  }
 })
 </script>
 
