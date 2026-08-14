@@ -2,6 +2,7 @@ import { ref, computed, type Ref } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import { uuidv7 } from '../lib/uuidv7'
 import { getLocalISODate } from '../lib/dateUtils'
+import { offlineSync } from '../lib/offlineSync'
 import type { Workout } from '../types/fitness'
 
 export function useWorkouts(userId: Ref<string | undefined>, selectedDate: Ref<string>, loggedDates: Ref<string[]>) {
@@ -44,52 +45,72 @@ export function useWorkouts(userId: Ref<string | undefined>, selectedDate: Ref<s
 
   const addWorkout = async (workoutData: Workout) => {
     if (!userId.value) return
-    const id = uuidv7()
+    const id = workoutData.id || uuidv7()
     const payload: Workout = {
       ...workoutData,
       id,
       user_id: userId.value,
       log_date: selectedDate.value
     }
-    const { data, error } = await supabase.from<Workout>('workouts').insert([payload])
-    if (!error && data) {
-      workouts.value.unshift(data[0] || payload)
-      if (!loggedDates.value.includes(selectedDate.value)) {
-        loggedDates.value.push(selectedDate.value)
+    workouts.value.unshift(payload)
+    if (!loggedDates.value.includes(selectedDate.value)) {
+      loggedDates.value.push(selectedDate.value)
+    }
+
+    try {
+      const { error } = await supabase.from<Workout>('workouts').insert([payload])
+      if (error) {
+        offlineSync.enqueue('workouts', 'insert', payload)
       }
+    } catch {
+      offlineSync.enqueue('workouts', 'insert', payload)
     }
   }
 
   const editWorkout = async (workoutData: Workout) => {
     if (!userId.value || !workoutData.id) return
-    const { error } = await supabase
-      .from<Workout>('workouts')
-      .update({
-        workout_type: workoutData.workout_type,
-        active_cal: workoutData.active_cal,
-        total_cal: workoutData.total_cal || workoutData.active_cal,
-        duration_sec: workoutData.duration_sec,
-        avg_hr: workoutData.avg_hr || null,
-        effort: workoutData.effort || null
-      })
-      .eq('id', workoutData.id)
+    const updatePayload = {
+      workout_type: workoutData.workout_type,
+      active_cal: workoutData.active_cal,
+      total_cal: workoutData.total_cal || workoutData.active_cal,
+      duration_sec: workoutData.duration_sec,
+      avg_hr: workoutData.avg_hr || null,
+      effort: workoutData.effort || null
+    }
 
-    if (!error) {
-      const idx = workouts.value.findIndex(w => w.id === workoutData.id)
-      if (idx !== -1) {
-        workouts.value[idx] = { ...workouts.value[idx], ...workoutData }
+    const idx = workouts.value.findIndex(w => w.id === workoutData.id)
+    if (idx !== -1) {
+      workouts.value[idx] = { ...workouts.value[idx], ...workoutData }
+    }
+
+    try {
+      const { error } = await supabase
+        .from<Workout>('workouts')
+        .update(updatePayload)
+        .eq('id', workoutData.id)
+
+      if (error) {
+        offlineSync.enqueue('workouts', 'update', { id: workoutData.id, ...updatePayload })
       }
+    } catch {
+      offlineSync.enqueue('workouts', 'update', { id: workoutData.id, ...updatePayload })
     }
   }
 
   const deleteWorkout = async (id: string) => {
     if (!userId.value || !id) return
-    const { error } = await supabase.from('workouts').delete().eq('id', id)
-    if (!error) {
-      const idx = workouts.value.findIndex(w => w.id === id)
-      if (idx !== -1) {
-        workouts.value.splice(idx, 1)
+    const idx = workouts.value.findIndex(w => w.id === id)
+    if (idx !== -1) {
+      workouts.value.splice(idx, 1)
+    }
+
+    try {
+      const { error } = await supabase.from('workouts').delete().eq('id', id)
+      if (error) {
+        offlineSync.enqueue('workouts', 'delete', { id })
       }
+    } catch {
+      offlineSync.enqueue('workouts', 'delete', { id })
     }
   }
 

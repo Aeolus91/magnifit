@@ -109,6 +109,7 @@ const subtitle = computed(() => {
     </FluidGaugeCard>
 
     <!-- Set Daily Water Goal Modal -->
+    <!-- Goal Setting Modal Dialog -->
     <Modal
       v-if="showTargetModal"
       title="Daily Water Goal"

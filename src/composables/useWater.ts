@@ -2,6 +2,7 @@ import { ref, computed, type Ref } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import { uuidv7 } from '../lib/uuidv7'
 import { getLocalISODate } from '../lib/dateUtils'
+import { offlineSync } from '../lib/offlineSync'
 import type { WaterLog, Profile } from '../types/fitness'
 
 export function useWater(
@@ -33,7 +34,6 @@ export function useWater(
       .eq('user_id', targetUid)
       .order('log_date', { ascending: false })
       .order('ts', { ascending: false })
-      .get()
 
     if (data) {
       waterLogs.value = data
@@ -56,38 +56,56 @@ export function useWater(
       amount_ml: amount,
       log_date: selectedDate.value
     }
-    const { data, error } = await supabase.from<WaterLog>('water_logs').insert([payload])
-    if (!error && data) {
-      waterLogs.value.unshift(data[0] || payload)
-      if (!loggedDates.value.includes(selectedDate.value)) {
-        loggedDates.value.push(selectedDate.value)
+    waterLogs.value.unshift(payload)
+    if (!loggedDates.value.includes(selectedDate.value)) {
+      loggedDates.value.push(selectedDate.value)
+    }
+
+    try {
+      const { error } = await supabase.from<WaterLog>('water_logs').insert([payload])
+      if (error) {
+        offlineSync.enqueue('water_logs', 'insert', payload)
       }
+    } catch {
+      offlineSync.enqueue('water_logs', 'insert', payload)
     }
   }
 
   const editWater = async (updatedLog: WaterLog) => {
     if (!userId.value || !updatedLog.id) return
-    const { error } = await supabase
-      .from('water_logs')
-      .update({ amount_ml: updatedLog.amount_ml })
-      .eq('id', updatedLog.id)
+    const idx = waterLogs.value.findIndex(w => w.id === updatedLog.id)
+    if (idx !== -1) {
+      waterLogs.value[idx].amount_ml = updatedLog.amount_ml
+    }
 
-    if (!error) {
-      const idx = waterLogs.value.findIndex(w => w.id === updatedLog.id)
-      if (idx !== -1) {
-        waterLogs.value[idx].amount_ml = updatedLog.amount_ml
+    try {
+      const { error } = await supabase
+        .from('water_logs')
+        .update({ amount_ml: updatedLog.amount_ml })
+        .eq('id', updatedLog.id)
+
+      if (error) {
+        offlineSync.enqueue('water_logs', 'update', updatedLog)
       }
+    } catch {
+      offlineSync.enqueue('water_logs', 'update', updatedLog)
     }
   }
 
   const deleteWater = async (id: string) => {
     if (!userId.value || !id) return
-    const { error } = await supabase.from('water_logs').delete().eq('id', id)
-    if (!error) {
-      const idx = waterLogs.value.findIndex(w => w.id === id)
-      if (idx !== -1) {
-        waterLogs.value.splice(idx, 1)
+    const idx = waterLogs.value.findIndex(w => w.id === id)
+    if (idx !== -1) {
+      waterLogs.value.splice(idx, 1)
+    }
+
+    try {
+      const { error } = await supabase.from('water_logs').delete().eq('id', id)
+      if (error) {
+        offlineSync.enqueue('water_logs', 'delete', { id })
       }
+    } catch {
+      offlineSync.enqueue('water_logs', 'delete', { id })
     }
   }
 
@@ -100,13 +118,18 @@ export function useWater(
 
   const updateWaterTarget = async (targetMl: number) => {
     if (!userId.value || !userProfile.value) return
-    const { error } = await supabase
-      .from('profiles')
-      .update({ target_water_ml: targetMl })
-      .eq('id', userId.value)
+    userProfile.value.target_water_ml = targetMl
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ target_water_ml: targetMl })
+        .eq('id', userId.value)
 
-    if (!error) {
-      userProfile.value.target_water_ml = targetMl
+      if (error) {
+        offlineSync.enqueue('profiles', 'update', { id: userId.value, target_water_ml: targetMl })
+      }
+    } catch {
+      offlineSync.enqueue('profiles', 'update', { id: userId.value, target_water_ml: targetMl })
     }
   }
 

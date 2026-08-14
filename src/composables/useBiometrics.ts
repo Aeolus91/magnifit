@@ -2,6 +2,7 @@ import { ref, computed, type Ref } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import { uuidv7 } from '../lib/uuidv7'
 import { getLocalISODate } from '../lib/dateUtils'
+import { offlineSync } from '../lib/offlineSync'
 import type { Biometric, Profile } from '../types/fitness'
 
 export function useBiometrics(
@@ -56,19 +57,25 @@ export function useBiometrics(
 
   const addBiometric = async (bioData: Biometric) => {
     if (!userId.value) return
-    const id = uuidv7()
+    const id = bioData.id || uuidv7()
     const payload: Biometric = {
       ...bioData,
       id,
       user_id: userId.value,
       log_date: selectedDate.value
     }
-    const { data, error } = await supabase.from<Biometric>('biometrics').insert([payload])
-    if (!error && data) {
-      biometrics.value.unshift(data[0] || payload)
-      if (!loggedDates.value.includes(selectedDate.value)) {
-        loggedDates.value.push(selectedDate.value)
+    biometrics.value.unshift(payload)
+    if (!loggedDates.value.includes(selectedDate.value)) {
+      loggedDates.value.push(selectedDate.value)
+    }
+
+    try {
+      const { error } = await supabase.from<Biometric>('biometrics').insert([payload])
+      if (error) {
+        offlineSync.enqueue('biometrics', 'insert', payload)
       }
+    } catch {
+      offlineSync.enqueue('biometrics', 'insert', payload)
     }
   }
 
@@ -84,30 +91,43 @@ export function useBiometrics(
     if (bioData.val_sec !== undefined) {
       updatePayload.val_sec = bioData.val_sec
     }
-    const { error } = await supabase
-      .from('biometrics')
-      .update(updatePayload)
-      .eq('id', bioData.id)
 
-    if (!error) {
-      const idx = biometrics.value.findIndex(b => b.id === bioData.id)
-      if (idx !== -1) {
-        biometrics.value[idx] = {
-          ...biometrics.value[idx],
-          ...updatePayload
-        }
+    const idx = biometrics.value.findIndex(b => b.id === bioData.id)
+    if (idx !== -1) {
+      biometrics.value[idx] = {
+        ...biometrics.value[idx],
+        ...updatePayload
       }
+    }
+
+    try {
+      const { error } = await supabase
+        .from('biometrics')
+        .update(updatePayload)
+        .eq('id', bioData.id)
+
+      if (error) {
+        offlineSync.enqueue('biometrics', 'update', { id: bioData.id, ...updatePayload })
+      }
+    } catch {
+      offlineSync.enqueue('biometrics', 'update', { id: bioData.id, ...updatePayload })
     }
   }
 
   const deleteBiometric = async (id: string) => {
     if (!userId.value || !id) return
-    const { error } = await supabase.from('biometrics').delete().eq('id', id)
-    if (!error) {
-      const idx = biometrics.value.findIndex(b => b.id === id)
-      if (idx !== -1) {
-        biometrics.value.splice(idx, 1)
+    const idx = biometrics.value.findIndex(b => b.id === id)
+    if (idx !== -1) {
+      biometrics.value.splice(idx, 1)
+    }
+
+    try {
+      const { error } = await supabase.from('biometrics').delete().eq('id', id)
+      if (error) {
+        offlineSync.enqueue('biometrics', 'delete', { id })
       }
+    } catch {
+      offlineSync.enqueue('biometrics', 'delete', { id })
     }
   }
 

@@ -2,6 +2,7 @@ import { ref, computed, type Ref } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import { uuidv7 } from '../lib/uuidv7'
 import { getLocalISODate } from '../lib/dateUtils'
+import { offlineSync } from '../lib/offlineSync'
 import type { Meal } from '../types/fitness'
 
 export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<string>, loggedDates: Ref<string[]>) {
@@ -53,52 +54,72 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
 
   const addMeal = async (mealData: Meal) => {
     if (!userId.value) return
-    const id = uuidv7()
+    const id = mealData.id || uuidv7()
     const payload: Meal = {
       ...mealData,
       id,
       user_id: userId.value,
       log_date: selectedDate.value
     }
-    const { data, error } = await supabase.from<Meal>('meals').insert([payload])
-    if (!error && data) {
-      meals.value.unshift(data[0] || payload)
-      if (!loggedDates.value.includes(selectedDate.value)) {
-        loggedDates.value.push(selectedDate.value)
+    meals.value.unshift(payload)
+    if (!loggedDates.value.includes(selectedDate.value)) {
+      loggedDates.value.push(selectedDate.value)
+    }
+
+    try {
+      const { error } = await supabase.from<Meal>('meals').insert([payload])
+      if (error) {
+        offlineSync.enqueue('meals', 'insert', payload)
       }
+    } catch {
+      offlineSync.enqueue('meals', 'insert', payload)
     }
   }
 
   const editMeal = async (mealData: Meal) => {
     if (!userId.value || !mealData.id) return
-    const { error } = await supabase
-      .from<Meal>('meals')
-      .update({
-        meal_name: mealData.meal_name,
-        cal: mealData.cal || mealData.calories,
-        prot_g: mealData.prot_g || mealData.protein_g,
-        carb_g: mealData.carb_g || mealData.carbs_g,
-        fat_g: mealData.fat_g,
-        flags: mealData.flags
-      })
-      .eq('id', mealData.id)
+    const updatePayload = {
+      meal_name: mealData.meal_name,
+      cal: mealData.cal || mealData.calories,
+      prot_g: mealData.prot_g || mealData.protein_g,
+      carb_g: mealData.carb_g || mealData.carbs_g,
+      fat_g: mealData.fat_g,
+      flags: mealData.flags
+    }
 
-    if (!error) {
-      const idx = meals.value.findIndex(m => m.id === mealData.id)
-      if (idx !== -1) {
-        meals.value[idx] = { ...meals.value[idx], ...mealData }
+    const idx = meals.value.findIndex(m => m.id === mealData.id)
+    if (idx !== -1) {
+      meals.value[idx] = { ...meals.value[idx], ...mealData }
+    }
+
+    try {
+      const { error } = await supabase
+        .from<Meal>('meals')
+        .update(updatePayload)
+        .eq('id', mealData.id)
+
+      if (error) {
+        offlineSync.enqueue('meals', 'update', { id: mealData.id, ...updatePayload })
       }
+    } catch {
+      offlineSync.enqueue('meals', 'update', { id: mealData.id, ...updatePayload })
     }
   }
 
   const deleteMeal = async (id: string) => {
     if (!userId.value || !id) return
-    const { error } = await supabase.from('meals').delete().eq('id', id)
-    if (!error) {
-      const idx = meals.value.findIndex(m => m.id === id)
-      if (idx !== -1) {
-        meals.value.splice(idx, 1)
+    const idx = meals.value.findIndex(m => m.id === id)
+    if (idx !== -1) {
+      meals.value.splice(idx, 1)
+    }
+
+    try {
+      const { error } = await supabase.from('meals').delete().eq('id', id)
+      if (error) {
+        offlineSync.enqueue('meals', 'delete', { id })
       }
+    } catch {
+      offlineSync.enqueue('meals', 'delete', { id })
     }
   }
 
