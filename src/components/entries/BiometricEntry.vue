@@ -48,15 +48,43 @@ const getCategoryColor = (cat: number) => {
   }
 }
 
+const getLateralityBadge = (flags: number = 0) => {
+  const hasLeft = (flags & BiometricFlags.UNILATERAL_LEFT) === BiometricFlags.UNILATERAL_LEFT
+  const hasRight = (flags & BiometricFlags.UNILATERAL_RIGHT) === BiometricFlags.UNILATERAL_RIGHT
+  if (hasLeft && hasRight) return 'L & R'
+  if (hasLeft) return 'Left (L)'
+  if (hasRight) return 'Right (R)'
+  return null
+}
+
 const getMeasurementDisplay = (b: Biometric): { primary: string; sub: string | null } => {
   const meta = BIOMETRIC_TYPES[b.type]
-  const valPrimary = b.val / (meta?.scale || 1)
-  const unit = meta?.unitLabel || ''
+  if (!meta) return { primary: `${b.val}`, sub: null }
 
+  const formattedPrimary = (b.val / meta.scale).toFixed(meta.step < 1 ? 1 : 0)
+
+  // Blood pressure (type 32: Systolic/Diastolic)
   if (b.type === 32 && b.val_sec !== undefined && b.val_sec !== null) {
-    return { primary: `${b.val}/${b.val_sec} ${unit}`, sub: null }
+    return { primary: `${b.val}/${b.val_sec} ${meta.unitLabel}`, sub: null }
   }
 
+  // Multi-value or unilateral bilateral (val = Left, val_sec = Right)
+  if (b.val_sec !== null && b.val_sec !== undefined) {
+    const formattedSec = (b.val_sec / meta.scale).toFixed(meta.step < 1 ? 1 : 0)
+    if (props.showAverageAggregate) {
+      const avg = ((b.val + b.val_sec) / (2 * meta.scale)).toFixed(meta.step < 1 ? 1 : 0)
+      return {
+        primary: `Avg: ${avg} ${meta.unitLabel}`,
+        sub: `(L: ${formattedPrimary} | R: ${formattedSec})`
+      }
+    }
+    return {
+      primary: `L: ${formattedPrimary} | R: ${formattedSec}`,
+      sub: meta.unitLabel
+    }
+  }
+
+  // Separate records bilateral averaging across allBiometrics
   const isLeft = hasFlag(b.flags || 0, BiometricFlags.UNILATERAL_LEFT)
   const isRight = hasFlag(b.flags || 0, BiometricFlags.UNILATERAL_RIGHT)
 
@@ -69,19 +97,19 @@ const getMeasurementDisplay = (b: Biometric): { primary: string; sub: string | n
     )
 
     if (pair) {
-      const valPair = pair.val / (meta?.scale || 1)
-      const avg = ((valPrimary + valPair) / 2).toFixed(1)
-      const leftVal = isLeft ? valPrimary : valPair
-      const rightVal = isRight ? valPrimary : valPair
+      const valPair = (pair.val / meta.scale).toFixed(meta.step < 1 ? 1 : 0)
+      const avg = ((b.val + pair.val) / (2 * meta.scale)).toFixed(meta.step < 1 ? 1 : 0)
+      const leftVal = isLeft ? formattedPrimary : valPair
+      const rightVal = isRight ? formattedPrimary : valPair
       return {
-        primary: `Avg: ${avg} ${unit}`,
-        sub: `(L: ${leftVal.toFixed(1)} | R: ${rightVal.toFixed(1)})`
+        primary: `Avg: ${avg} ${meta.unitLabel}`,
+        sub: `(L: ${leftVal} | R: ${rightVal})`
       }
     }
   }
 
   return {
-    primary: `${meta?.step && meta.step < 1 ? valPrimary.toFixed(1) : valPrimary} ${unit}`,
+    primary: `${formattedPrimary} ${meta.unitLabel}`,
     sub: null
   }
 }
@@ -108,16 +136,10 @@ const meta = computed(() => BIOMETRIC_TYPES[props.biometric.type])
             <!-- Floating Badges on >=360px -->
             <div class="hidden min-[360px]:flex items-center gap-1.5 flex-wrap">
               <span
-                v-if="hasFlag(biometric.flags || 0, BiometricFlags.UNILATERAL_LEFT)"
-                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-950/80 border border-cyan-800/80 text-cyan-300 whitespace-nowrap"
+                v-if="getLateralityBadge(biometric.flags)"
+                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-950/80 border border-purple-800/80 text-purple-300 whitespace-nowrap"
               >
-                Left
-              </span>
-              <span
-                v-if="hasFlag(biometric.flags || 0, BiometricFlags.UNILATERAL_RIGHT)"
-                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-950/80 border border-cyan-800/80 text-cyan-300 whitespace-nowrap"
-              >
-                Right
+                {{ getLateralityBadge(biometric.flags) }}
               </span>
               <span
                 v-if="hasFlag(biometric.flags || 0, BiometricFlags.FASTED)"
@@ -161,16 +183,28 @@ const meta = computed(() => BIOMETRIC_TYPES[props.biometric.type])
           <!-- Badges for screens <360px -->
           <div class="flex min-[360px]:hidden items-center gap-1">
             <span
-              v-if="hasFlag(biometric.flags || 0, BiometricFlags.UNILATERAL_LEFT)"
-              class="px-1 py-0.2 text-[9px] font-bold bg-cyan-950/80 border border-cyan-800/80 text-cyan-300 rounded"
+              v-if="getLateralityBadge(biometric.flags)"
+              class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-950/80 border border-purple-800/80 text-purple-300 shrink-0 whitespace-nowrap"
             >
-              L
+              {{ getLateralityBadge(biometric.flags) }}
             </span>
             <span
-              v-if="hasFlag(biometric.flags || 0, BiometricFlags.UNILATERAL_RIGHT)"
-              class="px-1 py-0.2 text-[9px] font-bold bg-cyan-950/80 border border-cyan-800/80 text-cyan-300 rounded"
+              v-if="hasFlag(biometric.flags || 0, BiometricFlags.FASTED)"
+              class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-950/80 border border-amber-800/80 text-amber-300 shrink-0 whitespace-nowrap"
             >
-              R
+              Fasted
+            </span>
+            <span
+              v-if="hasFlag(biometric.flags || 0, BiometricFlags.POST_WORKOUT_PUMP)"
+              class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-950/80 border border-purple-800/80 text-purple-300 shrink-0 whitespace-nowrap"
+            >
+              Pumped
+            </span>
+            <span
+              v-if="hasFlag(biometric.flags || 0, BiometricFlags.RESTING)"
+              class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-950/80 border border-rose-800/80 text-rose-300 shrink-0 whitespace-nowrap"
+            >
+              Resting
             </span>
           </div>
 

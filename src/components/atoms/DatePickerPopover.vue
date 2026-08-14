@@ -365,7 +365,7 @@ onUnmounted(() => {
                 type="button"
                 @click="selectDate(day)"
                 :disabled="day.isFuture"
-                class="h-8 w-8 mx-auto rounded-lg text-xs font-medium flex items-center justify-center transition"
+                class="relative h-8 w-8 mx-auto rounded-lg text-xs font-medium flex items-center justify-center transition"
                 :class="[
                   day.isFuture
                     ? 'opacity-20 text-slate-600 cursor-not-allowed'
