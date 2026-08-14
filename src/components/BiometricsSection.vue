@@ -44,21 +44,30 @@ const handleBioSubmit = (bio: Biometric) => {
 
 const showAverageAggregate = ref(false)
 
-const formatDisplayVal = (b: Biometric) => {
+const getMeasurementDisplay = (b: Biometric) => {
   const meta = BIOMETRIC_TYPES[b.type]
-  if (!meta) return `${b.val}`
+  if (!meta) return { primary: `${b.val}`, sub: null }
   const formattedPrimary = (b.val / meta.scale).toFixed(meta.step < 1 ? 1 : 0)
   
   if (b.val_sec !== null && b.val_sec !== undefined) {
     const formattedSec = (b.val_sec / meta.scale).toFixed(meta.step < 1 ? 1 : 0)
     if (showAverageAggregate.value) {
       const avg = ((b.val + b.val_sec) / (2 * meta.scale)).toFixed(meta.step < 1 ? 1 : 0)
-      return `Avg: ${avg} ${meta.unitLabel} (L: ${formattedPrimary} | R: ${formattedSec})`
+      return {
+        primary: `Avg: ${avg} ${meta.unitLabel}`,
+        sub: `(L: ${formattedPrimary} | R: ${formattedSec})`
+      }
     }
-    return `L: ${formattedPrimary} | R: ${formattedSec} ${meta.unitLabel}`
+    return {
+      primary: `L: ${formattedPrimary} | R: ${formattedSec}`,
+      sub: meta.unitLabel
+    }
   }
   
-  return `${formattedPrimary} ${meta.unitLabel}`
+  return {
+    primary: `${formattedPrimary} ${meta.unitLabel}`,
+    sub: null
+  }
 }
 
 const getMetricName = (b: Biometric) => {
@@ -136,41 +145,79 @@ const getLateralityBadge = (flags: number = 0) => {
       <div
         v-for="b in biometrics"
         :key="b.id"
-        class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between text-sm group"
+        class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between gap-3 text-sm group hover:border-slate-700 transition"
       >
-        <div class="flex items-center gap-3">
-          <Scale class="w-5 h-5 text-purple-400" />
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="font-semibold text-slate-200">{{ getMetricName(b) }}</span>
+        <!-- Col 1: Icon, Title, (Desktop/Standard Badges) & Category -->
+        <div class="flex items-center gap-2.5 min-w-0 flex-1 text-left">
+          <div class="p-1.5 rounded-lg bg-purple-950/50 border border-purple-800/40 text-purple-400 shrink-0">
+            <Scale class="w-4 h-4" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 flex-wrap max-w-full">
+              <span class="font-semibold text-slate-200 truncate">{{ getMetricName(b) }}</span>
+              <!-- Badges shown on >=360px -->
+              <div class="hidden min-[360px]:flex items-center gap-1.5 flex-wrap">
+                <span
+                  v-if="getLateralityBadge(b.flags)"
+                  class="px-1.5 py-0.5 rounded text-[9px] min-[380px]:text-[10px] font-bold bg-purple-950/80 border border-purple-800/80 text-purple-300 shrink-0 whitespace-nowrap"
+                >
+                  {{ getLateralityBadge(b.flags) }}
+                </span>
+                <span
+                  v-if="(b.flags || 0) & BiometricFlags.FASTED"
+                  class="px-1.5 py-0.5 rounded text-[9px] min-[380px]:text-[10px] font-medium bg-slate-800 border border-slate-700/60 text-slate-300 shrink-0 whitespace-nowrap"
+                >
+                  Fasted
+                </span>
+                <span
+                  v-if="(b.flags || 0) & BiometricFlags.POST_WORKOUT_PUMP"
+                  class="px-1.5 py-0.5 rounded text-[9px] min-[380px]:text-[10px] font-bold bg-amber-950/80 border border-amber-800/80 text-amber-300 shrink-0 whitespace-nowrap"
+                >
+                  Pumped
+                </span>
+              </div>
+            </div>
+            <div class="text-xs text-slate-400 mt-0.5 truncate">{{ getCategoryLabel(b.cat) }}</div>
+          </div>
+        </div>
+
+        <!-- Col 2: Value & Actions (with Badges placed beside buttons on <360px) -->
+        <div class="flex flex-col min-[380px]:flex-row items-end min-[380px]:items-center gap-1.5 min-[380px]:gap-2.5 shrink-0 text-right">
+          <div class="flex flex-col items-end">
+            <span class="font-bold text-purple-400 text-sm whitespace-nowrap">
+              {{ getMeasurementDisplay(b).primary }}
+            </span>
+            <span
+              v-if="getMeasurementDisplay(b).sub && showAverageAggregate"
+              class="text-[11px] text-slate-400 font-medium whitespace-nowrap"
+            >
+              {{ getMeasurementDisplay(b).sub }}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-1.5 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
+            <!-- Badges rendered beside action buttons on ultra-compact mobile (<360px) -->
+            <div class="flex min-[360px]:hidden items-center gap-1">
               <span
                 v-if="getLateralityBadge(b.flags)"
-                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-950/80 border border-purple-800/80 text-purple-300"
+                class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-950/80 border border-purple-800/80 text-purple-300 shrink-0 whitespace-nowrap"
               >
                 {{ getLateralityBadge(b.flags) }}
               </span>
               <span
                 v-if="(b.flags || 0) & BiometricFlags.FASTED"
-                class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-400"
+                class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-800 border border-slate-700/60 text-slate-300 shrink-0 whitespace-nowrap"
               >
                 Fasted
               </span>
               <span
                 v-if="(b.flags || 0) & BiometricFlags.POST_WORKOUT_PUMP"
-                class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-950/60 text-amber-300 border border-amber-800/40"
+                class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-950/80 border border-amber-800/80 text-amber-300 shrink-0 whitespace-nowrap"
               >
                 Pumped
               </span>
             </div>
-            <div class="text-xs text-slate-400">
-              {{ getCategoryLabel(b.cat) }}
-            </div>
-          </div>
-        </div>
 
-        <div class="flex items-center gap-3">
-          <span class="font-bold text-purple-400">{{ formatDisplayVal(b) }}</span>
-          <div class="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             <button
               type="button"
               @click="openEditModal(b)"

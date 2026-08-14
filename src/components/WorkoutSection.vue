@@ -109,7 +109,7 @@ const formatDuration = (sec: number = 0) => {
               </div>
             </div>
 
-            <div class="flex items-center gap-2.5 shrink-0">
+            <div class="flex flex-col min-[380px]:flex-row items-end min-[380px]:items-center gap-1.5 min-[380px]:gap-2.5 shrink-0">
               <span class="font-bold text-emerald-400 text-sm whitespace-nowrap">{{ w.active_cal }} kcal</span>
               <div class="flex items-center gap-1 opacity-90 transition-opacity shrink-0">
                 <button
