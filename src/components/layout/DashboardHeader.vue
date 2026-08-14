@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useI18n } from '../lib/i18n'
-import type { Profile } from '../types/fitness'
+import { useI18n } from '../../lib/i18n'
+import type { Profile } from '../../types/fitness'
 import { RefreshCw, User as UserIcon, ChevronDown, Sliders, LogOut } from '@lucide/vue'
 
 interface Props {

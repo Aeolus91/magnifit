@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useAuthStore } from '../stores/authStore'
+import { useAuthStore } from '../../stores/authStore'
 import { Mail, Lock, LogIn, UserPlus, AlertCircle, Loader2 } from '@lucide/vue'
 
 const authStore = useAuthStore()

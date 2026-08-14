@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { WaterLog } from '../types/fitness'
-import Modal from './Modal.vue'
-import { Droplets, Plus, Pencil, Trash2, Check } from '@lucide/vue'
+import type { WaterLog } from '../../types/fitness'
+import Modal from '../modals/Modal.vue'
+import WaterEntry from '../entries/WaterEntry.vue'
+import { Droplets, Plus, Check } from '@lucide/vue'
 
 interface Props {
   waterLogs: WaterLog[]
@@ -71,40 +72,19 @@ const handleSaveEdit = () => {
       </button>
     </form>
 
+    <!-- Water Logs List -->
     <div class="space-y-2">
       <div v-if="waterLogs.length === 0" class="text-sm text-slate-500 py-4 text-center">
         No water logs recorded for this date.
       </div>
-      <div v-for="(w, idx) in waterLogs" :key="w.id"
-        class="bg-slate-900 border border-slate-800 p-3 rounded-lg flex items-center justify-between text-sm group hover:border-slate-700 transition">
-        <div class="flex items-center gap-3">
-          <Droplets class="w-5 h-5 text-cyan-400 shrink-0" />
-          <span class="font-medium text-slate-200">Water Log #{{ waterLogs.length - idx }}</span>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <span class="font-bold text-cyan-400">+{{ w.amount_ml }} ml</span>
-          <div class="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-            <button
-              type="button"
-              @click="openEditModal(w)"
-              class="p-1 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition cursor-pointer"
-              title="Edit Water Log"
-            >
-              <Pencil class="w-3.5 h-3.5" />
-            </button>
-            <button
-              v-if="w.id"
-              type="button"
-              @click="emit('delete-water', w.id)"
-              class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition cursor-pointer"
-              title="Delete Water Log"
-            >
-              <Trash2 class="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
+      <WaterEntry
+        v-for="(w, idx) in waterLogs"
+        :key="w.id"
+        :water-log="w"
+        :index-number="waterLogs.length - idx"
+        @edit="openEditModal"
+        @delete="emit('delete-water', $event)"
+      />
     </div>
 
     <!-- Edit Water Log Modal -->

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import StatCard from './StatCard.vue'
+import StatCard from '../atoms/StatCard.vue'
 import { Flame, Droplets, Scale } from '@lucide/vue'
-import { useI18n } from '../lib/i18n'
+import { useI18n } from '../../lib/i18n'
 
 interface Props {
   totalActiveCalories: number

@@ -4,7 +4,8 @@ import { useRouter } from '../lib/router'
 import { useAuthStore } from '../stores/authStore'
 import { MealFlags } from '../lib/bitmask'
 import { useMeals } from '../composables/useMeals'
-import MacroNutrientBar from '../components/MacroNutrientBar.vue'
+import MacroNutrientBar from '../components/cards/MacroNutrientBar.vue'
+import MealEntry from '../components/entries/MealEntry.vue'
 import type { Meal } from '../types/fitness'
 import { ArrowLeft, Utensils, Plus, Sparkles, BookOpen, Clock, Check, Flame, ChevronRight } from '@lucide/vue'
 
@@ -270,26 +271,11 @@ onMounted(() => {
           <div v-if="meals.length === 0" class="text-sm text-slate-500 py-6 text-center bg-slate-900 border border-slate-800 rounded-xl">
             No meals recorded for {{ targetDate }}.
           </div>
-          <div
+          <MealEntry
             v-for="m in meals"
             :key="m.id"
-            class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between text-sm"
-          >
-            <div class="flex items-center gap-3">
-              <Utensils class="w-4 h-4 text-amber-400" />
-              <div>
-                <div class="font-semibold text-slate-200">{{ m.meal_name }}</div>
-                <div class="text-xs text-slate-400">
-                  <span>P: {{ m.protein_g }}g | </span>
-                  <span>C: {{ m.carbs_g }}g | </span>
-                  <span>F: {{ m.fat_g }}g</span>
-                </div>
-              </div>
-            </div>
-            <div class="text-right">
-              <span class="font-bold text-amber-400">{{ m.calories }} kcal</span>
-            </div>
-          </div>
+            :meal="m"
+          />
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { Droplets, Plus, RotateCcw, Settings, Check, Loader2 } from '@lucide/vue'
 import FluidGaugeCard from './FluidGaugeCard.vue'
-import Modal from './Modal.vue'
+import Modal from '../modals/Modal.vue'
 
 interface Props {
   currentMl: number

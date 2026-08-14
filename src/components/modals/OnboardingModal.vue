@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { supabase } from '../lib/supabaseClient'
-import { useAuthStore } from '../stores/authStore'
-import { useI18n } from '../lib/i18n'
-import { ProfilePrefs, MicroNutrientFlags } from '../lib/bitmask'
-import type { Profile, Biometric } from '../types/fitness'
-import YearPicker from './YearPicker.vue'
-import FormInput from './FormInput.vue'
-import ToggleSwitch from './ToggleSwitch.vue'
-import DropdownPicker from './DropdownPicker.vue'
+import { supabase } from '../../lib/supabaseClient'
+import { useAuthStore } from '../../stores/authStore'
+import { useI18n } from '../../lib/i18n'
+import { ProfilePrefs, MicroNutrientFlags } from '../../lib/bitmask'
+import type { Profile, Biometric } from '../../types/fitness'
+import YearPicker from '../atoms/YearPicker.vue'
+import FormInput from '../atoms/FormInput.vue'
+import ToggleSwitch from '../atoms/ToggleSwitch.vue'
+import DropdownPicker from '../atoms/DropdownPicker.vue'
 import Modal from './Modal.vue'
 import {
   User,

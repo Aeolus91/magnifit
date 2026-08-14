@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import type { Workout, Biometric, Meal, WaterLog } from '../types/fitness'
-import { useI18n } from '../lib/i18n'
+import type { Workout, Biometric, Meal, WaterLog } from '../../types/fitness'
+import { useI18n } from '../../lib/i18n'
 import WorkoutSection from './WorkoutSection.vue'
 import BiometricsSection from './BiometricsSection.vue'
 import MealSection from './MealSection.vue'
 import WaterSection from './WaterSection.vue'
+import { Dumbbell, Scale, Utensils, Droplets } from '@lucide/vue'
 
 interface Props {
   modelValue: 'workouts' | 'biometrics' | 'meals' | 'water'
