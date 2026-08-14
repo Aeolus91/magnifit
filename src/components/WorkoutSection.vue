@@ -2,7 +2,8 @@
 import { ref } from 'vue'
 import type { Workout } from '../types/fitness'
 import WorkoutModal from './WorkoutModal.vue'
-import { Activity, Plus, Dumbbell, Pencil, Trash2 } from '@lucide/vue'
+import MetricBadge from './MetricBadge.vue'
+import { Activity, Plus, Dumbbell, Pencil, Trash2, Heart, Zap } from '@lucide/vue'
 
 interface Props {
   workouts: Workout[]
@@ -135,18 +136,18 @@ const formatDuration = (sec: number = 0) => {
 
           <!-- Bottom Row: Badges (No wrapping, side by side) -->
           <div v-if="w.avg_hr || w.effort" class="flex items-center gap-1.5 pt-0.5 pl-8">
-            <span
+            <MetricBadge
               v-if="w.avg_hr"
-              class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-950/80 border border-rose-800/80 text-rose-300 flex items-center gap-1 shrink-0 whitespace-nowrap"
-            >
-              {{ w.avg_hr }} bpm
-            </span>
-            <span
+              :label="`${w.avg_hr} bpm`"
+              :icon="Heart"
+              variant="rose"
+            />
+            <MetricBadge
               v-if="w.effort"
-              class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-950/80 border border-amber-800/80 text-amber-300 shrink-0 whitespace-nowrap"
-            >
-              RPE {{ w.effort }}/10
-            </span>
+              :label="`RPE ${w.effort}`"
+              :icon="Zap"
+              variant="amber"
+            />
           </div>
         </div>
 
@@ -168,23 +169,20 @@ const formatDuration = (sec: number = 0) => {
             </div>
           </div>
 
-          <!-- Col 2: Badges (Middle Column) -->
-          <div
-            v-if="w.avg_hr || w.effort"
-            class="flex items-center gap-1.5 shrink-0"
-          >
-            <span
+          <!-- Column 2 (Middle): Rose Heart Rate & Amber RPE Badges (Side by side) -->
+          <div class="flex items-center gap-1.5 justify-center shrink-0">
+            <MetricBadge
               v-if="w.avg_hr"
-              class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-950/80 border border-rose-800/80 text-rose-300 flex items-center gap-1 shrink-0 whitespace-nowrap"
-            >
-              {{ w.avg_hr }} bpm
-            </span>
-            <span
+              :label="`${w.avg_hr} bpm`"
+              :icon="Heart"
+              variant="rose"
+            />
+            <MetricBadge
               v-if="w.effort"
-              class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-950/80 border border-amber-800/80 text-amber-300 shrink-0 whitespace-nowrap"
-            >
-              RPE {{ w.effort }}/10
-            </span>
+              :label="`RPE ${w.effort}`"
+              :icon="Zap"
+              variant="amber"
+            />
           </div>
 
           <!-- Col 3: Active Calories & Hover Actions (Right Column) -->

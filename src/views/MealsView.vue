@@ -4,6 +4,7 @@ import { useRouter } from '../lib/router'
 import { useAuthStore } from '../stores/authStore'
 import { MealFlags } from '../lib/bitmask'
 import { useMeals } from '../composables/useMeals'
+import MacroNutrientBar from '../components/MacroNutrientBar.vue'
 import type { Meal } from '../types/fitness'
 import { ArrowLeft, Utensils, Plus, Sparkles, BookOpen, Clock, Check, Flame, ChevronRight } from '@lucide/vue'
 
@@ -256,21 +257,12 @@ onMounted(() => {
       <!-- Tab 3: Summary of the Selected Day -->
       <div v-if="activeTab === 'summary'" class="space-y-4">
         <!-- Daily Macro Distribution Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex items-center justify-around text-center">
-          <div>
-            <div class="text-xs text-slate-400">Protein</div>
-            <div class="text-base font-bold text-emerald-400">{{ totalProtein }}g</div>
-          </div>
-          <div class="h-8 w-px bg-slate-800"></div>
-          <div>
-            <div class="text-xs text-slate-400">Carbs</div>
-            <div class="text-base font-bold text-cyan-400">{{ totalCarbs }}g</div>
-          </div>
-          <div class="h-8 w-px bg-slate-800"></div>
-          <div>
-            <div class="text-xs text-slate-400">Fat</div>
-            <div class="text-base font-bold text-amber-400">{{ totalFat }}g</div>
-          </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+          <MacroNutrientBar
+            :protein-g="totalProtein"
+            :carbs-g="totalCarbs"
+            :fat-g="totalFat"
+          />
         </div>
 
         <!-- Meals List -->
