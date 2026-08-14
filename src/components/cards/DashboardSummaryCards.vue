@@ -8,9 +8,12 @@ interface Props {
   totalActiveCalories: number
   latestWeight: number | string
   latestBmi?: number | string | null
+  isLoading?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  isLoading: false
+})
 const { t } = useI18n()
 
 const bmiCategory = computed(() => {
@@ -31,6 +34,7 @@ const bmiCategory = computed(() => {
       unit="kcal"
       :icon="Flame"
       variant="emerald"
+      :is-loading="isLoading"
     />
     <StatCard
       :label="t('dash.stats.latest_weight')"
@@ -38,6 +42,7 @@ const bmiCategory = computed(() => {
       unit="kg"
       :icon="Scale"
       variant="purple"
+      :is-loading="isLoading"
     >
       <template #badges v-if="latestBmi">
         <div class="inline-flex items-center gap-1 shrink-0">

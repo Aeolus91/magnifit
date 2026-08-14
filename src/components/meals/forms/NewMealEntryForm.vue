@@ -77,48 +77,52 @@ const handleSubmit = () => {
 
 <template>
   <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-6 shadow-xl">
-    <!-- Mode Switcher Pill Bar (Manual, Search, OCR) -->
-    <div class="grid grid-cols-3 p-1 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold">
+    <!-- Mode Switcher Pill Bar (Manual, Search, OCR) with Sliding Indicator -->
+    <div class="relative grid grid-cols-3 p-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold gap-1 overflow-hidden">
+      <!-- Animated Sliding Background Pill -->
+      <div
+        class="absolute top-1.5 bottom-1.5 rounded-lg bg-amber-500 shadow-md transition-all duration-300 ease-out pointer-events-none"
+        :style="{
+          width: 'calc((100% - 12px) / 3)',
+          left: '6px',
+          transform: activeMode === 'manual' ? 'translateX(0%)' : activeMode === 'search' ? 'translateX(calc(100% + 4px))' : 'translateX(calc(200% + 8px))'
+        }"
+      ></div>
+
       <button
         type="button"
         @click="activeMode = 'manual'"
         :class="[
-          'py-2 px-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer text-center',
-          activeMode === 'manual'
-            ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
-            : 'text-slate-400 hover:text-slate-200'
+          'relative z-10 py-2 px-1.5 sm:px-2 min-h-[52px] sm:min-h-[44px] rounded-lg transition-colors duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight',
+          activeMode === 'manual' ? 'text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
         ]"
       >
-        <PenTool class="w-3.5 h-3.5" />
-        <span>{{ t('meals.mode.manual') }}</span>
+        <PenTool class="w-3.5 h-3.5 shrink-0" />
+        <span class="text-[11px] sm:text-xs text-center line-clamp-2">{{ t('meals.mode.manual') }}</span>
       </button>
 
       <button
         type="button"
         @click="activeMode = 'search'"
         :class="[
-          'py-2 px-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer text-center',
-          activeMode === 'search'
-            ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
-            : 'text-slate-400 hover:text-slate-200'
+          'relative z-10 py-2 px-1.5 sm:px-2 min-h-[52px] sm:min-h-[44px] rounded-lg transition-colors duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight',
+          activeMode === 'search' ? 'text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
         ]"
       >
-        <Search class="w-3.5 h-3.5" />
-        <span>{{ t('meals.mode.search') }}</span>
+        <Search class="w-3.5 h-3.5 shrink-0" />
+        <span class="text-[11px] sm:text-xs text-center line-clamp-2">{{ t('meals.mode.search') }}</span>
       </button>
 
       <button
         type="button"
         @click="activeMode = 'ocr'"
         :class="[
-          'py-2 px-2 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer text-center',
-          activeMode === 'ocr'
-            ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
-            : 'text-slate-400 hover:text-slate-200'
+          'relative z-10 py-2 px-1.5 sm:px-2 min-h-[52px] sm:min-h-[44px] rounded-lg transition-colors duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight',
+          activeMode === 'ocr' ? 'text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
         ]"
       >
-        <Camera class="w-3.5 h-3.5" />
-        <span>{{ t('meals.mode.ocr') }}</span>
+        <Camera class="w-3.5 h-3.5 shrink-0" />
+        <span class="text-[11px] sm:text-xs text-center line-clamp-2">{{ t('meals.mode.ocr') }}</span>
       </button>
     </div>
 

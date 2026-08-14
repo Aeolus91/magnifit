@@ -10,13 +10,15 @@ interface Props {
   variant?: 'amber' | 'emerald' | 'cyan' | 'purple' | 'slate'
   subtitle?: string
   showPercentage?: boolean
+  isLoading?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   target: 0,
   unit: '',
   variant: 'emerald',
-  showPercentage: true
+  showPercentage: true,
+  isLoading: false
 })
 
 const safeTarget = computed(() => (props.target > 0 ? props.target : 0))
@@ -101,12 +103,14 @@ const styles = computed(() => {
 
       <div class="flex items-baseline justify-between pt-1">
         <div>
-          <div class="text-2xl font-bold text-slate-100">
+          <div v-if="isLoading" class="h-8 w-28 bg-slate-800 rounded animate-pulse"></div>
+          <div v-else class="text-2xl font-bold text-slate-100">
             {{ current.toLocaleString() }}
             <span v-if="unit" class="text-xs text-slate-400 font-normal ml-0.5">{{ unit }}</span>
           </div>
         </div>
-        <div v-if="subtitle" class="text-[11px] text-slate-400 font-medium truncate max-w-[150px] text-right">
+        <div v-if="isLoading" class="h-4 w-20 bg-slate-800 rounded animate-pulse"></div>
+        <div v-else-if="subtitle" class="text-[11px] text-slate-400 font-medium truncate max-w-[150px] text-right">
           {{ subtitle }}
         </div>
       </div>

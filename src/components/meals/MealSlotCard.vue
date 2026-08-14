@@ -4,11 +4,14 @@ import { Plus } from '@lucide/vue'
 import MealEntry from '../entries/MealEntry.vue'
 import type { Meal } from '../../types/fitness'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   slotTitle: string
   slotBit: number
   meals: Meal[]
-}>()
+  isLoading?: boolean
+}>(), {
+  isLoading: false
+})
 
 const emit = defineEmits<{
   (e: 'add-item', slotBit: number): void
@@ -37,11 +40,13 @@ const slotFat = computed(() =>
       <div>
         <div class="text-sm font-bold text-slate-100 flex items-center gap-2">
           <span>{{ slotTitle }}</span>
-          <span v-if="meals.length > 0" class="text-xs font-mono font-bold text-amber-400">
+          <div v-if="isLoading" class="h-4 w-16 bg-slate-800 rounded animate-pulse"></div>
+          <span v-else-if="meals.length > 0" class="text-xs font-mono font-bold text-amber-400">
             {{ slotCalories }} kcal
           </span>
         </div>
-        <div v-if="meals.length > 0" class="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
+        <div v-if="isLoading" class="h-3 w-28 bg-slate-800/80 rounded animate-pulse mt-1"></div>
+        <div v-else-if="meals.length > 0" class="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
           <span class="text-emerald-300">P: {{ slotProt }}g</span>
           <span class="text-amber-300">C: {{ slotCarb }}g</span>
           <span class="text-rose-300">F: {{ slotFat }}g</span>
@@ -60,10 +65,14 @@ const slotFat = computed(() =>
 
     <!-- Meal Entries in this Slot -->
     <div class="space-y-2 pt-1">
-      <div v-if="meals.length === 0" class="text-xs text-slate-500 py-3 text-center bg-slate-950/50 rounded-xl border border-slate-900">
+      <div v-if="isLoading" class="space-y-2">
+        <div class="h-12 w-full bg-slate-950/80 border border-slate-800/80 rounded-xl animate-pulse"></div>
+      </div>
+      <div v-else-if="meals.length === 0" class="text-xs text-slate-500 py-3 text-center bg-slate-950/50 rounded-xl border border-slate-900">
         No meals logged for {{ slotTitle.toLowerCase() }}.
       </div>
       <MealEntry
+        v-else
         v-for="m in meals"
         :key="m.id"
         :meal="m"

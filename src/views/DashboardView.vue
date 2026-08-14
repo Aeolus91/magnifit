@@ -260,30 +260,34 @@ onMounted(async () => {
         :total-active-calories="totalActiveCalories"
         :latest-weight="latestWeight"
         :latest-bmi="latestBmi"
+        :is-loading="loading"
       />
 
-    <!-- Main Metric Trackers: Animated Calories & Water Gauges -->
-    <div class="space-y-4">
-      <CalorieTrackerCard
-        :consumed="totalCaloriesConsumed"
-        :expenditure="totalActiveCalories"
-        :target="userProfile?.target_cal || 2000"
-        :recommended-target="recommendedCalories"
-        :bmr="bmr"
-        :tdee="tdee"
-        :formula-used="formulaUsed"
-        :has-body-fat="hasBodyFat"
-        @update-target="updateCalorieTarget"
-      />
-      <WaterTrackerCard
-        :current-ml="totalWaterMl"
-        :target-ml="userProfile?.target_water_ml || 2500"
-        :can-undo="filteredWaterLogs.length > 0"
-        @add-water="addWater"
-        @undo="undoLastWater"
-        @update-target="updateWaterTarget"
-      />
-    </div>
+      <!-- Main Metric Trackers: Animated Calories & Water Gauges -->
+      <div class="space-y-4">
+        <CalorieTrackerCard
+          :consumed="totalCaloriesConsumed"
+          :expenditure="totalActiveCalories"
+          :target="userProfile?.target_cal || 2000"
+          :recommended-target="recommendedCalories"
+          :bmr="bmr"
+          :tdee="tdee"
+          :formula-used="formulaUsed"
+          :has-body-fat="hasBodyFat"
+          :is-loading="loading"
+          @update-target="updateCalorieTarget"
+          @navigate-meals="navigate('/meals', false, { logDate: selectedDate, tab: 'summary' })"
+        />
+        <WaterTrackerCard
+          :current-ml="totalWaterMl"
+          :target-ml="userProfile?.target_water_ml || 2500"
+          :can-undo="filteredWaterLogs.length > 0"
+          :is-loading="loading"
+          @add-water="addWater"
+          @undo="undoLastWater"
+          @update-target="updateWaterTarget"
+        />
+      </div>
 
     <!-- Granular Tabbed Feature Sections Component -->
     <DashboardTabSection

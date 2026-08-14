@@ -33,28 +33,25 @@ watchEffect(() => {
 
 <template>
   <main class="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-950">
-    <Transition name="page" mode="out-in">
-      <LandingView v-if="currentRoute === '/'" key="landing" />
-      <AuthView v-else-if="currentRoute === '/auth'" key="auth" />
-      <DashboardView v-else-if="currentRoute === '/dash'" key="dash" />
-      <MealsView v-else-if="currentRoute === '/meals'" key="meals" />
-    </Transition>
+    <div class="grid grid-cols-1 grid-rows-1">
+      <Transition name="page">
+        <LandingView v-if="currentRoute === '/'" key="landing" class="col-start-1 row-start-1 w-full" />
+        <AuthView v-else-if="currentRoute === '/auth'" key="auth" class="col-start-1 row-start-1 w-full" />
+        <DashboardView v-else-if="currentRoute === '/dash'" key="dash" class="col-start-1 row-start-1 w-full" />
+        <MealsView v-else-if="currentRoute === '/meals'" key="meals" class="col-start-1 row-start-1 w-full" />
+      </Transition>
+    </div>
   </main>
 </template>
 
 <style>
 .page-enter-active,
 .page-leave-active {
-  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.15s ease-out;
 }
 
-.page-enter-from {
-  opacity: 0;
-  transform: translateY(6px);
-}
-
+.page-enter-from,
 .page-leave-to {
   opacity: 0;
-  transform: translateY(-6px);
 }
 </style>

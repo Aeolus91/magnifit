@@ -8,6 +8,7 @@ interface Props {
   currentMl: number
   targetMl?: number
   canUndo?: boolean
+  isLoading?: boolean
 }
 
 const emit = defineEmits<{
@@ -18,7 +19,8 @@ const emit = defineEmits<{
 
 const props = withDefaults(defineProps<Props>(), {
   targetMl: 2500,
-  canUndo: false
+  canUndo: false,
+  isLoading: false
 })
 
 const showTargetModal = ref(false)
@@ -54,7 +56,8 @@ const subtitle = computed(() => {
         </div>
         <div>
           <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Daily Water Target</div>
-          <div class="text-lg font-bold text-slate-100">
+          <div v-if="isLoading" class="h-6 w-24 bg-slate-800 rounded animate-pulse my-0.5"></div>
+          <div v-else class="text-lg font-bold text-slate-100">
             {{ safeTarget.toLocaleString() }}
             <span class="text-xs text-slate-400 font-normal">ml</span>
           </div>
@@ -80,6 +83,7 @@ const subtitle = computed(() => {
       :icon="Droplets"
       variant="cyan"
       :subtitle="subtitle"
+      :is-loading="isLoading"
     >
 
       <!-- Quick Water Actions: 2x2 grid on micro/320px screens, single horizontal line on standard screens (>=380px) and desktop -->

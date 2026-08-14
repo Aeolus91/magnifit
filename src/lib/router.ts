@@ -2,8 +2,13 @@ import { ref, computed } from 'vue'
 
 export type RoutePath = '/' | '/auth' | '/dash' | '/meals'
 
-const currentPath = ref<string>(window.location.pathname || '/')
+const currentPath = ref<string>(typeof window !== 'undefined' ? window.location.pathname || '/' : '/')
 const routeState = ref<Record<string, any>>({})
+
+// Prevent browser default scroll jump during popstate/swipe-back
+if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+  window.history.scrollRestoration = 'manual'
+}
 
 export function useRouter() {
   const navigate = (path: RoutePath | string, replace: boolean = false, state?: Record<string, any>) => {
@@ -16,6 +21,9 @@ export function useRouter() {
       window.history.pushState(window.history.state, '', path)
     }
     currentPath.value = path
+
+    // Smooth deterministic scroll reset
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }
 
   const currentRoute = computed(() => {
@@ -26,12 +34,13 @@ export function useRouter() {
     return '/'
   })
 
-  // Listen to popstate (back/forward)
+  // Listen to popstate (back/forward swipe)
   window.addEventListener('popstate', (e) => {
     currentPath.value = window.location.pathname || '/'
     if (e.state) {
       routeState.value = e.state
     }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   })
 
   return {

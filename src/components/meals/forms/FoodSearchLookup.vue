@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Search, Loader2, Plus, AlertCircle, X } from '@lucide/vue'
+import { Search, Loader2, Plus, AlertCircle, X, QrCode, Camera } from '@lucide/vue'
 import { useI18n } from '../../../lib/i18n'
+import Modal from '../../modals/Modal.vue'
 
 export interface FoodSearchResult {
   name: string
@@ -31,6 +32,74 @@ const searchResults = ref<FoodSearchResult[]>([])
 const searchError = ref<string | null>(null)
 const selectedFood = ref<FoodSearchResult | null>(null)
 const servingGrams = ref<number>(100)
+
+// Barcode Scanning State
+const showScannerModal = ref(false)
+const scannerVideoRef = ref<HTMLVideoElement | null>(null)
+const isScanningActive = ref(false)
+const scannerError = ref<string | null>(null)
+let scannerInterval: any = null
+let mediaStream: MediaStream | null = null
+
+const startBarcodeScan = async () => {
+  showScannerModal.value = true
+  scannerError.value = null
+  isScanningActive.value = true
+
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    })
+
+    setTimeout(() => {
+      if (scannerVideoRef.value && mediaStream) {
+        scannerVideoRef.value.srcObject = mediaStream
+        scannerVideoRef.value.play()
+
+        // Check native BarcodeDetector API support
+        if ('BarcodeDetector' in window) {
+          const barcodeDetector = new (window as any).BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'code_128']
+          })
+
+          scannerInterval = setInterval(async () => {
+            if (scannerVideoRef.value && !scannerVideoRef.value.paused) {
+              try {
+                const barcodes = await barcodeDetector.detect(scannerVideoRef.value)
+                if (barcodes.length > 0) {
+                  const code = barcodes[0].rawValue
+                  stopBarcodeScan()
+                  searchQuery.value = code
+                  performSearch()
+                }
+              } catch {
+                // Keep detecting
+              }
+            }
+          }, 300)
+        } else {
+          scannerError.value = 'Live barcode camera API not supported by this browser. You can type the barcode number into the search bar.'
+        }
+      }
+    }, 200)
+  } catch (err: any) {
+    scannerError.value = 'Camera permission denied or camera unavailable.'
+    isScanningActive.value = false
+  }
+}
+
+const stopBarcodeScan = () => {
+  if (scannerInterval) {
+    clearInterval(scannerInterval)
+    scannerInterval = null
+  }
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(track => track.stop())
+    mediaStream = null
+  }
+  isScanningActive.value = false
+  showScannerModal.value = false
+}
 
   // Simple in-memory LRU cache to avoid duplicate API calls
   const queryCache = new Map<string, FoodSearchResult[]>()
@@ -210,7 +279,7 @@ const servingGrams = ref<number>(100)
 
 <template>
   <div class="space-y-4">
-    <!-- Search Bar with Explicit Search Submit & Enter Key -->
+    <!-- Search Bar with Explicit Search Submit, Barcode Scanner, & Enter Key -->
     <form @submit.prevent="showAllResults = false; performSearch()" class="flex gap-2">
       <div class="relative flex-1">
         <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -230,6 +299,16 @@ const servingGrams = ref<number>(100)
         </button>
       </div>
 
+      <!-- Barcode Scan Camera Trigger -->
+      <button
+        type="button"
+        @click="startBarcodeScan"
+        title="Scan Barcode"
+        class="px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500 text-slate-300 hover:text-amber-400 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-md"
+      >
+        <QrCode class="w-4 h-4" />
+      </button>
+
       <button
         type="submit"
         :disabled="isSearching || !searchQuery.trim()"
@@ -242,6 +321,38 @@ const servingGrams = ref<number>(100)
         </template>
       </button>
     </form>
+
+    <!-- Native Barcode Camera Scanner Modal -->
+    <Modal
+      v-if="showScannerModal"
+      title="Scan Product Barcode"
+      :icon="QrCode"
+      icon-color="text-amber-400"
+      max-width-class="max-w-md"
+      @close="stopBarcodeScan"
+    >
+      <div class="space-y-4 text-center">
+        <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+          <video
+            ref="scannerVideoRef"
+            autoplay
+            playsinline
+            muted
+            class="w-full h-full object-cover"
+          ></video>
+          
+          <!-- Scanner Target Reticle -->
+          <div class="absolute inset-x-12 inset-y-8 border-2 border-dashed border-amber-400/80 rounded-xl pointer-events-none animate-pulse"></div>
+        </div>
+
+        <div v-if="scannerError" class="p-3 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs">
+          {{ scannerError }}
+        </div>
+        <p v-else class="text-xs text-slate-400">
+          Center the UPC / EAN barcode in the viewfinder. The item will be recognized automatically.
+        </p>
+      </div>
+    </Modal>
 
     <!-- Loading State -->
     <div v-if="isSearching" class="py-6 flex items-center justify-center gap-2 text-xs text-slate-400">

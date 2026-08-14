@@ -40,7 +40,9 @@ const {
   logTemplateAsMeal
 } = useMeals(currentUserId, targetDate, loggedDates)
 
-const activeTab = ref<'new_entry' | 'recipes' | 'summary'>('new_entry')
+const activeTab = ref<'new_entry' | 'recipes' | 'summary'>(
+  (routeState.value.tab as 'new_entry' | 'recipes' | 'summary') || 'new_entry'
+)
 const isSaving = ref<boolean>(false)
 const selectedSlotForNewEntry = ref<number>(MealFlags.LUNCH)
 
@@ -79,12 +81,9 @@ onMounted(() => {
       <!-- Top Navigation & Header -->
       <header class="flex items-center justify-between border-b border-slate-800 pb-4">
         <div class="flex items-center gap-3">
-          <button
-            type="button"
-            @click="navigate('/dash')"
+          <button type="button" @click="navigate('/dash')"
             class="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition active:scale-95 cursor-pointer"
-            :title="t('meals.back_to_dashboard')"
-          >
+            :title="t('meals.back_to_dashboard')">
             <ArrowLeft class="w-4 h-4" />
           </button>
           <div>
@@ -112,49 +111,38 @@ onMounted(() => {
           :protein-g="totalProtein"
           :carbs-g="totalCarbs"
           :fat-g="totalFat"
+          :is-loading="loading"
         />
       </div>
 
       <!-- Navigation Tabs (New Entry, Recipes & Templates, Day Summary) -->
       <div class="flex border-b border-slate-800 space-x-2 sm:space-x-4">
-        <button
-          type="button"
-          @click="activeTab = 'new_entry'"
-          :class="[
-            'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
-            activeTab === 'new_entry'
-              ? 'border-amber-500 text-amber-400 font-bold'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          ]"
-        >
+        <button type="button" @click="activeTab = 'new_entry'" :class="[
+          'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
+          activeTab === 'new_entry'
+            ? 'border-amber-500 text-amber-400 font-bold'
+            : 'border-transparent text-slate-400 hover:text-slate-200'
+        ]">
           <Plus class="w-4 h-4" />
           <span>{{ t('meals.tab.new_entry') }}</span>
         </button>
 
-        <button
-          type="button"
-          @click="activeTab = 'recipes'"
-          :class="[
-            'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
-            activeTab === 'recipes'
-              ? 'border-amber-500 text-amber-400 font-bold'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          ]"
-        >
+        <button type="button" @click="activeTab = 'recipes'" :class="[
+          'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
+          activeTab === 'recipes'
+            ? 'border-amber-500 text-amber-400 font-bold'
+            : 'border-transparent text-slate-400 hover:text-slate-200'
+        ]">
           <BookOpen class="w-4 h-4" />
           <span>{{ t('meals.tab.recipes') }} ({{ templates.length }})</span>
         </button>
 
-        <button
-          type="button"
-          @click="activeTab = 'summary'"
-          :class="[
-            'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
-            activeTab === 'summary'
-              ? 'border-amber-500 text-amber-400 font-bold'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          ]"
-        >
+        <button type="button" @click="activeTab = 'summary'" :class="[
+          'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
+          activeTab === 'summary'
+            ? 'border-amber-500 text-amber-400 font-bold'
+            : 'border-transparent text-slate-400 hover:text-slate-200'
+        ]">
           <Clock class="w-4 h-4" />
           <span>{{ t('meals.tab.summary') }} ({{ meals.length }})</span>
         </button>
@@ -162,22 +150,14 @@ onMounted(() => {
 
       <!-- Tab 1: New Entry (Manual / Search / OCR Switcher) -->
       <div v-if="activeTab === 'new_entry'" class="space-y-6">
-        <NewMealEntryForm
-          :initial-slot="selectedSlotForNewEntry"
-          :log-date="targetDate"
-          :is-submitting="isSaving"
-          @submit="handleAddMealFromForm"
-        />
+        <NewMealEntryForm :initial-slot="selectedSlotForNewEntry" :log-date="targetDate" :is-submitting="isSaving"
+          @submit="handleAddMealFromForm" />
       </div>
 
       <!-- Tab 2: Recipes & Meal Templates Catalog -->
       <div v-else-if="activeTab === 'recipes'" class="space-y-6">
-        <RecipeCatalogSection
-          :templates="templates"
-          @create-template="addTemplate"
-          @delete-template="deleteTemplate"
-          @log-template="(tmpl, slot, multiplier) => logTemplateAsMeal(tmpl, slot, targetDate, multiplier)"
-        />
+        <RecipeCatalogSection :templates="templates" @create-template="addTemplate" @delete-template="deleteTemplate"
+          @log-template="(tmpl, slot, multiplier) => logTemplateAsMeal(tmpl, slot, targetDate, multiplier)" />
       </div>
 
       <!-- Tab 3: Grouped Slots Day Summary (Breakfast, Lunch, Dinner, Snack) -->
@@ -186,6 +166,7 @@ onMounted(() => {
           :slot-title="t('meals.slot.breakfast')"
           :slot-bit="MealFlags.BREAKFAST"
           :meals="breakfastMeals"
+          :is-loading="loading"
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"
@@ -195,6 +176,7 @@ onMounted(() => {
           :slot-title="t('meals.slot.lunch')"
           :slot-bit="MealFlags.LUNCH"
           :meals="lunchMeals"
+          :is-loading="loading"
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"
@@ -204,6 +186,7 @@ onMounted(() => {
           :slot-title="t('meals.slot.dinner')"
           :slot-bit="MealFlags.DINNER"
           :meals="dinnerMeals"
+          :is-loading="loading"
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"
@@ -213,6 +196,7 @@ onMounted(() => {
           :slot-title="t('meals.slot.snack')"
           :slot-bit="MealFlags.SNACK"
           :meals="snackMeals"
+          :is-loading="loading"
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"
@@ -221,4 +205,3 @@ onMounted(() => {
     </div>
   </div>
 </template>
-

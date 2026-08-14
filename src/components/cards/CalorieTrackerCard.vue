@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Utensils, Flame, Target, TrendingUp, TrendingDown, Settings, Check } from '@lucide/vue'
+import { Utensils, Flame, Target, TrendingUp, TrendingDown, Settings, Check, Calendar, ChevronRight } from '@lucide/vue'
 import FluidGaugeCard from './FluidGaugeCard.vue'
 import Modal from '../modals/Modal.vue'
 
@@ -13,10 +13,12 @@ interface Props {
   tdee?: number
   formulaUsed?: 'Katch-McArdle' | 'Mifflin-St Jeor'
   hasBodyFat?: boolean
+  isLoading?: boolean
 }
 
 const emit = defineEmits<{
   (e: 'update-target', targetCal: number): void
+  (e: 'navigate-meals'): void
 }>()
 
 const props = withDefaults(defineProps<Props>(), {
@@ -25,7 +27,8 @@ const props = withDefaults(defineProps<Props>(), {
   bmr: 1650,
   tdee: 2250,
   formulaUsed: 'Mifflin-St Jeor',
-  hasBodyFat: false
+  hasBodyFat: false,
+  isLoading: false
 })
 
 const showTargetModal = ref(false)
@@ -67,45 +70,81 @@ const consumedSubtitle = computed(() => {
 </script>
 
 <template>
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-5 shadow-xl">
-    <!-- Header: Target Goal & Net Balance Badge -->
-    <div class="flex items-center justify-between flex-wrap gap-2">
-      <div class="flex items-center gap-2">
-        <div class="p-2 rounded-lg bg-slate-800/80 border border-slate-700/50 text-slate-300">
+  <div class="relative bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-5 shadow-xl">
+    <!-- Header Area: Stacked on Mobile, 2-Column Split on Tablet/Desktop -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:pr-20">
+      <!-- Main Header: Target Goal & Value -->
+      <div class="flex items-center gap-2.5">
+        <div class="p-2 rounded-xl bg-emerald-950/60 border border-emerald-800/60 flex items-center justify-center shrink-0">
           <Target class="w-4 h-4 text-emerald-400" />
         </div>
-        <div>
-          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Daily Calorie Target</div>
-          <div class="text-lg font-bold text-slate-100">
+        <div class="truncate">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 truncate">Daily Calorie Target</div>
+          <div v-if="isLoading" class="h-6 w-24 bg-slate-800 rounded animate-pulse my-0.5"></div>
+          <div v-else class="text-lg font-bold text-slate-100">
             {{ safeTarget.toLocaleString() }}
             <span class="text-xs text-slate-400 font-normal">kcal</span>
           </div>
         </div>
       </div>
 
-      <!-- Net Delta Badge & Settings Action -->
-      <div class="flex items-center gap-2">
-        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold tracking-wide"
+      <!-- Net Delta Badge & Sub-360px Inline Buttons -->
+      <div class="flex items-center justify-between min-[360px]:justify-start sm:justify-end gap-2 min-w-0 flex-wrap">
+        <div v-if="isLoading" class="h-7 w-32 bg-slate-800 rounded-full animate-pulse shrink-0"></div>
+        <div v-else class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold tracking-wide min-w-0 max-w-full text-center leading-tight transition"
           :class="[
             isDeficit
               ? 'bg-emerald-950/60 border-emerald-800/60 text-emerald-400'
               : 'bg-amber-950/60 border-amber-800/60 text-amber-400'
           ]">
-          <component :is="isDeficit ? TrendingDown : TrendingUp" class="w-3.5 h-3.5" />
-          <span>
+          <component :is="isDeficit ? TrendingDown : TrendingUp" class="w-3.5 h-3.5 shrink-0" />
+          <span class="truncate whitespace-nowrap">
             {{ Math.abs(netCalories).toLocaleString() }} kcal {{ isDeficit ? 'Deficit' : 'Surplus' }}
           </span>
         </div>
 
-        <button
-          type="button"
-          @click="openTargetModal"
-          class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-400 hover:text-emerald-300 transition active:scale-95 cursor-pointer shadow-sm"
-          title="Configure Calorie Target"
-        >
-          <Settings class="w-4 h-4" />
-        </button>
+        <!-- Inline Action Buttons when screen is below 360px (<360px) -->
+        <div class="flex min-[360px]:hidden items-center gap-1 shrink-0">
+          <button
+            type="button"
+            @click="emit('navigate-meals')"
+            class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-400 hover:text-amber-400 transition active:scale-95 cursor-pointer shadow-sm flex items-center justify-center"
+            title="View Meals Day Summary"
+          >
+            <Utensils class="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            @click="openTargetModal"
+            class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-400 hover:text-emerald-300 transition active:scale-95 cursor-pointer shadow-sm flex items-center justify-center"
+            title="Configure Calorie Target"
+          >
+            <Settings class="w-4 h-4" />
+          </button>
+        </div>
       </div>
+    </div>
+
+    <!-- Floating Action Buttons (Top-Right on >=360px) -->
+    <div class="hidden min-[360px]:flex items-center gap-1.5 absolute top-5 sm:top-6 right-5 sm:right-6 z-10">
+      <button
+        type="button"
+        @click="emit('navigate-meals')"
+        class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-400 hover:text-amber-400 transition active:scale-95 cursor-pointer shadow-sm flex items-center justify-center"
+        title="View Meals Day Summary"
+      >
+        <Utensils class="w-4 h-4" />
+      </button>
+
+      <button
+        type="button"
+        @click="openTargetModal"
+        class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-400 hover:text-emerald-300 transition active:scale-95 cursor-pointer shadow-sm flex items-center justify-center"
+        title="Configure Calorie Target"
+      >
+        <Settings class="w-4 h-4" />
+      </button>
     </div>
 
     <!-- Composed Dual Fluid Gauges -->
@@ -118,6 +157,7 @@ const consumedSubtitle = computed(() => {
         :icon="Utensils"
         variant="amber"
         :subtitle="consumedSubtitle"
+        :is-loading="isLoading"
       />
 
       <FluidGaugeCard
@@ -128,6 +168,7 @@ const consumedSubtitle = computed(() => {
         :icon="Flame"
         variant="emerald"
         subtitle="Formula + Active"
+        :is-loading="isLoading"
       />
     </div>
 
