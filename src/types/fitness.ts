@@ -55,6 +55,7 @@ export interface Profile {
   tz?: string
   height_cm?: number | null
   target_weight_dg?: number | null
+  target_cal?: number | null
   target_water_ml?: number | null
   sex?: number | string | null
   activity_level?: number | string | null

@@ -27,6 +27,7 @@ const emit = defineEmits<{
   (e: 'edit-biometric', bio: Biometric): void
   (e: 'delete-biometric', id: string): void
   (e: 'add-meal', meal: Meal): void
+  (e: 'log-meal'): void
   (e: 'add-water', amount: number): void
   (e: 'edit-water', log: WaterLog): void
   (e: 'delete-water', id: string): void
@@ -79,6 +80,7 @@ const { t } = useI18n()
       v-if="modelValue === 'meals'"
       :meals="meals"
       :target-date="targetDate"
+      @log-meal="emit('log-meal')"
     />
 
     <WaterSection

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useRouter } from '../lib/router'
 import { useI18n } from '../lib/i18n'
-import FormInput from '../components/FormInput.vue'
+import FormInput from '../components/atoms/FormInput.vue'
 import { Mail, Lock, LogIn, UserPlus, AlertCircle, Loader2, ArrowLeft } from '@lucide/vue'
 
 const authStore = useAuthStore()

@@ -100,7 +100,7 @@
   "dash.actions.refresh": "Refresh Data",
   "dash.actions.signout": "Sign Out",
   "dash.profile.account": "Account",
-  "dash.profile.redo_onboarding": "Update Biometrics & Setup",
+  "dash.profile.redo_onboarding": "Open Onboarding Wizard",
   "dash.workout.add_title": "Log Workout",
   "dash.workout.type_label": "Workout Type",
   "dash.workout.type_placeholder": "Select Activity",

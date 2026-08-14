@@ -386,9 +386,36 @@ const handleCompleteOnboarding = async () => {
 
     const targetWeightDg = finalTargetWeightKg !== null ? Math.round(finalTargetWeightKg * 10) : null
 
-    // Update final profile with all step values, goals, micros_opt, and ONBOARDING_COMPLETED flag
+    // Compute baseline caloric target quietly in the background (Mifflin-St Jeor)
     const finalHeightCm = isImperial.value ? Math.round(heightCm.value * 2.54) : Math.round(heightCm.value)
+    const finalWeightRawKg = isImperial.value ? weightKg.value * 0.453592 : weightKg.value
+    const userAge = Math.max(15, new Date().getFullYear() - birthYear.value)
+    
+    // Sex offset: 1 = Male (+5), 0 = Female (-161), default = -78
+    const sexDiff = sex.value === 1 ? 5 : (sex.value === 0 ? -161 : -78)
+    const baselineBmr = Math.round((10 * finalWeightRawKg) + (6.25 * finalHeightCm) - (5 * userAge) + sexDiff)
+    
+    // Activity level multiplier
+    let actMultiplier = 1.375
+    if (activityLevel.value === 1) actMultiplier = 1.2
+    else if (activityLevel.value === 2) actMultiplier = 1.375
+    else if (activityLevel.value === 3) actMultiplier = 1.55
+    else if (activityLevel.value === 4) actMultiplier = 1.725
+    else if (activityLevel.value === 5) actMultiplier = 1.9
 
+    const maintenanceTdee = Math.round(baselineBmr * actMultiplier)
+    let calculatedCaloricTarget = maintenanceTdee
+
+    if (finalTargetWeightKg !== null) {
+      const weightDiff = finalTargetWeightKg - finalWeightRawKg
+      if (weightDiff <= -1.5) {
+        calculatedCaloricTarget = Math.max(1200, maintenanceTdee - 500)
+      } else if (weightDiff >= 1.5) {
+        calculatedCaloricTarget = maintenanceTdee + 300
+      }
+    }
+
+    // Update final profile with all step values, goals, target_cal, micros_opt, and ONBOARDING_COMPLETED flag
     const profilePayload: Partial<Profile> = {
       id: userId,
       username: username.value.trim().toLowerCase() || props.initialProfile?.username || fallbackUsername.value,
@@ -398,6 +425,7 @@ const handleCompleteOnboarding = async () => {
       sex: typeof sex.value === 'number' ? sex.value : null,
       activity_level: typeof activityLevel.value === 'number' ? activityLevel.value : null,
       target_weight_dg: targetWeightDg,
+      target_cal: calculatedCaloricTarget,
       prefs: bitmask,
       micros_opt: trackMicros.value ? selectedMicros.value : 0,
       updated_at: new Date().toISOString()

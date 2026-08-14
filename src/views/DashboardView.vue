@@ -10,6 +10,7 @@ import { useWorkouts } from '../composables/useWorkouts'
 import { useBiometrics } from '../composables/useBiometrics'
 import { useWater } from '../composables/useWater'
 import { useMeals } from '../composables/useMeals'
+import { useEnergyExpenditure } from '../composables/useEnergyExpenditure'
 import OnboardingModal from '../components/modals/OnboardingModal.vue'
 import QuickAddModal from '../components/modals/QuickAddModal.vue'
 import WorkoutModal from '../components/modals/WorkoutModal.vue'
@@ -59,6 +60,14 @@ const {
   editBiometric,
   deleteBiometric
 } = useBiometrics(currentUserId, userProfile, selectedDate, loggedDates)
+
+const {
+  formulaUsed,
+  hasBodyFat,
+  bmr,
+  tdee,
+  recommendedCalories
+} = useEnergyExpenditure(userProfile, biometrics)
 
 const {
   waterLogs,
@@ -137,6 +146,23 @@ const fetchAll = async () => {
     fetchDailySummaries(userId)
   ])
   loading.value = false
+}
+
+const updateCalorieTarget = async (targetCal: number) => {
+  if (!currentUserId.value || !userProfile.value) return
+  userProfile.value.target_cal = targetCal
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ target_cal: targetCal })
+      .eq('id', currentUserId.value)
+
+    if (error) {
+      offlineSync.enqueue('profiles', 'update', { id: currentUserId.value, target_cal: targetCal })
+    }
+  } catch {
+    offlineSync.enqueue('profiles', 'update', { id: currentUserId.value, target_cal: targetCal })
+  }
 }
 
 const handleSignOut = async () => {
@@ -232,7 +258,6 @@ onMounted(async () => {
       <!-- Summary Cards Grid (Scoped to selected date) -->
       <DashboardSummaryCards
         :total-active-calories="totalActiveCalories"
-        :total-water-ml="totalWaterMl"
         :latest-weight="latestWeight"
         :latest-bmi="latestBmi"
       />
@@ -242,7 +267,13 @@ onMounted(async () => {
       <CalorieTrackerCard
         :consumed="totalCaloriesConsumed"
         :expenditure="totalActiveCalories"
-        :target="2000"
+        :target="userProfile?.target_cal || 2000"
+        :recommended-target="recommendedCalories"
+        :bmr="bmr"
+        :tdee="tdee"
+        :formula-used="formulaUsed"
+        :has-body-fat="hasBodyFat"
+        @update-target="updateCalorieTarget"
       />
       <WaterTrackerCard
         :current-ml="totalWaterMl"
@@ -268,6 +299,7 @@ onMounted(async () => {
       @add-biometric="addBiometric"
       @edit-biometric="editBiometric"
       @delete-biometric="deleteBiometric"
+      @log-meal="navigate('/meals', false, { logDate: selectedDate })"
       @add-water="addWater"
       @edit-water="editWater"
       @delete-water="deleteWater"

@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import StatCard from '../atoms/StatCard.vue'
-import { Flame, Droplets, Scale } from '@lucide/vue'
+import { Flame, Scale } from '@lucide/vue'
 import { useI18n } from '../../lib/i18n'
 
 interface Props {
   totalActiveCalories: number
-  totalWaterMl: number
   latestWeight: number | string
   latestBmi?: number | string | null
 }
@@ -25,20 +24,13 @@ const bmiCategory = computed(() => {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  <div class="grid grid-cols-2 gap-3 sm:gap-4 md:max-w-xl md:mx-auto w-full">
     <StatCard
       :label="t('dash.stats.active_burn')"
       :value="totalActiveCalories"
       unit="kcal"
       :icon="Flame"
       variant="emerald"
-    />
-    <StatCard
-      :label="t('dash.stats.water_intake')"
-      :value="totalWaterMl"
-      unit="ml"
-      :icon="Droplets"
-      variant="cyan"
     />
     <StatCard
       :label="t('dash.stats.latest_weight')"
@@ -48,18 +40,20 @@ const bmiCategory = computed(() => {
       variant="purple"
     >
       <template #badges v-if="latestBmi">
-        <span class="text-xs font-semibold px-2 py-0.5 rounded-md bg-purple-950/80 border border-purple-800/80 text-purple-300 whitespace-nowrap">
-          BMI {{ latestBmi }}
-        </span>
-        <span
-          v-if="bmiCategory"
-          :class="[
-            'text-xs font-bold px-2 py-0.5 rounded-md border whitespace-nowrap',
-            bmiCategory.class
-          ]"
-        >
-          {{ bmiCategory.label }}
-        </span>
+        <div class="inline-flex items-center gap-1 shrink-0">
+          <span class="text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-md bg-purple-950/80 border border-purple-800/80 text-purple-300 whitespace-nowrap">
+            BMI {{ latestBmi }}
+          </span>
+          <span
+            v-if="bmiCategory"
+            :class="[
+              'text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md border whitespace-nowrap',
+              bmiCategory.class
+            ]"
+          >
+            {{ bmiCategory.label }}
+          </span>
+        </div>
       </template>
     </StatCard>
   </div>

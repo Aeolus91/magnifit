@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Droplets, Plus, RotateCcw, Settings, Check, Loader2 } from '@lucide/vue'
+import { Droplets, GlassWater, Plus, RotateCcw, Settings, Check, Loader2 } from '@lucide/vue'
 import FluidGaugeCard from './FluidGaugeCard.vue'
 import Modal from '../modals/Modal.vue'
 
@@ -45,7 +45,33 @@ const subtitle = computed(() => {
 </script>
 
 <template>
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xl">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-5 shadow-xl">
+    <!-- Header: Target Goal & Settings Cog -->
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <div class="flex items-center gap-2">
+        <div class="p-2 rounded-lg bg-slate-800/80 border border-slate-700/50 text-slate-300">
+          <GlassWater class="w-4 h-4 text-cyan-400" />
+        </div>
+        <div>
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Daily Water Target</div>
+          <div class="text-lg font-bold text-slate-100">
+            {{ safeTarget.toLocaleString() }}
+            <span class="text-xs text-slate-400 font-normal">ml</span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        @click="openTargetModal"
+        class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-400 hover:text-cyan-300 transition active:scale-95 cursor-pointer shadow-sm ml-auto"
+        title="Configure Water Target"
+      >
+        <Settings class="w-4 h-4" />
+      </button>
+    </div>
+
+    <!-- Fluid Gauge Card -->
     <FluidGaugeCard
       title="Hydration Intake"
       :current="currentMl"
@@ -55,16 +81,6 @@ const subtitle = computed(() => {
       variant="cyan"
       :subtitle="subtitle"
     >
-      <template #header-actions>
-        <button
-          type="button"
-          @click="openTargetModal"
-          class="p-1 rounded-md text-slate-400 hover:text-cyan-300 hover:bg-slate-800/80 transition active:scale-95 cursor-pointer"
-          title="Set Water Goal"
-        >
-          <Settings class="w-3.5 h-3.5" />
-        </button>
-      </template>
 
       <!-- Quick Water Actions: 2x2 grid on micro/320px screens, single horizontal line on standard screens (>=380px) and desktop -->
       <div class="grid grid-cols-2 min-[380px]:flex min-[380px]:items-center min-[380px]:flex-nowrap gap-1.5 sm:gap-2 pt-1">
