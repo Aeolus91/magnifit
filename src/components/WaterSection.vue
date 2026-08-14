@@ -46,8 +46,8 @@ const handleSaveEdit = () => {
   <div class="space-y-6">
     <!-- Add Custom Amount Form Row -->
     <form @submit.prevent="handleSubmit"
-      class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-3 w-full">
-      <div class="w-full sm:w-44">
+      class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex flex-col sm:flex-row items-center sm:items-end justify-between gap-3 w-full">
+      <div class="w-full max-w-[220px] sm:max-w-none sm:w-44 text-center sm:text-left">
         <label class="text-[11px] text-slate-400 block mb-1 font-medium">Custom Water Amount (ml)</label>
         <div class="relative">
           <input
@@ -56,7 +56,7 @@ const handleSaveEdit = () => {
             pattern="[0-9]*"
             v-model.number="customWaterAmount"
             placeholder="e.g. 350"
-            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-center sm:text-left text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             required
           />
           <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-500 pointer-events-none">ml</span>
@@ -64,7 +64,7 @@ const handleSaveEdit = () => {
       </div>
       <button
         type="submit"
-        class="bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-1.5 px-4 rounded-lg text-xs flex items-center justify-center gap-1.5 transition active:scale-98 cursor-pointer shadow-sm shadow-cyan-950/30 whitespace-nowrap self-stretch sm:self-end"
+        class="bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-1.5 px-4 rounded-lg text-xs flex items-center justify-center gap-1.5 transition active:scale-98 cursor-pointer shadow-sm shadow-cyan-950/30 whitespace-nowrap w-full max-w-[220px] sm:max-w-none sm:w-auto self-center sm:self-end"
       >
         <Plus class="w-3.5 h-3.5" />
         <span>Add Custom Log</span>

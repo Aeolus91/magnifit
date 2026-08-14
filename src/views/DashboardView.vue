@@ -8,6 +8,8 @@ import { ProfilePrefs, WORKOUT_CATEGORIES, encodeWorkoutFlags } from '../lib/bit
 import type { Workout, Biometric, Meal, WaterLog, Profile } from '../types/fitness'
 import OnboardingModal from '../components/OnboardingModal.vue'
 import QuickAddModal from '../components/QuickAddModal.vue'
+import WorkoutModal from '../components/WorkoutModal.vue'
+import BiometricsModal from '../components/BiometricsModal.vue'
 import DashboardSummaryCards from '../components/DashboardSummaryCards.vue'
 import DashboardTabSection from '../components/DashboardTabSection.vue'
 import CalorieTrackerCard from '../components/CalorieTrackerCard.vue'
@@ -24,6 +26,8 @@ const { t } = useI18n()
 const userProfile = ref<Profile | null>(null)
 const showOnboardingModal = ref<boolean>(false)
 const showAddModal = ref<boolean>(false)
+const showWorkoutModal = ref<boolean>(false)
+const showBiometricsModal = ref<boolean>(false)
 const showProfileMenu = ref<boolean>(false)
 const selectedDate = ref<string>(getTodayDateString())
 
@@ -55,7 +59,7 @@ const filteredWaterLogs = computed(() =>
 
 // Computed metrics scoped to selected date
 const totalActiveCalories = computed(() =>
-  filteredWorkouts.value.reduce((acc, w) => acc + (w.active_calories || 0), 0)
+  filteredWorkouts.value.reduce((acc, w) => acc + (w.active_cal || 0), 0)
 )
 const totalCaloriesConsumed = computed(() =>
   filteredMeals.value.reduce((acc, m) => acc + (m.calories || 0), 0)
@@ -341,12 +345,31 @@ onMounted(async () => {
       :show="showAddModal"
       @close="showAddModal = false"
       @select="(tab) => {
+        showAddModal = false
         if (tab === 'meals') {
           navigate('/meals', false, { logDate: selectedDate })
-        } else {
-          activeTab = tab
+        } else if (tab === 'workouts') {
+          activeTab = 'workouts'
+          showWorkoutModal = true
+        } else if (tab === 'biometrics') {
+          activeTab = 'biometrics'
+          showBiometricsModal = true
         }
       }"
+    />
+
+    <!-- Standalone Workout Modal triggered via Quick Add -->
+    <WorkoutModal
+      :show="showWorkoutModal"
+      @close="showWorkoutModal = false"
+      @submit="addWorkout"
+    />
+
+    <!-- Standalone Biometrics Modal triggered via Quick Add -->
+    <BiometricsModal
+      :show="showBiometricsModal"
+      @close="showBiometricsModal = false"
+      @submit="addBiometric"
     />
 
     <div class="max-w-4xl mx-auto px-4 py-8 space-y-8">
