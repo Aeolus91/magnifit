@@ -4,78 +4,71 @@ import { useRouter } from '../lib/router'
 import { useAuthStore } from '../stores/authStore'
 import { MealFlags } from '../lib/bitmask'
 import { useMeals } from '../composables/useMeals'
+import { useI18n } from '../lib/i18n'
 import MacroNutrientBar from '../components/cards/MacroNutrientBar.vue'
-import MealEntry from '../components/entries/MealEntry.vue'
-import type { Meal } from '../types/fitness'
-import { ArrowLeft, Utensils, Plus, Sparkles, BookOpen, Clock, Check, Flame, ChevronRight } from '@lucide/vue'
+import DatePickerPopover from '../components/atoms/DatePickerPopover.vue'
+import NewMealEntryForm from '../components/meals/forms/NewMealEntryForm.vue'
+import RecipeCatalogSection from '../components/meals/recipes/RecipeCatalogSection.vue'
+import MealSlotCard from '../components/meals/MealSlotCard.vue'
+import type { Meal, MealTemplate } from '../types/fitness'
+import { ArrowLeft, Utensils, Plus, BookOpen, Clock, Sparkles } from '@lucide/vue'
 
 const { navigate, routeState } = useRouter()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 // Target date passed silently in router state or defaulted to today
-const targetDate = computed<string>(() => {
-  return routeState.value.logDate || new Date().toISOString().split('T')[0]
-})
-
+const targetDate = ref<string>(routeState.value.logDate || new Date().toISOString().split('T')[0])
 const loggedDates = ref<string[]>([])
 const currentUserId = computed(() => authStore.user.value?.id)
 
 const {
   filteredMeals: meals,
+  templates,
   totalCaloriesConsumed: totalDailyCalories,
   totalProteinG: totalProtein,
   totalCarbsG: totalCarbs,
   totalFatG: totalFat,
   loading,
   fetchMeals,
-  addMeal
+  fetchTemplates,
+  addMeal,
+  editMeal,
+  deleteMeal,
+  addTemplate,
+  deleteTemplate,
+  logTemplateAsMeal
 } = useMeals(currentUserId, targetDate, loggedDates)
 
-const activeTab = ref<'log' | 'recipes' | 'summary'>('log')
+const activeTab = ref<'new_entry' | 'recipes' | 'summary'>('new_entry')
 const isSaving = ref<boolean>(false)
+const selectedSlotForNewEntry = ref<number>(MealFlags.LUNCH)
 
-// New Meal Form Model
-const mealName = ref('')
-const calories = ref<number | null>(null)
-const proteinG = ref<number | null>(null)
-const carbsG = ref<number | null>(null)
-const fatG = ref<number | null>(null)
-const fiberG = ref<number | null>(null)
-const selectedMealSlot = ref<number>(MealFlags.LUNCH)
+// Meal groupings by slot bitmask
+const breakfastMeals = computed(() => meals.value.filter(m => (m.flags || 0) === MealFlags.BREAKFAST))
+const lunchMeals = computed(() => meals.value.filter(m => (m.flags || 0) === MealFlags.LUNCH || (!m.flags && (m.flags || 0) === 0)))
+const dinnerMeals = computed(() => meals.value.filter(m => (m.flags || 0) === MealFlags.DINNER))
+const snackMeals = computed(() => meals.value.filter(m => (m.flags || 0) === MealFlags.SNACK))
 
-const mealSlotOptions = [
-  { bit: MealFlags.BREAKFAST, label: 'Breakfast' },
-  { bit: MealFlags.LUNCH, label: 'Lunch' },
-  { bit: MealFlags.DINNER, label: 'Dinner' },
-  { bit: MealFlags.SNACK, label: 'Snack' }
-]
-
-const handleLogMeal = async () => {
-  if (!authStore.user.value?.id || !mealName.value.trim() || calories.value === null) return
+const handleAddMealFromForm = async (mealData: Meal) => {
   isSaving.value = true
   await addMeal({
-    meal_name: mealName.value.trim(),
-    cal: calories.value || 0,
-    prot_g: proteinG.value || 0,
-    carb_g: carbsG.value || 0,
-    fat_g: fatG.value || 0,
-    flags: selectedMealSlot.value,
+    ...mealData,
     log_date: targetDate.value
   })
-
-  mealName.value = ''
-  calories.value = null
-  proteinG.value = null
-  carbsG.value = null
-  fatG.value = null
-  fiberG.value = null
   activeTab.value = 'summary'
   isSaving.value = false
+}
+
+const handleQuickAddSlot = (slotBit: number) => {
+  selectedSlotForNewEntry.value = slotBit
+  activeTab.value = 'new_entry'
 }
 
 onMounted(() => {
   if (currentUserId.value) {
     fetchMeals(currentUserId.value)
+    fetchTemplates(currentUserId.value)
   }
 })
 </script>
@@ -90,194 +83,142 @@ onMounted(() => {
             type="button"
             @click="navigate('/dash')"
             class="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition active:scale-95 cursor-pointer"
-            title="Back to Dashboard"
+            :title="t('meals.back_to_dashboard')"
           >
             <ArrowLeft class="w-4 h-4" />
           </button>
           <div>
             <div class="flex items-center gap-2">
               <Utensils class="w-4 h-4 text-amber-400" />
-              <h1 class="text-xl font-bold text-slate-100">Meals & Nutrition</h1>
+              <h1 class="text-xl font-bold text-slate-100">{{ t('meals.title') }}</h1>
             </div>
-            <div class="text-xs text-slate-400">Date: {{ targetDate }}</div>
+            <div class="text-xs text-slate-400 pt-0.5">
+              <DatePickerPopover v-model="targetDate" :logged-dates="loggedDates" />
+            </div>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
-          <div class="text-right hidden sm:block">
-            <div class="text-xs text-slate-400">Logged Today</div>
-            <div class="text-sm font-bold text-amber-400">{{ totalDailyCalories }} kcal</div>
+          <div class="text-right">
+            <div class="text-[11px] text-slate-400">Total Logged</div>
+            <div class="text-base font-bold text-amber-400 font-mono">{{ totalDailyCalories }} kcal</div>
           </div>
         </div>
       </header>
 
-      <!-- Sub Navigation Tabs -->
-      <div class="flex border-b border-slate-800 space-x-4">
+      <!-- Macro Balance Summary Header Card -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
+        <MacroNutrientBar
+          :protein-g="totalProtein"
+          :carbs-g="totalCarbs"
+          :fat-g="totalFat"
+        />
+      </div>
+
+      <!-- Navigation Tabs (New Entry, Recipes & Templates, Day Summary) -->
+      <div class="flex border-b border-slate-800 space-x-2 sm:space-x-4">
         <button
           type="button"
-          @click="activeTab = 'log'"
+          @click="activeTab = 'new_entry'"
           :class="[
-            'pb-3 font-medium text-sm transition cursor-pointer border-b-2',
-            activeTab === 'log'
-              ? 'border-amber-500 text-amber-400 font-semibold'
+            'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
+            activeTab === 'new_entry'
+              ? 'border-amber-500 text-amber-400 font-bold'
               : 'border-transparent text-slate-400 hover:text-slate-200'
           ]"
         >
-          Quick Log
+          <Plus class="w-4 h-4" />
+          <span>{{ t('meals.tab.new_entry') }}</span>
         </button>
+
         <button
           type="button"
           @click="activeTab = 'recipes'"
           :class="[
-            'pb-3 font-medium text-sm transition cursor-pointer border-b-2',
+            'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
             activeTab === 'recipes'
-              ? 'border-amber-500 text-amber-400 font-semibold'
+              ? 'border-amber-500 text-amber-400 font-bold'
               : 'border-transparent text-slate-400 hover:text-slate-200'
           ]"
         >
-          Recipe Templates
+          <BookOpen class="w-4 h-4" />
+          <span>{{ t('meals.tab.recipes') }} ({{ templates.length }})</span>
         </button>
+
         <button
           type="button"
           @click="activeTab = 'summary'"
           :class="[
-            'pb-3 font-medium text-sm transition cursor-pointer border-b-2',
+            'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
             activeTab === 'summary'
-              ? 'border-amber-500 text-amber-400 font-semibold'
+              ? 'border-amber-500 text-amber-400 font-bold'
               : 'border-transparent text-slate-400 hover:text-slate-200'
           ]"
         >
-          Day Summary ({{ meals.length }})
+          <Clock class="w-4 h-4" />
+          <span>{{ t('meals.tab.summary') }} ({{ meals.length }})</span>
         </button>
       </div>
 
-      <!-- Tab 1: Direct Meal Log Form -->
-      <div v-if="activeTab === 'log'" class="space-y-6">
-        <form @submit.prevent="handleLogMeal" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-5 shadow-xl">
-          <!-- Meal Timing Slots -->
-          <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-300">Meal Slot</label>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <button
-                v-for="slot in mealSlotOptions"
-                :key="slot.bit"
-                type="button"
-                @click="selectedMealSlot = slot.bit"
-                :class="[
-                  'py-2 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer text-center',
-                  selectedMealSlot === slot.bit
-                    ? 'bg-amber-950/70 border-amber-500 text-amber-300'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                ]"
-              >
-                {{ slot.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Name & Calories -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="sm:col-span-2 space-y-1.5">
-              <label class="text-xs font-semibold text-slate-300">Meal / Item Name</label>
-              <input
-                type="text"
-                v-model="mealName"
-                placeholder="e.g. Grilled Chicken Salad & Quinoa"
-                required
-                class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition"
-              />
-            </div>
-            <div class="space-y-1.5">
-              <label class="text-xs font-semibold text-slate-300">Total Calories (kcal)</label>
-              <input
-                type="number"
-                v-model.number="calories"
-                placeholder="550"
-                min="0"
-                max="5000"
-                required
-                class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition"
-              />
-            </div>
-          </div>
-
-          <!-- Macros (P/C/F) -->
-          <div class="grid grid-cols-3 gap-3">
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-slate-400">Protein (g)</label>
-              <input
-                type="number"
-                v-model.number="proteinG"
-                placeholder="40"
-                min="0"
-                class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-slate-400">Carbs (g)</label>
-              <input
-                type="number"
-                v-model.number="carbsG"
-                placeholder="55"
-                min="0"
-                class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-slate-400">Fat (g)</label>
-              <input
-                type="number"
-                v-model.number="fatG"
-                placeholder="15"
-                min="0"
-                class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            :disabled="isSaving"
-            class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-lg shadow-amber-950/40 disabled:opacity-50"
-          >
-            <Plus class="w-4 h-4 stroke-[3]" />
-            <span>Save Meal Entry</span>
-          </button>
-        </form>
+      <!-- Tab 1: New Entry (Manual / Search / OCR Switcher) -->
+      <div v-if="activeTab === 'new_entry'" class="space-y-6">
+        <NewMealEntryForm
+          :initial-slot="selectedSlotForNewEntry"
+          :log-date="targetDate"
+          :is-submitting="isSaving"
+          @submit="handleAddMealFromForm"
+        />
       </div>
 
-      <!-- Tab 2: Recipe Templates -->
-      <div v-if="activeTab === 'recipes'" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 text-center space-y-3">
-        <BookOpen class="w-8 h-8 text-amber-400 mx-auto" />
-        <div class="text-sm font-semibold text-slate-200">Recipe Catalog & Share Hub</div>
-        <p class="text-xs text-slate-400 max-w-sm mx-auto">
-          Save high-frequency meal templates and import community recipes directly into your daily target logs.
-        </p>
+      <!-- Tab 2: Recipes & Meal Templates Catalog -->
+      <div v-else-if="activeTab === 'recipes'" class="space-y-6">
+        <RecipeCatalogSection
+          :templates="templates"
+          @create-template="addTemplate"
+          @delete-template="deleteTemplate"
+          @log-template="(tmpl, slot, multiplier) => logTemplateAsMeal(tmpl, slot, targetDate, multiplier)"
+        />
       </div>
 
-      <!-- Tab 3: Summary of the Selected Day -->
-      <div v-if="activeTab === 'summary'" class="space-y-4">
-        <!-- Daily Macro Distribution Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-          <MacroNutrientBar
-            :protein-g="totalProtein"
-            :carbs-g="totalCarbs"
-            :fat-g="totalFat"
-          />
-        </div>
+      <!-- Tab 3: Grouped Slots Day Summary (Breakfast, Lunch, Dinner, Snack) -->
+      <div v-else-if="activeTab === 'summary'" class="space-y-4">
+        <MealSlotCard
+          :slot-title="t('meals.slot.breakfast')"
+          :slot-bit="MealFlags.BREAKFAST"
+          :meals="breakfastMeals"
+          @add-item="handleQuickAddSlot"
+          @edit-meal="editMeal"
+          @delete-meal="deleteMeal"
+        />
 
-        <!-- Meals List -->
-        <div class="space-y-2">
-          <div v-if="meals.length === 0" class="text-sm text-slate-500 py-6 text-center bg-slate-900 border border-slate-800 rounded-xl">
-            No meals recorded for {{ targetDate }}.
-          </div>
-          <MealEntry
-            v-for="m in meals"
-            :key="m.id"
-            :meal="m"
-          />
-        </div>
+        <MealSlotCard
+          :slot-title="t('meals.slot.lunch')"
+          :slot-bit="MealFlags.LUNCH"
+          :meals="lunchMeals"
+          @add-item="handleQuickAddSlot"
+          @edit-meal="editMeal"
+          @delete-meal="deleteMeal"
+        />
+
+        <MealSlotCard
+          :slot-title="t('meals.slot.dinner')"
+          :slot-bit="MealFlags.DINNER"
+          :meals="dinnerMeals"
+          @add-item="handleQuickAddSlot"
+          @edit-meal="editMeal"
+          @delete-meal="deleteMeal"
+        />
+
+        <MealSlotCard
+          :slot-title="t('meals.slot.snack')"
+          :slot-bit="MealFlags.SNACK"
+          :meals="snackMeals"
+          @add-item="handleQuickAddSlot"
+          @edit-meal="editMeal"
+          @delete-meal="deleteMeal"
+        />
       </div>
     </div>
   </div>
 </template>
+

@@ -1,0 +1,75 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { Plus } from '@lucide/vue'
+import MealEntry from '../entries/MealEntry.vue'
+import type { Meal } from '../../types/fitness'
+
+const props = defineProps<{
+  slotTitle: string
+  slotBit: number
+  meals: Meal[]
+}>()
+
+const emit = defineEmits<{
+  (e: 'add-item', slotBit: number): void
+  (e: 'edit-meal', meal: Meal): void
+  (e: 'delete-meal', id: string): void
+}>()
+
+const slotCalories = computed(() =>
+  props.meals.reduce((acc, m) => acc + (m.cal || m.calories || 0), 0)
+)
+const slotProt = computed(() =>
+  props.meals.reduce((acc, m) => acc + (m.prot_g || m.protein_g || 0), 0)
+)
+const slotCarb = computed(() =>
+  props.meals.reduce((acc, m) => acc + (m.carb_g || m.carbs_g || 0), 0)
+)
+const slotFat = computed(() =>
+  props.meals.reduce((acc, m) => acc + (m.fat_g || 0), 0)
+)
+</script>
+
+<template>
+  <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3 shadow-xl">
+    <!-- Header: Slot Name, Subtotals, and Quick Add Action -->
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <div>
+        <div class="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <span>{{ slotTitle }}</span>
+          <span v-if="meals.length > 0" class="text-xs font-mono font-bold text-amber-400">
+            {{ slotCalories }} kcal
+          </span>
+        </div>
+        <div v-if="meals.length > 0" class="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
+          <span class="text-emerald-300">P: {{ slotProt }}g</span>
+          <span class="text-amber-300">C: {{ slotCarb }}g</span>
+          <span class="text-rose-300">F: {{ slotFat }}g</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        @click="emit('add-item', slotBit)"
+        class="px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-amber-500/20 border border-slate-800 hover:border-amber-500/50 text-amber-400 text-xs font-semibold flex items-center gap-1 transition active:scale-95 cursor-pointer ml-auto"
+      >
+        <Plus class="w-3.5 h-3.5" />
+        <span>Add</span>
+      </button>
+    </div>
+
+    <!-- Meal Entries in this Slot -->
+    <div class="space-y-2 pt-1">
+      <div v-if="meals.length === 0" class="text-xs text-slate-500 py-3 text-center bg-slate-950/50 rounded-xl border border-slate-900">
+        No meals logged for {{ slotTitle.toLowerCase() }}.
+      </div>
+      <MealEntry
+        v-for="m in meals"
+        :key="m.id"
+        :meal="m"
+        @edit="(meal) => emit('edit-meal', meal)"
+        @delete="(id) => emit('delete-meal', id)"
+      />
+    </div>
+  </div>
+</template>
