@@ -49,9 +49,16 @@ export class CustomSupabaseClient {
       const stored = localStorage.getItem(this.storageKey)
       if (stored) {
         this.session = JSON.parse(stored)
-        // Verify expiry if present
+        // If expired, attempt background refresh if online, but NEVER purge offline sessions
         if (this.session?.expires_at && this.session.expires_at * 1000 < Date.now()) {
-          this.handleInvalidSession()
+          if (typeof navigator !== 'undefined' && navigator.onLine) {
+            this.auth.refreshSession().catch(err => {
+              // Only invalidate on explicit 400/401 invalid grant, never on network error
+              if (err?.message?.includes('invalid_grant') || err?.message?.includes('Token refresh failed')) {
+                this.handleInvalidSession()
+              }
+            })
+          }
         }
       }
     } catch {
@@ -213,7 +220,9 @@ export class CustomSupabaseClient {
       `${this.url}/rest/v1/${table}`,
       this.getHeaders.bind(this),
       this.handleInvalidSession.bind(this),
-      this.generateNonce.bind(this)
+      this.generateNonce.bind(this),
+      this.auth.refreshSession.bind(this.auth),
+      () => this.session
     )
   }
 
@@ -456,9 +465,17 @@ export class QueryBuilder<T> {
     return this.queryParams.length ? `${this.url}?${this.queryParams.join('&')}` : this.url
   }
 
-  // Explicit Execution Methods
-  async execute(): Promise<{ data: any; error: Error | null; count?: number | null }> {
+  // Explicit Execution Methods with Pre-flight and Reactive Auto-Refresh
+  async execute(isRetry = false): Promise<{ data: any; error: Error | null; count?: number | null }> {
     try {
+      // 1. Proactive pre-flight token refresh if within 60s of expiring
+      if (!isRetry && this.getSession && this.refreshSession && typeof navigator !== 'undefined' && navigator.onLine) {
+        const curSession = this.getSession()
+        if (curSession?.expires_at && curSession.expires_at * 1000 - Date.now() < 60000) {
+          await this.refreshSession().catch(() => {})
+        }
+      }
+
       const headers: Record<string, string> = {
         ...this.getHeaders(),
         'Prefer': 'return=representation'
@@ -492,11 +509,21 @@ export class QueryBuilder<T> {
       const res = await fetch(this.buildUrl(), options)
       
       if (!res.ok) {
-        if (res.status === 401) {
-          if (typeof this.onAuthFailure === 'function') {
-            this.onAuthFailure()
+        // Reactive auto-retry on 401 Unauthorized or 403 Forbidden (expired token dropped to anon)
+        if (!isRetry && (res.status === 401 || res.status === 403) && this.refreshSession && typeof navigator !== 'undefined' && navigator.onLine) {
+          try {
+            await this.refreshSession()
+            // Retry request once with fresh access token
+            return await this.execute(true)
+          } catch {
+            if (typeof this.onAuthFailure === 'function') {
+              this.onAuthFailure()
+            }
           }
+        } else if (res.status === 401 && typeof this.onAuthFailure === 'function') {
+          this.onAuthFailure()
         }
+
         let errDetail = `Status ${res.status}`
         try {
           const errJson = await res.json()

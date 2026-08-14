@@ -51,34 +51,33 @@ const handleSubmit = async () => {
         <h1 class="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
           {{ t('brand.name') }}
         </h1>
-        <p class="text-slate-400 text-sm">
+        <p class="text-slate-400 text-sm transition-all duration-200">
           {{ mode === 'signin' ? t('auth.signin_desc') : t('auth.signup_desc') }}
         </p>
       </div>
 
-      <!-- Mode Switcher Tabs -->
-      <div class="grid grid-cols-2 p-1 bg-slate-950 border border-slate-800 rounded-xl text-sm font-medium">
+      <!-- Mode Switcher Tabs with Sliding Highlight -->
+      <div class="relative p-1 bg-slate-950 border border-slate-800 rounded-xl text-sm font-medium grid grid-cols-2">
+        <!-- Sliding Highlight Background Pill -->
+        <div
+          class="absolute inset-y-1 w-[calc(50%-4px)] bg-slate-800/90 border border-emerald-500/30 rounded-lg shadow-md shadow-emerald-950/40 transition-all duration-300 ease-out pointer-events-none"
+          :class="mode === 'signin' ? 'left-1' : 'left-[calc(50%+2px)]'"
+        />
+
         <button
           type="button"
           @click="mode = 'signin'; localError = null"
-          :class="[
-            'py-2 rounded-lg transition-all cursor-pointer',
-            mode === 'signin'
-              ? 'bg-slate-800 text-emerald-400 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200'
-          ]"
+          class="relative z-10 py-2 rounded-lg transition-colors duration-200 cursor-pointer text-center"
+          :class="mode === 'signin' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'"
         >
           {{ t('auth.signin_tab') }}
         </button>
+
         <button
           type="button"
           @click="mode = 'signup'; localError = null"
-          :class="[
-            'py-2 rounded-lg transition-all cursor-pointer',
-            mode === 'signup'
-              ? 'bg-slate-800 text-emerald-400 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200'
-          ]"
+          class="relative z-10 py-2 rounded-lg transition-colors duration-200 cursor-pointer text-center"
+          :class="mode === 'signup' ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-slate-200'"
         >
           {{ t('auth.signup_tab') }}
         </button>
@@ -87,7 +86,7 @@ const handleSubmit = async () => {
       <!-- Error Banner -->
       <div
         v-if="localError || authStore.error.value"
-        class="bg-rose-950/50 border border-rose-900/60 rounded-xl p-3 flex items-start gap-2.5 text-rose-300 text-xs sm:text-sm"
+        class="bg-rose-950/50 border border-rose-900/60 rounded-xl p-3 flex items-start gap-2.5 text-rose-300 text-xs sm:text-sm animate-in fade-in zoom-in-95 duration-150"
       >
         <AlertCircle class="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
         <span>{{ localError || authStore.error.value }}</span>
@@ -120,7 +119,7 @@ const handleSubmit = async () => {
         <button
           type="submit"
           :disabled="authStore.loading.value"
-          class="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-semibold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          class="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-semibold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-emerald-950/40"
         >
           <Loader2 v-if="authStore.loading.value" class="w-4 h-4 animate-spin" />
           <template v-else>

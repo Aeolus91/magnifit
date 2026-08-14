@@ -13,7 +13,9 @@ supabase.auth.onAuthStateChange((event, currentSession) => {
   session.value = currentSession
   user.value = currentSession?.user || null
 
-  if (event === 'SESSION_INVALID' || (!currentSession && window.location.pathname.startsWith('/dash'))) {
+  // Never redirect offline users to auth screen
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+  if (!isOffline && (event === 'SESSION_INVALID' || (!currentSession && window.location.pathname.startsWith('/dash')))) {
     const { navigate } = useRouter()
     navigate('/auth', true)
   }

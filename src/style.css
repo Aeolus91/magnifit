@@ -1,6 +1,16 @@
 @import "tailwindcss";
 
 @layer base {
+  *,
+  *::before,
+  *::after {
+    text-wrap: pretty;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+  }
+
   html, body {
     @apply bg-slate-950 text-slate-100 font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-400;
     height: 100%;

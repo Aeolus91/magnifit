@@ -30,8 +30,27 @@ watchEffect(() => {
 
 <template>
   <main class="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-950">
-    <LandingView v-if="currentRoute === '/'" />
-    <AuthView v-else-if="currentRoute === '/auth'" />
-    <DashboardView v-else-if="currentRoute === '/dash'" />
+    <Transition name="page" mode="out-in">
+      <LandingView v-if="currentRoute === '/'" key="landing" />
+      <AuthView v-else-if="currentRoute === '/auth'" key="auth" />
+      <DashboardView v-else-if="currentRoute === '/dash'" key="dash" />
+    </Transition>
   </main>
 </template>
+
+<style>
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+</style>

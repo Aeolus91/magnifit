@@ -5,7 +5,8 @@ export interface Workout {
   active_calories: number
   total_calories: number
   duration_minutes: number
-  date?: string
+  log_date?: string
+  ts?: string
 }
 
 export interface Biometric {
@@ -21,8 +22,8 @@ export interface Biometric {
   hips_cm?: number
   biceps_mm?: number
   biceps_cm?: number
+  log_date?: string
   ts?: string
-  date?: string
 }
 
 export interface Meal {
@@ -33,14 +34,16 @@ export interface Meal {
   protein_g: number
   carbs_g: number
   fat_g: number
-  date?: string
+  log_date?: string
+  ts?: string
 }
 
 export interface WaterLog {
   id?: string
   user_id?: string
   amount_ml: number
-  date?: string
+  log_date?: string
+  ts?: string
 }
 
 export interface Profile {
@@ -48,6 +51,7 @@ export interface Profile {
   username: string
   prefs: number
   micros_opt: number
+  tz?: string
   height_cm?: number | null
   target_weight_dg?: number | null
   sex?: 'male' | 'female' | 'other' | 'unspecified'
