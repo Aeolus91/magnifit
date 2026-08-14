@@ -68,14 +68,38 @@ const selectedOption = computed(() => {
   return normalizedOptions.value.find((opt) => opt.value === props.modelValue)
 })
 
+const menuRef = ref<HTMLElement | null>(null)
+const menuPlacement = ref<'bottom' | 'top'>('bottom')
+const maxHeightStyle = ref<string>('18rem')
+
+const updateMenuPosition = () => {
+  if (!isOpen.value || !containerRef.value) return
+  const rect = containerRef.value.getBoundingClientRect()
+  const viewportHeight = window.innerHeight
+  const padding = 12
+  const spaceBelow = viewportHeight - rect.bottom - padding
+  const spaceAbove = rect.top - padding
+
+  if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+    menuPlacement.value = 'top'
+    maxHeightStyle.value = `${Math.min(288, spaceAbove - 8)}px`
+  } else {
+    menuPlacement.value = 'bottom'
+    maxHeightStyle.value = `${Math.min(288, spaceBelow - 8)}px`
+  }
+}
+
 const toggle = () => {
   if (props.disabled) return
   isOpen.value = !isOpen.value
-  if (isOpen.value && props.searchable) {
-    searchQuery.value = ''
-    nextTick(() => {
-      searchInputRef.value?.focus()
-    })
+  if (isOpen.value) {
+    nextTick(updateMenuPosition)
+    if (props.searchable) {
+      searchQuery.value = ''
+      nextTick(() => {
+        searchInputRef.value?.focus()
+      })
+    }
   }
 }
 
@@ -99,12 +123,22 @@ const handleFocusOut = (e: FocusEvent) => {
   }
 }
 
+const handleResize = () => {
+  if (isOpen.value) {
+    updateMenuPosition()
+  }
+}
+
 onMounted(() => {
   window.addEventListener('click', handleClickOutside)
+  window.addEventListener('resize', handleResize)
+  window.addEventListener('scroll', handleResize, true)
 })
 
 onUnmounted(() => {
   window.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', handleResize)
+  window.removeEventListener('scroll', handleResize, true)
 })
 </script>
 
@@ -162,8 +196,13 @@ onUnmounted(() => {
     <!-- Dropdown Menu Popover -->
     <div
       v-if="isOpen"
+      ref="menuRef"
       tabindex="-1"
-      class="absolute left-0 top-full mt-2 w-full bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl p-1.5 z-50 space-y-1 max-h-72 overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-100 focus:outline-none scrollbar-thin scrollbar-thumb-slate-800"
+      :style="{ maxHeight: maxHeightStyle }"
+      :class="[
+        'absolute left-0 w-full bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl p-1.5 z-50 space-y-1 overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-100 focus:outline-none scrollbar-thin scrollbar-thumb-slate-800',
+        menuPlacement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
+      ]"
     >
       <!-- Searchable typeahead input -->
       <div v-if="searchable" class="p-1.5 border-b border-slate-800/80 mb-1 sticky top-0 bg-slate-900/95 backdrop-blur-md z-10">

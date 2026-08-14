@@ -228,11 +228,36 @@ const scrollToWheelSelection = () => {
   setTimeout(runAlignment, 240)
 }
 
+const popoverStyle = ref<Record<string, string>>({})
+
+const updatePopoverPosition = () => {
+  if (!isOpen.value || !containerRef.value) return
+  const triggerRect = containerRef.value.getBoundingClientRect()
+  const popoverWidth = 304 // 19rem (w-76)
+  const padding = 12
+  const viewportWidth = window.innerWidth
+
+  let leftOffset = 0
+  if (triggerRect.left + popoverWidth > viewportWidth - padding) {
+    leftOffset = Math.max(
+      -(triggerRect.left - padding),
+      viewportWidth - padding - (triggerRect.left + popoverWidth)
+    )
+  } else if (triggerRect.left < padding) {
+    leftOffset = padding - triggerRect.left
+  }
+
+  popoverStyle.value = {
+    left: `${leftOffset}px`
+  }
+}
+
 const togglePopover = () => {
   isOpen.value = !isOpen.value
   if (isOpen.value) {
     viewMode.value = 'calendar'
     viewDate.value = new Date(effectiveDate.value)
+    nextTick(updatePopoverPosition)
   }
 }
 
@@ -242,12 +267,20 @@ const handleClickOutside = (e: MouseEvent) => {
   }
 }
 
+const handleResize = () => {
+  if (isOpen.value) {
+    updatePopoverPosition()
+  }
+}
+
 onMounted(() => {
   window.addEventListener('click', handleClickOutside)
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   window.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
@@ -275,7 +308,8 @@ onUnmounted(() => {
     <!-- Calendar / Scroll Wheels Popover Menu -->
     <div
       v-if="isOpen"
-      class="absolute left-0 top-full mt-2 z-50 w-76 min-h-[300px] bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl p-3.5 animate-in fade-in zoom-in-95 duration-150"
+      :style="popoverStyle"
+      class="absolute top-full mt-2 z-50 w-76 min-h-[300px] bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl p-3.5 animate-in fade-in zoom-in-95 duration-150 max-w-[calc(100vw-24px)]"
     >
       <Transition name="fade-slide" mode="out-in">
         <!-- Mode 1: Calendar Day View -->

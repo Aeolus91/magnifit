@@ -128,8 +128,8 @@ const handleSubmit = () => {
         />
       </div>
 
-      <!-- Active Calories & Total Calories -->
-      <div class="grid grid-cols-2 gap-3">
+      <!-- Active Calories & Total Calories (Stacked on <360px, 2-col on >=360px) -->
+      <div class="flex flex-col min-[360px]:grid min-[360px]:grid-cols-2 gap-3">
         <FormInput
           v-model="activeCalories"
           type="number"
@@ -198,9 +198,9 @@ const handleSubmit = () => {
         </div>
       </div>
 
-      <!-- Avg Heart Rate & Perceived Effort (RPE) -->
+      <!-- Avg Heart Rate & Perceived Effort (RPE) (Stacked on <360px, 2-col on >=360px) -->
       <div class="space-y-3 pt-1 border-t border-slate-800/80">
-        <div class="grid grid-cols-2 gap-3">
+        <div class="flex flex-col min-[360px]:grid min-[360px]:grid-cols-2 gap-3">
           <FormInput
             v-model="avgHeartRate"
             type="number"
@@ -232,19 +232,19 @@ const handleSubmit = () => {
         </div>
       </div>
 
-      <!-- Attributes 2-Column ToggleSwitch Layout (Left / Right) -->
-      <div class="grid grid-cols-2 gap-3 pt-1">
+      <!-- Attributes 2-Column ToggleSwitch Layout (Stacked on <360px, 2-col on >=360px) -->
+      <div class="flex flex-col min-[360px]:grid min-[360px]:grid-cols-2 gap-3 pt-1">
         <ToggleSwitch
           v-model="isOutdoor"
           label="Outdoor"
           :icon="Trees"
-          icon-color="text-emerald-400"
+          active-color="text-emerald-400"
         />
         <ToggleSwitch
           v-model="isGpsTracked"
           label="GPS Tracked"
           :icon="Navigation"
-          icon-color="text-cyan-400"
+          active-color="text-emerald-400"
         />
       </div>
 

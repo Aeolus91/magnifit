@@ -39,28 +39,28 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden overscroll-none touch-none"
+      class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto overscroll-contain"
       @click.self="emit('close')"
     >
       <div
         :class="[
-          'w-full bg-slate-900/95 border border-slate-800/90 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 flex flex-col justify-between',
+          'w-full max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] bg-slate-900/95 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-2xl flex flex-col my-auto',
           props.maxWidthClass
         ]"
       >
-        <!-- Header -->
-        <div v-if="props.title || props.showClose || $slots.header" class="space-y-4">
+        <!-- Header (Fixed at top of modal) -->
+        <div v-if="props.title || props.showClose || $slots.header" class="pb-3 border-b border-slate-800/60 shrink-0">
           <slot name="header">
             <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
               <div class="flex items-center gap-2" :class="props.iconColor">
-                <component :is="props.icon" v-if="props.icon" class="w-4 h-4" />
-                <span v-if="props.title" class="text-sm font-bold text-slate-100">{{ props.title }}</span>
+                <component :is="props.icon" v-if="props.icon" class="w-4 h-4 shrink-0" />
+                <span v-if="props.title" class="text-sm font-bold text-slate-100 truncate">{{ props.title }}</span>
               </div>
               <button
                 v-if="props.showClose"
                 type="button"
                 @click="emit('close')"
-                class="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 transition cursor-pointer"
+                class="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 transition cursor-pointer shrink-0 ml-2"
               >
                 <X class="w-4 h-4" />
               </button>
@@ -68,13 +68,13 @@ onUnmounted(() => {
           </slot>
         </div>
 
-        <!-- Body -->
-        <div class="space-y-4">
+        <!-- Body (Scrolls only if content exceeds max viewport height) -->
+        <div class="space-y-4 py-3 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-slate-800 flex-1">
           <slot />
         </div>
 
-        <!-- Footer -->
-        <div v-if="$slots.footer" class="pt-4 border-t border-slate-800/80">
+        <!-- Footer (Fixed at bottom if provided) -->
+        <div v-if="$slots.footer" class="pt-3 border-t border-slate-800/80 shrink-0">
           <slot name="footer" />
         </div>
       </div>
