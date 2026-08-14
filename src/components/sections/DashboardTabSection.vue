@@ -26,7 +26,10 @@ const emit = defineEmits<{
   (e: 'edit-biometric', bio: Biometric): void
   (e: 'delete-biometric', id: string): void
   (e: 'add-meal', meal: Meal): void
+  (e: 'edit-meal', meal: Meal): void
   (e: 'log-meal'): void
+  (e: 'delete-meal', id: string): void
+  (e: 'update-micros', mealId: string, micros: Record<string, number>): void
   (e: 'add-water', amount: number): void
   (e: 'edit-water', log: WaterLog): void
   (e: 'delete-water', id: string): void
@@ -80,6 +83,9 @@ const { t } = useI18n()
       :meals="meals"
       :target-date="targetDate"
       @log-meal="emit('log-meal')"
+      @edit-meal="(m) => emit('edit-meal', m)"
+      @delete-meal="(id) => emit('delete-meal', id)"
+      @update-micros="(id, micros) => emit('update-micros', id, micros)"
     />
 
     <WaterSection

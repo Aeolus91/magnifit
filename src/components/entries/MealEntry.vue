@@ -1,31 +1,112 @@
 <script setup lang="ts">
-import { Utensils } from '@lucide/vue'
+import { ref, computed } from 'vue'
+import { Utensils, Trash2 } from '@lucide/vue'
+import { MealFlags } from '../../lib/bitmask'
 import type { Meal } from '../../types/fitness'
+import NutritionBreakdownModal from '../modals/NutritionBreakdownModal.vue'
 
 interface Props {
   meal: Meal
+  showSlotBadge?: boolean
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showSlotBadge: true
+})
+
+const emit = defineEmits<{
+  (e: 'edit', meal: Meal): void
+  (e: 'delete', id: string): void
+  (e: 'update-micros', mealId: string, micros: Record<string, number>): void
+}>()
+
+const showNutritionModal = ref(false)
+
+const slotLabel = computed(() => {
+  const flags = props.meal.flags || 0
+  if (flags & MealFlags.BREAKFAST) return 'Breakfast'
+  if (flags & MealFlags.LUNCH) return 'Lunch'
+  if (flags & MealFlags.DINNER) return 'Dinner'
+  if (flags & MealFlags.SNACK) return 'Snack'
+  return null
+})
 </script>
 
 <template>
-  <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between text-sm group hover:border-slate-700 transition">
-    <div class="flex items-center gap-3">
+  <div
+    @click="showNutritionModal = true"
+    class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between text-sm group hover:border-amber-500/50 hover:bg-slate-850/70 transition cursor-pointer"
+  >
+    <div class="flex items-center gap-3 min-w-0">
       <div class="p-2 rounded-lg bg-amber-950/50 border border-amber-800/40 text-amber-400 shrink-0">
         <Utensils class="w-4 h-4" />
       </div>
-      <div>
-        <div class="font-semibold text-slate-200">{{ meal.meal_name }}</div>
-        <div class="text-xs text-slate-400 mt-0.5">
-          <span>P: {{ meal.protein_g || meal.prot_g || 0 }}g | </span>
-          <span>C: {{ meal.carbs_g || meal.carb_g || 0 }}g | </span>
-          <span>F: {{ meal.fat_g || 0 }}g</span>
+      <div class="min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-semibold text-slate-200 truncate">{{ meal.meal_name }}</span>
+          <span
+            v-if="showSlotBadge && slotLabel"
+            class="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700/60 text-[10px] font-semibold text-amber-400/90 tracking-wide uppercase"
+          >
+            {{ slotLabel }}
+          </span>
+        </div>
+        <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-2 font-mono">
+          <span class="text-emerald-400">P: {{ meal.protein_g || meal.prot_g || 0 }}g</span>
+          <span class="text-amber-400">C: {{ meal.carbs_g || meal.carb_g || 0 }}g</span>
+          <span class="text-rose-400">F: {{ meal.fat_g || 0 }}g</span>
         </div>
       </div>
     </div>
-    <div class="text-right">
-      <span class="font-bold text-amber-400">{{ meal.calories || meal.cal || 0 }} kcal</span>
+
+    <div class="flex items-center gap-3 shrink-0 ml-3">
+      <span class="font-bold font-mono text-amber-400 text-sm">
+        {{ meal.calories || meal.cal || 0 }} <span class="text-xs font-normal text-slate-400">kcal</span>
+      </span>
+
+      <div class="flex items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition">
+        <button
+          v-if="meal.id"
+          type="button"
+          @click.stop="emit('delete', meal.id)"
+          class="p-1 rounded text-slate-500 hover:text-rose-400 transition cursor-pointer"
+          title="Delete Meal"
+        >
+          <Trash2 class="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
+
+    <!-- Clickable Nutrition Breakdown Modal with Inline Micronutrient & Servings Editing -->
+    <NutritionBreakdownModal
+      :show="showNutritionModal"
+      :is-editable="true"
+      :data="{
+        title: meal.meal_name,
+        serving_size: meal.serving_size 
+          ? (meal.servings && meal.servings !== 1 ? `${meal.servings}x ${meal.serving_size}${meal.serving_unit || 'g'}` : `${meal.serving_size}${meal.serving_unit || 'g'}`)
+          : undefined,
+        serving_unit: meal.serving_unit || 'g',
+        servings: meal.servings || 1,
+        cal: meal.calories || meal.cal || 0,
+        prot_g: meal.protein_g || meal.prot_g || 0,
+        carb_g: meal.carbs_g || meal.carb_g || 0,
+        fat_g: meal.fat_g || 0,
+        micros: meal.micros as any
+      }"
+      @save-meal="(updated) => {
+        emit('edit', {
+          ...meal,
+          servings: updated.servings,
+          cal: updated.cal,
+          prot_g: updated.prot_g,
+          carb_g: updated.carb_g,
+          fat_g: updated.fat_g,
+          micros: updated.micros
+        })
+        showNutritionModal = false
+      }"
+      @close="showNutritionModal = false"
+    />
   </div>
 </template>

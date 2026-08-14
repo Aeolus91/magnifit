@@ -27,6 +27,9 @@ const calories = ref<number | null>(null)
 const proteinG = ref<number | null>(null)
 const carbsG = ref<number | null>(null)
 const fatG = ref<number | null>(null)
+const servingSize = ref<number | null>(null)
+const servingUnit = ref<string>('g')
+const servingsCount = ref<number>(1)
 const selectedMealSlot = ref<number>(props.initialSlot)
 
 const mealSlotOptions = [
@@ -36,12 +39,30 @@ const mealSlotOptions = [
   { bit: MealFlags.SNACK, label: t('meals.slot.snack') }
 ]
 
-const handleFoodSelected = (food: { meal_name: string; cal: number; prot_g: number; carb_g: number; fat_g: number }) => {
+const mealMicros = ref<Record<string, number>>({})
+
+const handleFoodSelected = (food: {
+  meal_name: string
+  cal: number
+  prot_g: number
+  carb_g: number
+  fat_g: number
+  serving_size?: number
+  serving_unit?: string
+  servings?: number
+  micros?: Record<string, number>
+}) => {
   mealName.value = food.meal_name
   calories.value = food.cal
   proteinG.value = food.prot_g
   carbsG.value = food.carb_g
   fatG.value = food.fat_g
+  servingSize.value = food.serving_size || null
+  servingUnit.value = food.serving_unit || 'g'
+  servingsCount.value = food.servings || 1
+  if (food.micros) {
+    mealMicros.value = food.micros
+  }
   activeMode.value = 'manual'
 }
 
@@ -56,13 +77,26 @@ const handleOcrAutofill = (data: { meal_name?: string; cal?: number; prot_g?: nu
 
 const handleSubmit = () => {
   if (!mealName.value.trim() || calories.value === null) return
+  
+  let formattedName = mealName.value.trim()
+  if (servingSize.value && !formattedName.includes('(')) {
+    const servingDetail = servingsCount.value !== 1
+      ? `(${servingsCount.value}x ${servingSize.value}${servingUnit.value})`
+      : `(${servingSize.value}${servingUnit.value})`
+    formattedName = `${formattedName} ${servingDetail}`
+  }
+
   emit('submit', {
-    meal_name: mealName.value.trim(),
+    meal_name: formattedName,
     cal: calories.value || 0,
     prot_g: proteinG.value || 0,
     carb_g: carbsG.value || 0,
     fat_g: fatG.value || 0,
+    serving_size: servingSize.value || null,
+    serving_unit: servingSize.value ? servingUnit.value : 'g',
+    servings: servingsCount.value || 1,
     flags: selectedMealSlot.value,
+    micros: Object.keys(mealMicros.value).length > 0 ? mealMicros.value : undefined,
     log_date: props.logDate
   })
 
@@ -72,6 +106,9 @@ const handleSubmit = () => {
   proteinG.value = null
   carbsG.value = null
   fatG.value = null
+  servingSize.value = null
+  servingsCount.value = 1
+  mealMicros.value = {}
 }
 </script>
 
@@ -182,6 +219,41 @@ const handleSubmit = () => {
             max="10000"
             required
             class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition"
+          />
+        </div>
+      </div>
+
+      <!-- Optional Serving Configuration -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
+        <div class="space-y-1">
+          <label class="text-[11px] font-medium text-slate-400">Serving Size (Optional)</label>
+          <input
+            type="number"
+            v-model.number="servingSize"
+            placeholder="100"
+            min="1"
+            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none"
+          />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-medium text-slate-400">Unit</label>
+          <input
+            type="text"
+            v-model="servingUnit"
+            placeholder="g / ml / scoop"
+            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none"
+          />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-medium text-slate-400"># of Servings</label>
+          <input
+            type="number"
+            step="0.25"
+            v-model.number="servingsCount"
+            min="0.25"
+            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none"
           />
         </div>
       </div>

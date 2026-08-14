@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Search, Loader2, Plus, AlertCircle, X, QrCode } from '@lucide/vue'
+import { Search, Loader2, Plus, AlertCircle, X, QrCode, Info } from '@lucide/vue'
 import { useI18n } from '../../../lib/i18n'
 import Modal from '../../modals/Modal.vue'
+import NutritionBreakdownModal from '../../modals/NutritionBreakdownModal.vue'
 
 export interface FoodSearchResult {
   name: string
@@ -13,6 +14,7 @@ export interface FoodSearchResult {
   fat_100g: number
   serving_size_g?: number
   serving_label?: string
+  micros?: Record<string, number>
 }
 
 const emit = defineEmits<{
@@ -22,6 +24,10 @@ const emit = defineEmits<{
     prot_g: number
     carb_g: number
     fat_g: number
+    serving_size?: number
+    serving_unit?: string
+    servings?: number
+    micros?: Record<string, number>
   }): void
 }>()
 
@@ -31,7 +37,9 @@ const isSearching = ref(false)
 const searchResults = ref<FoodSearchResult[]>([])
 const searchError = ref<string | null>(null)
 const selectedFood = ref<FoodSearchResult | null>(null)
-const servingGrams = ref<number>(100)
+const inspectedFood = ref<FoodSearchResult | null>(null)
+const servingUnitGrams = ref<number>(100)
+const servingCount = ref<number>(1)
 
 // Barcode Scanning State
 const showScannerModal = ref(false)
@@ -42,31 +50,27 @@ let scannerInterval: any = null
 let mediaStream: MediaStream | null = null
 
 import { nextTick } from 'vue'
+import { BarcodeDetector as BarcodeDetectorPolyfill } from 'barcode-detector'
 
 const startBarcodeScan = async () => {
-  console.log('[BarcodeScanner] startBarcodeScan triggered')
   scannerError.value = null
   isScanningActive.value = true
   showScannerModal.value = true
 
   await nextTick()
-  console.log('[BarcodeScanner] Modal opened, nextTick completed. videoRef:', scannerVideoRef.value)
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    console.error('[BarcodeScanner] navigator.mediaDevices.getUserMedia is undefined (insecure context or unsupported browser)')
     scannerError.value = 'Camera API is not supported in this browser context (HTTPS required).'
     return
   }
 
   try {
-    console.log('[BarcodeScanner] Requesting getUserMedia...')
     mediaStream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: { ideal: 'environment' }
       },
       audio: false
     })
-    console.log('[BarcodeScanner] getUserMedia success. Stream active:', mediaStream.active)
 
     if (scannerVideoRef.value && mediaStream) {
       scannerVideoRef.value.srcObject = mediaStream
@@ -76,41 +80,36 @@ const startBarcodeScan = async () => {
       
       try {
         await scannerVideoRef.value.play()
-        console.log('[BarcodeScanner] video.play() started successfully')
       } catch (playErr) {
-        console.warn('[BarcodeScanner] video.play() error:', playErr)
+        // Autoplay policy fallback
       }
 
-      // Check native BarcodeDetector API support
-      if ('BarcodeDetector' in window) {
-        console.log('[BarcodeScanner] BarcodeDetector supported in window')
-        const barcodeDetector = new (window as any).BarcodeDetector({
-          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'code_128', 'code_39']
-        })
+      // Universal BarcodeDetector (Native API if available, else WASM Polyfill)
+      const DetectorClass = ('BarcodeDetector' in window) 
+        ? (window as any).BarcodeDetector 
+        : BarcodeDetectorPolyfill
 
-        scannerInterval = setInterval(async () => {
-          if (scannerVideoRef.value && scannerVideoRef.value.readyState >= 2 && !scannerVideoRef.value.paused) {
-            try {
-              const barcodes = await barcodeDetector.detect(scannerVideoRef.value)
-              if (barcodes.length > 0) {
-                const code = barcodes[0].rawValue
-                console.log('[BarcodeScanner] Barcode detected:', code)
-                stopBarcodeScan()
-                searchQuery.value = code
-                performSearch()
-              }
-            } catch (detErr) {
-              // Frame dropped
+      const barcodeDetector = new DetectorClass({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'code_128', 'code_39']
+      })
+
+      scannerInterval = setInterval(async () => {
+        if (scannerVideoRef.value && scannerVideoRef.value.readyState >= 2 && !scannerVideoRef.value.paused) {
+          try {
+            const barcodes = await barcodeDetector.detect(scannerVideoRef.value)
+            if (barcodes.length > 0) {
+              const code = barcodes[0].rawValue
+              stopBarcodeScan()
+              searchQuery.value = code
+              performSearch()
             }
+          } catch (detErr) {
+            // Frame dropped or decoding
           }
-        }, 250)
-      } else {
-        console.warn('[BarcodeScanner] BarcodeDetector is NOT supported on this browser')
-        scannerError.value = 'Live barcode detection is not supported on this browser engine. Please type the barcode number in the search box.'
-      }
+        }
+      }, 250)
     }
   } catch (err: any) {
-    console.error('[BarcodeScanner] getUserMedia failed:', err)
     scannerError.value = `Camera Error (${err?.name || 'Error'}): ${err?.message || 'Access failed'}`
     isScanningActive.value = false
   }
@@ -149,88 +148,168 @@ const stopBarcodeScan = () => {
 
     try {
       const results: FoodSearchResult[] = []
+      const isBarcode = /^\d{8,14}$/.test(q)
 
-      // 1. Query USDA via Secure Edge Function
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUB_KEY
-      const edgeUrl = `${supabaseUrl}/functions/v1/food-search?q=${encodeURIComponent(q)}`
-
-      // 2. Query OpenFoodFacts directly from client IP (Simple CORS request without custom headers to bypass preflight blocks)
-      const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=10`
-
-      const [usdaRes, offRes] = await Promise.allSettled([
-        fetch(edgeUrl, {
-          headers: {
-            'Authorization': `Bearer ${anonKey}`,
-            'apikey': anonKey
-          }
-        }),
-        fetch(offUrl)
-      ])
-
-      // Process USDA Foods
-      if (usdaRes.status === 'fulfilled' && usdaRes.value.ok) {
+      if (isBarcode) {
+        // Direct OpenFoodFacts Product Barcode API Lookup
         try {
-          const usdaData = await usdaRes.value.json()
-          if (usdaData.foods && Array.isArray(usdaData.foods)) {
-            usdaData.foods.forEach((f: any) => {
-              const nutrients = f.foodNutrients || []
-              const calNut = nutrients.find((n: any) => n.nutrientId === 1008 || n.nutrientName?.includes('Energy') || n.unitName === 'KCAL')
-              const protNut = nutrients.find((n: any) => n.nutrientId === 1003 || n.nutrientName?.includes('Protein'))
-              const carbNut = nutrients.find((n: any) => n.nutrientId === 1005 || n.nutrientName?.includes('Carbohydrate'))
-              const fatNut = nutrients.find((n: any) => n.nutrientId === 1004 || n.nutrientName?.includes('Total lipid'))
-
-              const cal = Math.round(calNut?.value || 0)
-              const prot = Math.round((protNut?.value || 0) * 10) / 10
-              const carb = Math.round((carbNut?.value || 0) * 10) / 10
-              const fat = Math.round((fatNut?.value || 0) * 10) / 10
-
-              if (cal > 0 || prot > 0 || carb > 0) {
-                results.push({
-                  name: f.description,
-                  brand: f.brandOwner || f.brandName || 'USDA Database',
-                  cal_100g: cal,
-                  prot_100g: prot,
-                  carb_100g: carb,
-                  fat_100g: fat,
-                  serving_size_g: f.servingSize ? Number(f.servingSize) : 100,
-                  serving_label: f.servingSizeUnit ? `${f.servingSize}${f.servingSizeUnit}` : '100g'
-                })
-              }
-            })
-          }
-        } catch {
-          // Ignore
-        }
-      }
-
-      // Process OpenFoodFacts Products
-      if (offRes.status === 'fulfilled' && offRes.value.ok) {
-        try {
-          const offData = await offRes.value.json()
-          if (offData.products && Array.isArray(offData.products)) {
-            offData.products.forEach((p: any) => {
-              if (!p.product_name || !p.nutriments) return
-              const nut = p.nutriments
+          const offBarcodeUrl = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(q)}.json`
+          const offRes = await fetch(offBarcodeUrl)
+          if (offRes.ok) {
+            const offData = await offRes.json()
+            if (offData.status === 1 && offData.product) {
+              const p = offData.product
+              const nut = p.nutriments || {}
               const cal = Number(nut['energy-kcal_100g'] ?? nut['energy-kcal'] ?? nut['energy-kcal_value'] ?? 0)
               const prot = Number(nut.proteins_100g ?? nut.proteins ?? 0)
               const carb = Number(nut.carbohydrates_100g ?? nut.carbohydrates ?? 0)
               const fat = Number(nut.fat_100g ?? nut.fat ?? 0)
 
+              const micros: Record<string, number> = {}
+              if (nut.sugars_100g !== undefined) micros.sugar_g = Number(nut.sugars_100g)
+              if (nut['saturated-fat_100g'] !== undefined) micros.sat_fat_g = Number(nut['saturated-fat_100g'])
+              if (nut['trans-fat_100g'] !== undefined) micros.trans_fat_g = Number(nut['trans-fat_100g'])
+              if (nut.sodium_100g !== undefined) micros.sodium_mg = Math.round(Number(nut.sodium_100g) * 1000)
+              if (nut.potassium_100g !== undefined) micros.potassium_mg = Math.round(Number(nut.potassium_100g) * 1000)
+              if (nut.cholesterol_100g !== undefined) micros.cholesterol_mg = Math.round(Number(nut.cholesterol_100g) * 1000)
+              if (nut.caffeine_100g !== undefined) micros.caffeine_mg = Math.round(Number(nut.caffeine_100g) * 1000)
+              if (nut.calcium_100g !== undefined) micros.calcium_mg = Math.round(Number(nut.calcium_100g) * 1000)
+              if (nut.iron_100g !== undefined) micros.iron_mg = Math.round(Number(nut.iron_100g) * 1000)
+
               results.push({
-                name: p.product_name,
+                name: p.product_name || p.product_name_en || `Barcode ${q}`,
                 brand: p.brands || undefined,
                 cal_100g: Math.round(cal),
                 prot_100g: Math.round(prot * 10) / 10,
                 carb_100g: Math.round(carb * 10) / 10,
                 fat_100g: Math.round(fat * 10) / 10,
                 serving_size_g: p.serving_quantity ? Number(p.serving_quantity) : 100,
-                serving_label: p.serving_size || '100g'
+                serving_label: p.serving_size || '100g',
+                micros
               })
-            })
+            }
           }
         } catch {
-          // Ignore
+          // Fallback to general text search
+        }
+      }
+
+      // If no barcode match found or not a pure barcode, query USDA & OFF text search
+      if (results.length === 0) {
+        // 1. Query USDA via Secure Edge Function
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUB_KEY
+        const edgeUrl = `${supabaseUrl}/functions/v1/food-search?q=${encodeURIComponent(q)}`
+
+        // 2. Query OpenFoodFacts text search directly from client IP
+        const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=10`
+
+        const [usdaRes, offRes] = await Promise.allSettled([
+          fetch(edgeUrl, {
+            headers: {
+              'Authorization': `Bearer ${anonKey}`,
+              'apikey': anonKey
+            }
+          }),
+          fetch(offUrl)
+        ])
+
+        // Process USDA Foods
+        if (usdaRes.status === 'fulfilled' && usdaRes.value.ok) {
+          try {
+            const usdaData = await usdaRes.value.json()
+            if (usdaData.foods && Array.isArray(usdaData.foods)) {
+              usdaData.foods.forEach((f: any) => {
+                const nutrients = f.foodNutrients || []
+                const calNut = nutrients.find((n: any) => n.nutrientId === 1008 || n.nutrientName?.includes('Energy') || n.unitName === 'KCAL')
+                const protNut = nutrients.find((n: any) => n.nutrientId === 1003 || n.nutrientName?.includes('Protein'))
+                const carbNut = nutrients.find((n: any) => n.nutrientId === 1005 || n.nutrientName?.includes('Carbohydrate'))
+                const fatNut = nutrients.find((n: any) => n.nutrientId === 1004 || n.nutrientName?.includes('Total lipid'))
+
+                const cal = Math.round(calNut?.value || 0)
+                const prot = Math.round((protNut?.value || 0) * 10) / 10
+                const carb = Math.round((carbNut?.value || 0) * 10) / 10
+                const fat = Math.round((fatNut?.value || 0) * 10) / 10
+
+                const usdaMicros: Record<string, number> = {}
+                nutrients.forEach((n: any) => {
+                  const val = Number(n.value || 0)
+                  if (n.nutrientId === 2000 || n.nutrientName?.toLowerCase().includes('sugars, total')) usdaMicros.sugar_g = val
+                  if (n.nutrientId === 1258 || n.nutrientName?.toLowerCase().includes('fatty acids, total saturated')) usdaMicros.sat_fat_g = val
+                  if (n.nutrientId === 1257 || n.nutrientName?.toLowerCase().includes('fatty acids, total trans')) usdaMicros.trans_fat_g = val
+                  if (n.nutrientId === 1093 || n.nutrientName?.toLowerCase().includes('sodium')) usdaMicros.sodium_mg = val
+                  if (n.nutrientId === 1092 || n.nutrientName?.toLowerCase().includes('potassium')) usdaMicros.potassium_mg = val
+                  if (n.nutrientId === 1253 || n.nutrientName?.toLowerCase().includes('cholesterol')) usdaMicros.cholesterol_mg = val
+                  if (n.nutrientId === 1087 || n.nutrientName?.toLowerCase().includes('calcium')) usdaMicros.calcium_mg = val
+                  if (n.nutrientId === 1089 || n.nutrientName?.toLowerCase().includes('iron')) usdaMicros.iron_mg = val
+                  if (n.nutrientId === 1090 || n.nutrientName?.toLowerCase().includes('magnesium')) usdaMicros.magnesium_mg = val
+                  if (n.nutrientId === 1095 || n.nutrientName?.toLowerCase().includes('zinc')) usdaMicros.zinc_mg = val
+                  if (n.nutrientId === 1162 || n.nutrientName?.toLowerCase().includes('vitamin c')) usdaMicros.vit_c_mg = val
+                  if (n.nutrientId === 1114 || n.nutrientName?.toLowerCase().includes('vitamin d')) usdaMicros.vit_d_mcg = val
+                  if (n.nutrientId === 1178 || n.nutrientName?.toLowerCase().includes('vitamin b-12')) usdaMicros.vit_b12_mcg = val
+                  if (n.nutrientId === 1057 || n.nutrientName?.toLowerCase().includes('caffeine')) usdaMicros.caffeine_mg = val
+                })
+
+                if (cal > 0 || prot > 0 || carb > 0) {
+                  results.push({
+                    name: f.description,
+                    brand: f.brandOwner || f.brandName || 'USDA Database',
+                    cal_100g: cal,
+                    prot_100g: prot,
+                    carb_100g: carb,
+                    fat_100g: fat,
+                    serving_size_g: f.servingSize ? Number(f.servingSize) : 100,
+                    serving_label: f.servingSizeUnit ? `${f.servingSize}${f.servingSizeUnit}` : '100g',
+                    micros: usdaMicros
+                  })
+                }
+              })
+            }
+          } catch {
+            // Ignore
+          }
+        }
+
+        // Process OpenFoodFacts Products
+        if (offRes.status === 'fulfilled' && offRes.value.ok) {
+          try {
+            const offData = await offRes.value.json()
+            if (offData.products && Array.isArray(offData.products)) {
+              offData.products.forEach((p: any) => {
+                if (!p.product_name || !p.nutriments) return
+                const nut = p.nutriments
+                const cal = Number(nut['energy-kcal_100g'] ?? nut['energy-kcal'] ?? nut['energy-kcal_value'] ?? 0)
+                const prot = Number(nut.proteins_100g ?? nut.proteins ?? 0)
+                const carb = Number(nut.carbohydrates_100g ?? nut.carbohydrates ?? 0)
+                const fat = Number(nut.fat_100g ?? nut.fat ?? 0)
+
+                const offMicros: Record<string, number> = {}
+                if (nut.sugars_100g !== undefined) offMicros.sugar_g = Number(nut.sugars_100g)
+                if (nut['saturated-fat_100g'] !== undefined) offMicros.sat_fat_g = Number(nut['saturated-fat_100g'])
+                if (nut['trans-fat_100g'] !== undefined) offMicros.trans_fat_g = Number(nut['trans-fat_100g'])
+                if (nut.sodium_100g !== undefined) offMicros.sodium_mg = Math.round(Number(nut.sodium_100g) * 1000)
+                if (nut.potassium_100g !== undefined) offMicros.potassium_mg = Math.round(Number(nut.potassium_100g) * 1000)
+                if (nut.cholesterol_100g !== undefined) offMicros.cholesterol_mg = Math.round(Number(nut.cholesterol_100g) * 1000)
+                if (nut.caffeine_100g !== undefined) offMicros.caffeine_mg = Math.round(Number(nut.caffeine_100g) * 1000)
+                if (nut.calcium_100g !== undefined) offMicros.calcium_mg = Math.round(Number(nut.calcium_100g) * 1000)
+                if (nut.iron_100g !== undefined) offMicros.iron_mg = Math.round(Number(nut.iron_100g) * 1000)
+
+                results.push({
+                  name: p.product_name,
+                  brand: p.brands || undefined,
+                  cal_100g: Math.round(cal),
+                  prot_100g: Math.round(prot * 10) / 10,
+                  carb_100g: Math.round(carb * 10) / 10,
+                  fat_100g: Math.round(fat * 10) / 10,
+                  serving_size_g: p.serving_quantity ? Number(p.serving_quantity) : 100,
+                  serving_label: p.serving_size || '100g',
+                  micros: offMicros
+                })
+              })
+            }
+          } catch {
+            // Ignore
+          }
         }
       }
 
@@ -283,22 +362,39 @@ const stopBarcodeScan = () => {
 
   const selectItem = (item: FoodSearchResult) => {
     selectedFood.value = item
-    servingGrams.value = item.serving_size_g || 100
+    servingUnitGrams.value = item.serving_size_g || 100
+    servingCount.value = 1
   }
 
   const confirmSelection = () => {
     if (!selectedFood.value) return
-    const ratio = (servingGrams.value || 100) / 100
+    const totalGrams = (servingUnitGrams.value || 100) * (servingCount.value || 1)
+    const ratio = totalGrams / 100
     const fullName = selectedFood.value.brand
       ? `${selectedFood.value.brand} ${selectedFood.value.name}`
       : selectedFood.value.name
 
+    const scaledMicros: Record<string, number> = {}
+    if (selectedFood.value.micros) {
+      Object.entries(selectedFood.value.micros).forEach(([k, v]) => {
+        scaledMicros[k] = Math.round(v * ratio * 10) / 10
+      })
+    }
+
+    const servingInfo = servingCount.value !== 1
+      ? `${servingCount.value}x ${servingUnitGrams.value}g`
+      : `${totalGrams}g`
+
     emit('select-food', {
-      meal_name: `${fullName} (${servingGrams.value}g)`,
+      meal_name: `${fullName} (${servingInfo})`,
       cal: Math.round(selectedFood.value.cal_100g * ratio),
       prot_g: Math.round(selectedFood.value.prot_100g * ratio),
       carb_g: Math.round(selectedFood.value.carb_100g * ratio),
-      fat_g: Math.round(selectedFood.value.fat_100g * ratio)
+      fat_g: Math.round(selectedFood.value.fat_100g * ratio),
+      serving_size: servingUnitGrams.value || 100,
+      serving_unit: 'g',
+      servings: servingCount.value || 1,
+      micros: scaledMicros
     })
 
     selectedFood.value = null
@@ -413,10 +509,22 @@ const stopBarcodeScan = () => {
             </div>
           </div>
 
-          <div class="flex items-center gap-1.5 text-[10px] font-mono shrink-0">
-            <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/60 text-emerald-300">P:{{ item.prot_100g }}g</span>
-            <span class="px-1.5 py-0.5 rounded bg-amber-950/80 border border-amber-800/60 text-amber-300">C:{{ item.carb_100g }}g</span>
-            <span class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-800/60 text-rose-300">F:{{ item.fat_100g }}g</span>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <div class="flex items-center gap-1 text-[10px] font-mono">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/60 text-emerald-300">P:{{ item.prot_100g }}g</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 border border-amber-800/60 text-amber-300">C:{{ item.carb_100g }}g</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-800/60 text-rose-300">F:{{ item.fat_100g }}g</span>
+            </div>
+
+            <!-- Inspect Full Nutritional Breakdown Button -->
+            <button
+              type="button"
+              @click.stop="inspectedFood = item"
+              class="p-1 rounded-md bg-slate-900 border border-slate-800 hover:border-amber-500/50 text-slate-400 hover:text-amber-300 transition cursor-pointer"
+              title="View Full Nutritional Breakdown"
+            >
+              <Info class="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>
@@ -450,22 +558,35 @@ const stopBarcodeScan = () => {
         </button>
       </div>
 
-      <div class="flex items-center gap-3 pt-1">
-        <div class="w-1/2 space-y-1">
-          <label class="text-xs font-semibold text-slate-300">Portion (grams)</label>
+      <!-- Dual Input: Serving Size (g) and Number of Servings -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold text-slate-300">Serving Size (g)</label>
           <input
             type="number"
-            v-model.number="servingGrams"
+            v-model.number="servingUnitGrams"
             min="1"
             max="2000"
             class="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none"
           />
         </div>
 
-        <div class="w-1/2 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center">
-          <div class="text-[10px] text-slate-400 uppercase font-semibold">Total Energy</div>
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold text-slate-300"># of Servings</label>
+          <input
+            type="number"
+            step="0.25"
+            v-model.number="servingCount"
+            min="0.25"
+            max="50"
+            class="w-full bg-slate-900 border border-slate-700 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none"
+          />
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-2 text-center flex flex-col justify-center">
+          <div class="text-[10px] text-slate-400 uppercase font-semibold">Total ({{ (servingUnitGrams || 100) * (servingCount || 1) }}g)</div>
           <div class="text-base font-bold text-amber-400">
-            {{ Math.round(selectedFood.cal_100g * (servingGrams / 100)) }} kcal
+            {{ Math.round(selectedFood.cal_100g * (((servingUnitGrams || 100) * (servingCount || 1)) / 100)) }} kcal
           </div>
         </div>
       </div>
@@ -479,5 +600,21 @@ const stopBarcodeScan = () => {
         <span>Use This Food</span>
       </button>
     </div>
+
+    <!-- Clickable Food Search Result Nutrition Breakdown Modal -->
+    <NutritionBreakdownModal
+      :show="!!inspectedFood"
+      :data="inspectedFood ? {
+        title: inspectedFood.name,
+        subtitle: inspectedFood.brand,
+        serving_size: inspectedFood.serving_label || '100g',
+        cal: inspectedFood.cal_100g,
+        prot_g: inspectedFood.prot_100g,
+        carb_g: inspectedFood.carb_100g,
+        fat_g: inspectedFood.fat_100g,
+        micros: inspectedFood.micros
+      } : null"
+      @close="inspectedFood = null"
+    />
   </div>
 </template>

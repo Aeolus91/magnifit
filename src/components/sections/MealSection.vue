@@ -12,6 +12,9 @@ defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'log-meal'): void
+  (e: 'edit-meal', meal: Meal): void
+  (e: 'delete-meal', id: string): void
+  (e: 'update-micros', mealId: string, micros: Record<string, number>): void
 }>()
 </script>
 
@@ -47,6 +50,10 @@ const emit = defineEmits<{
         v-for="m in meals"
         :key="m.id"
         :meal="m"
+        :show-slot-badge="true"
+        @edit="emit('edit-meal', $event)"
+        @delete="emit('delete-meal', $event)"
+        @update-micros="(mealId, newMicros) => emit('update-micros', mealId, newMicros)"
       />
     </div>
   </div>

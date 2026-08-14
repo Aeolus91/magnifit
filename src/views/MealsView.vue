@@ -170,6 +170,10 @@ onMounted(() => {
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"
+          @update-micros="(id, newMicros) => {
+            const m = meals.find(item => item.id === id)
+            if (m) editMeal({ ...m, micros: newMicros })
+          }"
         />
 
         <MealSlotCard
@@ -180,6 +184,10 @@ onMounted(() => {
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"
+          @update-micros="(id, newMicros) => {
+            const m = meals.find(item => item.id === id)
+            if (m) editMeal({ ...m, micros: newMicros })
+          }"
         />
 
         <MealSlotCard
@@ -190,6 +198,10 @@ onMounted(() => {
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"
+          @update-micros="(id, newMicros) => {
+            const m = meals.find(item => item.id === id)
+            if (m) editMeal({ ...m, micros: newMicros })
+          }"
         />
 
         <MealSlotCard
@@ -200,6 +212,10 @@ onMounted(() => {
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"
+          @update-micros="(id, newMicros) => {
+            const m = meals.find(item => item.id === id)
+            if (m) editMeal({ ...m, micros: newMicros })
+          }"
         />
       </div>
     </div>

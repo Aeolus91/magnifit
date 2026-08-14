@@ -36,6 +36,10 @@ export interface Meal {
   flags?: number
   log_date?: string
   ts?: string
+  serving_size?: number | null
+  serving_unit?: string | null
+  servings?: number | null
+  micros?: Micronutrients
   // Legacy compatibility fields
   calories?: number
   protein_g?: number

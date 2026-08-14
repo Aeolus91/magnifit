@@ -78,13 +78,19 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
 
   const editMeal = async (mealData: Meal) => {
     if (!userId.value || !mealData.id) return
-    const updatePayload = {
+    const updatePayload: any = {
       meal_name: mealData.meal_name,
       cal: mealData.cal || mealData.calories,
       prot_g: mealData.prot_g || mealData.protein_g,
       carb_g: mealData.carb_g || mealData.carbs_g,
       fat_g: mealData.fat_g,
-      flags: mealData.flags
+      flags: mealData.flags,
+      serving_size: mealData.serving_size,
+      serving_unit: mealData.serving_unit,
+      servings: mealData.servings
+    }
+    if (mealData.micros) {
+      updatePayload.micros = mealData.micros
     }
 
     const idx = meals.value.findIndex(m => m.id === mealData.id)

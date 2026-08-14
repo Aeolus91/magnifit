@@ -80,7 +80,9 @@ const {
 const {
   filteredMeals,
   totalCaloriesConsumed,
-  fetchMeals
+  fetchMeals,
+  editMeal,
+  deleteMeal
 } = useMeals(currentUserId, selectedDate, loggedDates)
 
 const loading = ref(false)
@@ -282,6 +284,12 @@ onMounted(async () => {
       @edit-biometric="editBiometric"
       @delete-biometric="deleteBiometric"
       @log-meal="navigate('/meals', false, { logDate: selectedDate })"
+      @edit-meal="editMeal"
+      @delete-meal="deleteMeal"
+      @update-micros="(id, newMicros) => {
+        const m = filteredMeals.find(item => item.id === id)
+        if (m) editMeal({ ...m, micros: newMicros })
+      }"
       @add-water="addWater"
       @edit-water="editWater"
       @delete-water="deleteWater"

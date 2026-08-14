@@ -17,6 +17,7 @@ const emit = defineEmits<{
   (e: 'add-item', slotBit: number): void
   (e: 'edit-meal', meal: Meal): void
   (e: 'delete-meal', id: string): void
+  (e: 'update-micros', mealId: string, micros: Record<string, number>): void
 }>()
 
 const slotCalories = computed(() =>
@@ -76,8 +77,10 @@ const slotFat = computed(() =>
         v-for="m in meals"
         :key="m.id"
         :meal="m"
+        :show-slot-badge="false"
         @edit="emit('edit-meal', $event)"
         @delete="emit('delete-meal', $event)"
+        @update-micros="(mealId, newMicros) => emit('update-micros', mealId, newMicros)"
       />
     </div>
   </div>
