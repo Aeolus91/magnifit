@@ -22,11 +22,13 @@ const emit = defineEmits<{
   (e: 'add-workout', workout: Workout): void
   (e: 'edit-workout', workout: Workout): void
   (e: 'delete-workout', id: string): void
-  (e: 'add-biometric', bio: { weight_kg: number; waist_cm?: number; chest_cm?: number; hips_cm?: number; biceps_cm?: number }): void
-  (e: 'edit-biometric', bio: { id: string; weight_kg: number; waist_cm?: number; chest_cm?: number; hips_cm?: number; biceps_cm?: number }): void
+  (e: 'add-biometric', bio: Biometric): void
+  (e: 'edit-biometric', bio: Biometric): void
   (e: 'delete-biometric', id: string): void
   (e: 'add-meal', meal: Meal): void
   (e: 'add-water', amount: number): void
+  (e: 'edit-water', log: WaterLog): void
+  (e: 'delete-water', id: string): void
 }>()
 
 const { t } = useI18n()
@@ -34,28 +36,31 @@ const { t } = useI18n()
 
 <template>
   <div class="space-y-6">
-    <!-- Tab Navigation Bar -->
-    <div class="flex border-b border-slate-800 space-x-4">
-      <button
-        v-for="tab in (['workouts', 'biometrics', 'meals', 'water'] as const)"
-        :key="tab"
-        type="button"
-        @click="emit('update:modelValue', tab)"
-        :class="[
-          'pb-3 font-medium capitalize transition-colors border-b-2 text-sm cursor-pointer',
-          modelValue === tab
-            ? 'border-emerald-500 text-emerald-400 font-semibold'
-            : 'border-transparent text-slate-400 hover:text-slate-200'
-        ]"
-      >
-        {{ t(`dash.nav.${tab}`) }}
-      </button>
+    <!-- Category Tabs Navigation -->
+    <div class="flex items-center justify-between border-b border-slate-800">
+      <div class="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar py-1">
+        <button
+          v-for="tab in (['workouts', 'biometrics', 'meals', 'water'] as const)"
+          :key="tab"
+          type="button"
+          @click="emit('update:modelValue', tab)"
+          :class="[
+            'px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold capitalize transition flex items-center gap-2 cursor-pointer shrink-0',
+            modelValue === tab
+              ? 'bg-slate-800 text-slate-100 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
+          ]"
+        >
+          {{ tab }}
+        </button>
+      </div>
     </div>
 
-    <!-- Granular Capability Content Modules -->
+    <!-- Active Tab Component -->
     <WorkoutSection
       v-if="modelValue === 'workouts'"
       :workouts="workouts"
+      :target-date="targetDate"
       @add-workout="(w) => emit('add-workout', w)"
       @edit-workout="(w) => emit('edit-workout', w)"
       @delete-workout="(id) => emit('delete-workout', id)"
@@ -79,6 +84,8 @@ const { t } = useI18n()
       v-if="modelValue === 'water'"
       :water-logs="waterLogs"
       @add-water="(amt) => emit('add-water', amt)"
+      @edit-water="(log) => emit('edit-water', log)"
+      @delete-water="(id) => emit('delete-water', id)"
     />
   </div>
 </template>

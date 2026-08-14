@@ -375,24 +375,24 @@ export type Database = {
         Row: {
           display_name: string | null
           id: string
-          micros_bitmask: number
-          prefs_bitmask: number
+          micros_opt: number
+          prefs: number
           updated_at: string
           username: string | null
         }
         Insert: {
           display_name?: string | null
           id: string
-          micros_bitmask?: number
-          prefs_bitmask?: number
+          micros_opt?: number
+          prefs?: number
           updated_at?: string
           username?: string | null
         }
         Update: {
           display_name?: string | null
           id?: string
-          micros_bitmask?: number
-          prefs_bitmask?: number
+          micros_opt?: number
+          prefs?: number
           updated_at?: string
           username?: string | null
         }

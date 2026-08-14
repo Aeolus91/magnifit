@@ -117,26 +117,25 @@ const subtitle = computed(() => {
       max-width-class="max-w-xs"
       @close="showTargetModal = false"
     >
-      <form @submit.prevent="handleSaveTarget" class="space-y-4">
-        <div class="space-y-1.5">
+      <form @submit.prevent="handleSaveTarget" class="space-y-3.5">
+        <div class="space-y-1">
           <label class="block text-xs font-semibold text-slate-300">Target Intake (ml)</label>
           <input
-            type="number"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
             v-model.number="inputTargetMl"
-            min="500"
-            max="10000"
-            step="50"
             required
-            class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition"
+            class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
-          <div class="text-[11px] text-slate-400">Recommended: 2,000 – 3,500 ml</div>
+          <div class="text-[10px] text-slate-400">Recommended: 2,000 – 3,500 ml</div>
         </div>
 
         <button
           type="submit"
-          class="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:scale-[0.98] text-slate-950 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-lg shadow-cyan-950/40"
+          class="w-full py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 active:scale-[0.98] text-slate-950 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md shadow-cyan-950/40"
         >
-          <Check class="w-4 h-4 stroke-[3]" />
+          <Check class="w-3.5 h-3.5 stroke-[3]" />
           <span>Save Goal</span>
         </button>
       </form>

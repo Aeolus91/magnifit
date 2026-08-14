@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import { useAuthStore } from '../stores/authStore'
 import { useI18n } from '../lib/i18n'
@@ -51,11 +51,27 @@ const isSubmitting = ref<boolean>(false)
 const errorMessage = ref<string | null>(null)
 
 // Step 1: Identity
-const fullName = ref<string>(authStore.user.value?.user_metadata?.display_name || '')
-const username = ref<string>(props.initialProfile?.username || '')
+const fallbackUsername = computed(() => {
+  if (props.initialProfile?.username) return props.initialProfile.username
+  const metaUsername = authStore.user.value?.user_metadata?.username
+  if (metaUsername) return metaUsername
+  const email = authStore.user.value?.email
+  if (email) return email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').toLowerCase()
+  return ''
+})
+
+const fullName = ref<string>(
+  props.initialProfile?.display_name ||
+  authStore.user.value?.user_metadata?.display_name ||
+  authStore.user.value?.user_metadata?.full_name ||
+  ''
+)
+const username = ref<string>(fallbackUsername.value)
 
 // Step 2: Physical Stats
-const sex = ref<'male' | 'female' | 'other' | 'unspecified'>(props.initialProfile?.sex || 'unspecified')
+const sex = ref<number | null>(
+  typeof props.initialProfile?.sex === 'number' ? props.initialProfile.sex : null
+)
 const birthYear = ref<number>(props.initialProfile?.birth_year || 1995)
 
 const isImperial = ref<boolean>(
@@ -64,9 +80,6 @@ const isImperial = ref<boolean>(
 const trackMicros = ref<boolean>(
   props.initialProfile ? (props.initialProfile.prefs & ProfilePrefs.TRACK_MICROS) !== 0 : false
 )
-
-// Dynamic step counter based on trackMicros toggle
-const totalSteps = computed(() => (trackMicros.value ? 4 : 3))
 
 // Step 4: Micronutrient Selection State
 const selectedMicros = ref<number>(props.initialProfile?.micros_opt || 0)
@@ -111,13 +124,13 @@ const heightCm = ref<number | null>(
     : null
 )
 
-// Current Weight from latestBiometric
+// Current Weight from latestBiometric (EAV type = 1 or legacy weight_dg)
 const initialWeightKg = computed(() => {
   if (!props.latestBiometric) return null
-  if (props.latestBiometric.weight_dg !== undefined && props.latestBiometric.weight_dg !== null) {
-    return props.latestBiometric.weight_dg / 10
+  if (props.latestBiometric.type === 1 && props.latestBiometric.val) {
+    return props.latestBiometric.val / 10
   }
-  return props.latestBiometric.weight_kg || null
+  return null
 })
 
 const weightKg = ref<number | null>(
@@ -127,15 +140,22 @@ const weightKg = ref<number | null>(
 )
 
 const sexOptions = computed(() => [
-  { value: 'male', label: t('onboarding.step2.sex_male') },
-  { value: 'female', label: t('onboarding.step2.sex_female') },
-  { value: 'other', label: t('onboarding.step2.sex_other') },
-  { value: 'unspecified', label: t('onboarding.step2.sex_unspecified') }
+  { value: 1, label: t('onboarding.step2.sex_male') },
+  { value: 0, label: t('onboarding.step2.sex_female') },
+  { value: 2, label: t('onboarding.step2.sex_other') }
+])
+
+const activityOptions = computed(() => [
+  { value: 1, label: t('onboarding.step3.activity_sedentary') },
+  { value: 2, label: t('onboarding.step3.activity_light') },
+  { value: 3, label: t('onboarding.step3.activity_moderate') },
+  { value: 4, label: t('onboarding.step3.activity_active') },
+  { value: 5, label: t('onboarding.step3.activity_very_active') }
 ])
 
 // Step 3: Goals & Activity
-const activityLevel = ref<'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'>(
-  props.initialProfile?.activity_level || 'moderate'
+const activityLevel = ref<number | null>(
+  typeof props.initialProfile?.activity_level === 'number' ? props.initialProfile.activity_level : null
 )
 
 const targetWeightKg = ref<number | null>(
@@ -146,13 +166,27 @@ const targetWeightKg = ref<number | null>(
     : null
 )
 
-const activityOptions = computed(() => [
-  { value: 'sedentary', label: t('onboarding.step3.activity_sedentary') },
-  { value: 'light', label: t('onboarding.step3.activity_light') },
-  { value: 'moderate', label: t('onboarding.step3.activity_moderate') },
-  { value: 'active', label: t('onboarding.step3.activity_active') },
-  { value: 'very_active', label: t('onboarding.step3.activity_very_active') }
-])
+// Dynamic step counter based on trackMicros toggle
+const totalSteps = computed(() => (trackMicros.value ? 4 : 3))
+
+// Watch initialProfile props changes and populate reactive form state
+watch(() => props.initialProfile, (p) => {
+  if (!p) return
+  if (p.username) {
+    username.value = p.username
+  } else if (!username.value && fallbackUsername.value) {
+    username.value = fallbackUsername.value
+  }
+  if (p.display_name) fullName.value = p.display_name
+  if (typeof p.sex === 'number' && sex.value === null) sex.value = p.sex
+  if (p.birth_year) birthYear.value = p.birth_year
+  if (p.prefs !== undefined) {
+    isImperial.value = (p.prefs & ProfilePrefs.IMPERIAL) !== 0
+    trackMicros.value = (p.prefs & ProfilePrefs.TRACK_MICROS) !== 0
+  }
+  if (typeof p.activity_level === 'number' && activityLevel.value === null) activityLevel.value = p.activity_level
+  if (p.micros_opt !== undefined) selectedMicros.value = p.micros_opt
+}, { immediate: true, deep: true })
 
 const progressPercent = computed(() => {
   return Math.round((currentStep.value / totalSteps.value) * 100)
@@ -165,24 +199,14 @@ const saveStep1 = async (): Promise<boolean> => {
   isSavingStep.value = true
   try {
     const userId = authStore.user.value.id
-    // 1. Update display name in auth metadata
-    if (fullName.value.trim()) {
-      await supabase.auth.updateUser({
-        data: {
-          display_name: fullName.value.trim(),
-          full_name: fullName.value.trim()
-        }
-      }).catch(() => {})
-    }
-    // 2. Persist username in profiles
     const payload = {
+      id: userId,
       username: username.value.trim().toLowerCase(),
+      display_name: fullName.value.trim(),
       updated_at: new Date().toISOString()
     }
-    const { error } = await supabase.from('profiles').update(payload).eq('id', userId)
-    if (error) {
-      await supabase.from('profiles').insert([{ id: userId, ...payload }])
-    }
+    const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
+    if (error) throw error
     return true
   } catch (err: any) {
     errorMessage.value = err.message || 'Failed to save profile identity.'
@@ -197,14 +221,13 @@ const saveStep2 = async (): Promise<boolean> => {
   isSavingStep.value = true
   try {
     const userId = authStore.user.value.id
+    const finalHeightCm = heightCm.value !== null
+      ? (isImperial.value ? Math.round(heightCm.value * 2.54) : Math.round(heightCm.value))
+      : null
 
-    const finalHeightCm = isImperial.value
-      ? Math.round(heightCm.value! * 2.54)
-      : Math.round(heightCm.value!)
-
-    const finalWeightKg = isImperial.value
-      ? weightKg.value! * 0.453592
-      : weightKg.value!
+    const finalWeightKg = weightKg.value !== null
+      ? (isImperial.value ? weightKg.value * 0.453592 : weightKg.value)
+      : 70
 
     const currentWeightDg = Math.round(finalWeightKg * 10)
 
@@ -217,18 +240,25 @@ const saveStep2 = async (): Promise<boolean> => {
 
     const payload = {
       height_cm: finalHeightCm,
-      sex: sex.value,
       birth_year: birthYear.value,
+      sex: typeof sex.value === 'number' ? sex.value : null,
       prefs: bitmask,
       updated_at: new Date().toISOString()
     }
-    await supabase.from('profiles').update(payload).eq('id', userId)
+    const { error: profileErr } = await supabase.from('profiles').update(payload).eq('id', userId)
+    if (profileErr) throw profileErr
 
-    await supabase.from('biometrics').insert([{
+    // Save initial weight into EAV biometrics table (cat: 1 = Body Comp, type: 1 = Body Weight, unit: 1 = dg)
+    const { error: bioErr } = await supabase.from('biometrics').insert([{
       user_id: userId,
-      weight_dg: currentWeightDg,
+      cat: 1,
+      type: 1,
+      val: currentWeightDg,
+      unit: 1,
+      flags: 0,
       ts: new Date().toISOString()
     }])
+    if (bioErr) throw bioErr
 
     return true
   } catch (err: any) {
@@ -265,11 +295,12 @@ const saveStep3 = async (): Promise<boolean> => {
 
     const payload = {
       target_weight_dg: targetWeightDg,
-      activity_level: activityLevel.value,
+      activity_level: typeof activityLevel.value === 'number' ? activityLevel.value : null,
       prefs: bitmask,
       updated_at: new Date().toISOString()
     }
-    await supabase.from('profiles').update(payload).eq('id', userId)
+    const { error } = await supabase.from('profiles').update(payload).eq('id', userId)
+    if (error) throw error
     return true
   } catch (err: any) {
     errorMessage.value = err.message || 'Failed to save lifestyle goals.'
@@ -355,31 +386,41 @@ const handleCompleteOnboarding = async () => {
 
     const targetWeightDg = finalTargetWeightKg !== null ? Math.round(finalTargetWeightKg * 10) : null
 
-    // Update final profile with goals, micros_opt, and ONBOARDING_COMPLETED flag
+    // Update final profile with all step values, goals, micros_opt, and ONBOARDING_COMPLETED flag
+    const finalHeightCm = isImperial.value ? Math.round(heightCm.value * 2.54) : Math.round(heightCm.value)
+
     const profilePayload: Partial<Profile> = {
+      id: userId,
+      username: username.value.trim().toLowerCase() || props.initialProfile?.username || fallbackUsername.value,
+      display_name: fullName.value.trim() || undefined,
+      height_cm: finalHeightCm,
+      birth_year: birthYear.value,
+      sex: typeof sex.value === 'number' ? sex.value : null,
+      activity_level: typeof activityLevel.value === 'number' ? activityLevel.value : null,
       target_weight_dg: targetWeightDg,
-      activity_level: activityLevel.value,
       prefs: bitmask,
       micros_opt: trackMicros.value ? selectedMicros.value : 0,
       updated_at: new Date().toISOString()
     }
 
     const { error: profileErr } = await supabase
-      .from<Profile>('profiles')
-      .update(profilePayload)
-      .eq('id', userId)
+      .from('profiles')
+      .upsert(profilePayload, { onConflict: 'id' })
 
-    if (profileErr) throw profileErr
+    if (profileErr) {
+      console.error('[Onboarding] Profile update error:', profileErr)
+      throw profileErr
+    }
 
-    emit('completed', {
+    const completedProfile: Profile = {
       id: userId,
-      username: username.value.trim().toLowerCase(),
-      height_cm: isImperial.value ? Math.round(heightCm.value * 2.54) : Math.round(heightCm.value),
-      sex: sex.value,
-      birth_year: birthYear.value,
+      username: username.value.trim().toLowerCase() || props.initialProfile?.username || '',
       ...profilePayload
-    } as Profile)
+    } as Profile
+
+    emit('completed', completedProfile)
   } catch (err: any) {
+    console.error('[Onboarding] Completion failed:', err)
     errorMessage.value = err.message || 'Failed to complete onboarding.'
   } finally {
     isSubmitting.value = false
@@ -505,6 +546,7 @@ const handleCompleteOnboarding = async () => {
           <DropdownPicker
             v-model="activityLevel"
             :label="t('onboarding.step3.activity_label')"
+            :placeholder="t('onboarding.step3.activity_placeholder') || 'Select activity level'"
             :options="activityOptions"
             :icon="Activity"
             icon-position="label-left"

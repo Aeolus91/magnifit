@@ -84,7 +84,7 @@ const onInput = (event: Event) => {
         :step="step"
         @input="onInput"
         :class="[
-          'w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 text-base sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition disabled:opacity-50',
+          'w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 text-base sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
           icon && iconPosition === 'field-left' ? 'pl-10 pr-3.5' : '',
           icon && iconPosition === 'field-right' ? 'pl-3.5 pr-10' : '',
           !icon || iconPosition.startsWith('label') ? 'px-3.5' : '',

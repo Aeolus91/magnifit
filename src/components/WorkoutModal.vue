@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { useI18n } from '../lib/i18n'
 import type { Workout } from '../types/fitness'
 import Modal from './Modal.vue'
 import DropdownPicker from './DropdownPicker.vue'
@@ -17,6 +18,8 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'submit', workout: Workout): void
 }>()
+
+const { t } = useI18n()
 
 const workoutCategoryOptions = Object.entries(WORKOUT_CATEGORIES).map(([id, label]) => ({
   value: label,
@@ -89,10 +92,11 @@ const handleSubmit = () => {
         <DropdownPicker
           v-model="workoutType"
           :options="workoutCategoryOptions"
-          label="Workout Type"
+          :label="t('dash.workout.type_label')"
           :searchable="true"
-          search-placeholder="Search 65+ activities..."
-          placeholder="Select Activity"
+          :search-placeholder="t('dash.workout.type_search_placeholder')"
+          :placeholder="t('dash.workout.type_placeholder')"
+          :disabled="isEditing"
         />
       </div>
 
@@ -101,8 +105,8 @@ const handleSubmit = () => {
         <FormInput
           v-model="activeCalories"
           type="number"
-          label="Active Calories (kcal)"
-          placeholder="300"
+          :label="`${t('dash.workout.active_cal_label')} (kcal)`"
+          :placeholder="t('dash.workout.active_cal_placeholder')"
           :min="0"
           :max="5000"
           :required="true"
@@ -113,8 +117,8 @@ const handleSubmit = () => {
         <FormInput
           v-model="durationMinutes"
           type="number"
-          label="Duration (min)"
-          placeholder="45"
+          :label="t('dash.workout.duration_label')"
+          :placeholder="t('dash.workout.duration_placeholder')"
           :min="1"
           :max="1440"
           :required="true"

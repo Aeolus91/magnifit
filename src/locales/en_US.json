@@ -52,7 +52,7 @@
 
   "onboarding.step2.title": "Baseline Biometrics",
   "onboarding.step2.desc": "Used for energy expenditure & calorie burn calculations.",
-  "onboarding.step2.sex_label": "Biological Sex",
+  "onboarding.step2.sex_label": "Sex",
   "onboarding.step2.sex_male": "Male",
   "onboarding.step2.sex_female": "Female",
   "onboarding.step2.sex_other": "Other",
@@ -72,6 +72,7 @@
   "onboarding.step3.title": "Goals & Lifestyle",
   "onboarding.step3.desc": "Configure target milestones and tracking preferences.",
   "onboarding.step3.activity_label": "Daily Activity Level",
+  "onboarding.step3.activity_placeholder": "Select your activity level...",
   "onboarding.step3.activity_sedentary": "Sedentary (Desk job, minimal exercise)",
   "onboarding.step3.activity_light": "Lightly Active (1-3 workouts / week)",
   "onboarding.step3.activity_moderate": "Moderately Active (3-5 workouts / week)",
@@ -102,7 +103,15 @@
   "dash.profile.redo_onboarding": "Update Biometrics & Setup",
   "dash.workout.add_title": "Log Workout",
   "dash.workout.type_label": "Workout Type",
+  "dash.workout.type_placeholder": "Select Activity",
+  "dash.workout.type_search_placeholder": "Search activities...",
   "dash.workout.active_cal_label": "Active Cal",
+  "dash.workout.active_cal_placeholder": "e.g. 300",
   "dash.workout.duration_label": "Duration (min)",
-  "dash.water.quick_add_title": "Quick Water Add"
+  "dash.workout.duration_placeholder": "e.g. 45",
+  "dash.biometrics.category_placeholder": "Choose a category",
+  "dash.biometrics.type_placeholder": "Choose a type",
+  "dash.water.quick_add_title": "Quick Water Add",
+  "dash.water.custom_placeholder": "e.g. 350",
+  "dash.water.goal_placeholder": "e.g. 2500"
 }

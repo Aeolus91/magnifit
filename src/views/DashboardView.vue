@@ -64,14 +64,11 @@ const totalWaterMl = computed(() =>
   filteredWaterLogs.value.reduce((acc, w) => acc + (w.amount_ml || 0), 0)
 )
 
-// Weight is an exception: always displays the user's latest most current weight
+// Weight is an exception: always displays the user's latest most current weight (type: 1)
 const latestWeight = computed(() => {
-  const latest = biometrics.value[0]
-  if (!latest) return 0
-  if (latest.weight_dg !== undefined && latest.weight_dg !== null) {
-    return Number((latest.weight_dg / 10).toFixed(1))
-  }
-  return latest.weight_kg || 0
+  const latestWeightRecord = biometrics.value.find(b => b.type === 1)
+  if (!latestWeightRecord) return 0
+  return Number((latestWeightRecord.val / 10).toFixed(1))
 })
 
 const fetchProfile = async (userId: string) => {
@@ -92,16 +89,11 @@ const fetchProfile = async (userId: string) => {
 const onOnboardingCompleted = (updatedProfile: Profile) => {
   userProfile.value = updatedProfile
   showOnboardingModal.value = false
-  fetchAll()
+  fetchCollections(updatedProfile.id)
 }
 
-const fetchAll = async () => {
-  if (!authStore.user.value?.id) return
-  const userId = authStore.user.value.id
+const fetchCollections = async (userId: string) => {
   loading.value = true
-
-  await fetchProfile(userId)
-
   const [wRes, bRes, mRes, watRes, sumRes] = await Promise.all([
     supabase.from<Workout>('workouts').select().eq('user_id', userId).order('log_date', { ascending: false }).order('id', { ascending: false }).get(),
     supabase.from<Biometric>('biometrics').select().eq('user_id', userId).order('log_date', { ascending: false }).order('id', { ascending: false }).get(),
@@ -115,8 +107,14 @@ const fetchAll = async () => {
   if (mRes.data) meals.value = mRes.data
   if (watRes.data) waterLogs.value = watRes.data
   if (sumRes.data) loggedDates.value = sumRes.data.map(s => s.log_date)
-
   loading.value = false
+}
+
+const fetchAll = async () => {
+  if (!authStore.user.value?.id) return
+  const userId = authStore.user.value.id
+  await fetchProfile(userId)
+  await fetchCollections(userId)
 }
 
 const addWorkout = async (workoutData: Workout) => {
@@ -168,21 +166,16 @@ const deleteWorkout = async (id: string) => {
   }
 }
 
-const addBiometric = async (bioData: { weight_kg: number; waist_cm?: number; chest_cm?: number; hips_cm?: number; biceps_cm?: number }) => {
+const addBiometric = async (bioData: Biometric) => {
   if (!authStore.user.value?.id) return
   const id = uuidv7()
-  const weightKgVal = bioData.weight_kg || 0
   const payload: Biometric = {
+    ...bioData,
     id,
     user_id: authStore.user.value.id,
-    weight_dg: Math.round(weightKgVal * 10),
-    waist_mm: bioData.waist_cm ? Math.round(bioData.waist_cm * 10) : null,
-    chest_mm: bioData.chest_cm ? Math.round(bioData.chest_cm * 10) : null,
-    hips_mm: bioData.hips_cm ? Math.round(bioData.hips_cm * 10) : null,
-    biceps_mm: bioData.biceps_cm ? Math.round(bioData.biceps_cm * 10) : null,
     log_date: selectedDate.value
   }
-  const { data, error } = await supabase.from('biometrics').insert([payload])
+  const { data, error } = await supabase.from<Biometric>('biometrics').insert([payload])
   if (!error && data) {
     biometrics.value.unshift(data[0] || payload)
     if (!loggedDates.value.includes(selectedDate.value)) {
@@ -191,15 +184,14 @@ const addBiometric = async (bioData: { weight_kg: number; waist_cm?: number; che
   }
 }
 
-const editBiometric = async (bioData: { id: string; weight_kg: number; waist_cm?: number; chest_cm?: number; hips_cm?: number; biceps_cm?: number }) => {
+const editBiometric = async (bioData: Biometric) => {
   if (!authStore.user.value?.id || !bioData.id) return
-  const weightKgVal = bioData.weight_kg || 0
   const updatePayload = {
-    weight_dg: Math.round(weightKgVal * 10),
-    waist_mm: bioData.waist_cm ? Math.round(bioData.waist_cm * 10) : null,
-    chest_mm: bioData.chest_cm ? Math.round(bioData.chest_cm * 10) : null,
-    hips_mm: bioData.hips_cm ? Math.round(bioData.hips_cm * 10) : null,
-    biceps_mm: bioData.biceps_cm ? Math.round(bioData.biceps_cm * 10) : null
+    cat: bioData.cat,
+    type: bioData.type,
+    val: bioData.val,
+    unit: bioData.unit,
+    flags: bioData.flags || 0
   }
   const { error } = await supabase
     .from('biometrics')
@@ -211,8 +203,7 @@ const editBiometric = async (bioData: { id: string; weight_kg: number; waist_cm?
     if (idx !== -1) {
       biometrics.value[idx] = {
         ...biometrics.value[idx],
-        ...updatePayload,
-        weight_kg: bioData.weight_kg
+        ...updatePayload
       }
     }
   }
@@ -265,22 +256,37 @@ const addWater = async (amount: number) => {
   }
 }
 
+const editWater = async (updatedLog: WaterLog) => {
+  if (!authStore.user.value?.id || !updatedLog.id) return
+  const { error } = await supabase.from('water_logs').update({
+    amount_ml: updatedLog.amount_ml
+  }).eq('id', updatedLog.id)
+
+  if (!error) {
+    const idx = waterLogs.value.findIndex(w => w.id === updatedLog.id)
+    if (idx !== -1) {
+      waterLogs.value[idx] = { ...waterLogs.value[idx], amount_ml: updatedLog.amount_ml }
+    }
+  }
+}
+
+const deleteWater = async (id: string) => {
+  if (!authStore.user.value?.id) return
+  const { error } = await supabase.from('water_logs').delete().eq('id', id)
+  if (!error) {
+    const idx = waterLogs.value.findIndex(w => w.id === id)
+    if (idx !== -1) {
+      waterLogs.value.splice(idx, 1)
+    }
+  }
+}
+
 const undoLastWater = async () => {
   if (!authStore.user.value?.id || filteredWaterLogs.value.length === 0) return
   const lastLog = filteredWaterLogs.value[0]
   if (!lastLog.id) return
 
-  const { error } = await supabase.from('water_logs').delete().eq('id', lastLog.id)
-  if (error) {
-    console.error('Failed to delete water log:', error)
-    return
-  }
-  
-  // Remove from master waterLogs collection
-  const idx = waterLogs.value.findIndex(w => w.id === lastLog.id)
-  if (idx !== -1) {
-    waterLogs.value.splice(idx, 1)
-  }
+  await deleteWater(lastLog.id)
 }
 
 const updateWaterTarget = async (targetMl: number) => {
@@ -364,7 +370,7 @@ onMounted(async () => {
               <UserIcon class="w-3 h-3" />
             </div>
             <span class="font-medium max-w-[140px] truncate">
-              {{ authStore.user.value?.user_metadata?.display_name || authStore.user.value?.email }}
+              {{ userProfile?.display_name || userProfile?.username || authStore.user.value?.user_metadata?.display_name || authStore.user.value?.email }}
             </span>
             <ChevronDown class="w-3.5 h-3.5 text-slate-400 transition-transform"
               :class="{ 'rotate-180': showProfileMenu }" />
@@ -379,10 +385,10 @@ onMounted(async () => {
             <!-- User metadata header -->
             <div class="px-3 py-2 border-b border-slate-800/80 mb-1">
               <div class="text-xs font-semibold text-slate-200 truncate">
-                {{ authStore.user.value?.user_metadata?.display_name || 'My Profile' }}
+                {{ userProfile?.display_name || authStore.user.value?.user_metadata?.display_name || 'My Profile' }}
               </div>
               <div class="text-[11px] text-slate-500 truncate">
-                {{ authStore.user.value?.email }}
+                {{ userProfile?.username ? `@${userProfile.username}` : authStore.user.value?.email }}
               </div>
             </div>
 
@@ -456,6 +462,8 @@ onMounted(async () => {
       @edit-biometric="editBiometric"
       @delete-biometric="deleteBiometric"
       @add-water="addWater"
+      @edit-water="editWater"
+      @delete-water="deleteWater"
     />
   </div>
   </div>

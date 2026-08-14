@@ -12,16 +12,12 @@ export interface Workout {
 export interface Biometric {
   id?: string
   user_id?: string
-  weight_dg?: number
-  weight_kg?: number
-  chest_mm?: number
-  chest_cm?: number
-  waist_mm?: number
-  waist_cm?: number
-  hips_mm?: number
-  hips_cm?: number
-  biceps_mm?: number
-  biceps_cm?: number
+  cat: number
+  type: number
+  val: number
+  val_sec?: number | null
+  unit: number
+  flags?: number
   log_date?: string
   ts?: string
 }
@@ -49,14 +45,18 @@ export interface WaterLog {
 export interface Profile {
   id: string
   username: string
+  display_name?: string | null
+  avatar_url?: string | null
+  bio?: string | null
   prefs: number
   micros_opt: number
   tz?: string
   height_cm?: number | null
   target_weight_dg?: number | null
   target_water_ml?: number | null
-  sex?: 'male' | 'female' | 'other' | 'unspecified'
-  activity_level?: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'
+  sex?: number | string | null
+  activity_level?: number | string | null
   birth_year?: number | null
+  created_at?: string
   updated_at?: string
 }
