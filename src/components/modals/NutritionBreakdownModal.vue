@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Utensils, Info, Pencil, Check, X } from '@lucide/vue'
+import { Utensils, Info, Pencil, Check, X, ChevronDown } from '@lucide/vue'
+import { filterTrackedMicroLabels, isMicroColumnTracked } from '../../lib/bitmask'
 import Modal from './Modal.vue'
 
 interface NutritionData {
@@ -20,6 +21,7 @@ const props = withDefaults(defineProps<{
   show: boolean
   data: NutritionData | null
   isEditable?: boolean
+  microsOpt?: number
 }>(), {
   isEditable: false
 })
@@ -38,6 +40,7 @@ const emit = defineEmits<{
 }>()
 
 const isEditing = ref(false)
+const isMicrosOpen = ref(false)
 const editableServings = ref<number>(1)
 const editableMicros = ref<Record<string, number | null>>({})
 
@@ -48,7 +51,7 @@ const baseCarb = ref<number>(0)
 const baseFat = ref<number>(0)
 const baseMicros = ref<Record<string, number>>({})
 
-const microLabels: Record<string, { label: string; unit: string }> = {
+const allMicroLabels: Record<string, { label: string; unit: string }> = {
   sugar_g: { label: 'Sugar', unit: 'g' },
   added_sugar_g: { label: 'Added Sugar', unit: 'g' },
   sat_fat_g: { label: 'Saturated Fat', unit: 'g' },
@@ -70,6 +73,10 @@ const microLabels: Record<string, { label: string; unit: string }> = {
   vit_d_mcg: { label: 'Vitamin D', unit: 'mcg' },
   vit_b12_mcg: { label: 'Vitamin B-12', unit: 'mcg' }
 }
+
+const microLabels = computed(() =>
+  filterTrackedMicroLabels(allMicroLabels, props.microsOpt)
+)
 
 watch(
   () => props.data,
@@ -138,11 +145,11 @@ const liveFat = computed(() => {
 const availableMicros = computed(() => {
   if (!props.data?.micros) return []
   return Object.entries(props.data.micros)
-    .filter(([_, v]) => v !== undefined && v !== null && !isNaN(v) && v > 0)
+    .filter(([k, v]) => v !== undefined && v !== null && !isNaN(v) && v > 0 && isMicroColumnTracked(k, props.microsOpt))
     .map(([k, v]) => ({
       key: k,
-      label: microLabels[k]?.label || k.replace(/_/g, ' '),
-      unit: microLabels[k]?.unit || '',
+      label: allMicroLabels[k]?.label || k.replace(/_/g, ' '),
+      unit: allMicroLabels[k]?.unit || '',
       value: v
     }))
 })
@@ -213,14 +220,20 @@ const handleSave = () => {
 
       <!-- Main Macronutrient Grid (Dynamic live preview when editing) -->
       <div class="grid grid-cols-4 gap-2 text-center">
-        <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
-          <div class="text-[10px] text-slate-400 uppercase font-bold">Calories</div>
+        <div class="bg-slate-950/80 p-2 sm:p-2.5 rounded-xl border border-slate-800">
+          <div class="text-[10px] text-slate-400 uppercase font-bold">
+            <span class="inline min-[360px]:hidden">Cals</span>
+            <span class="hidden min-[360px]:inline">Calories</span>
+          </div>
           <div class="text-sm font-bold font-mono text-slate-100 mt-0.5">{{ liveCal }}</div>
           <div class="text-[9px] text-slate-500">kcal</div>
         </div>
 
-        <div class="bg-slate-950/80 p-2.5 rounded-xl border border-emerald-900/40">
-          <div class="text-[10px] text-emerald-400 uppercase font-bold">Protein</div>
+        <div class="bg-slate-950/80 p-2 sm:p-2.5 rounded-xl border border-emerald-900/40">
+          <div class="text-[10px] text-emerald-400 uppercase font-bold">
+            <span class="inline min-[360px]:hidden">Prot</span>
+            <span class="hidden min-[360px]:inline">Protein</span>
+          </div>
           <div class="text-sm font-bold font-mono text-emerald-300 mt-0.5">{{ liveProt }}</div>
           <div class="text-[9px] text-emerald-500">grams</div>
         </div>

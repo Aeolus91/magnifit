@@ -512,7 +512,7 @@ const stopBarcodeScan = () => {
           <div class="flex items-center gap-1.5 shrink-0">
             <div class="flex items-center gap-1 text-[10px] font-mono">
               <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/60 text-emerald-300">P:{{ item.prot_100g }}g</span>
-              <span class="px-1.5 py-0.5 rounded bg-amber-950/80 border border-amber-800/60 text-amber-300">C:{{ item.carb_100g }}g</span>
+              <span class="px-1.5 py-0.5 rounded bg-yellow-950/80 border border-yellow-800/60 text-yellow-300">C:{{ item.carb_100g }}g</span>
               <span class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-800/60 text-rose-300">F:{{ item.fat_100g }}g</span>
             </div>
 

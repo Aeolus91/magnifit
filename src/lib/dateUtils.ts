@@ -26,3 +26,23 @@ export const getUserTimezone = (): string => {
     return 'UTC'
   }
 }
+
+/**
+ * Returns suggested MealFlags bitmask based on user's current local hour:
+ * - 05:00 - 10:59 -> Breakfast (1)
+ * - 11:00 - 15:59 -> Lunch (2)
+ * - 16:00 - 21:59 -> Dinner (4)
+ * - 22:00 - 04:59 -> Snack (8)
+ */
+export const getSuggestedMealSlot = (): number => {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 11) {
+    return 1 // MealFlags.BREAKFAST
+  } else if (hour >= 11 && hour < 16) {
+    return 2 // MealFlags.LUNCH
+  } else if (hour >= 16 && hour < 22) {
+    return 4 // MealFlags.DINNER
+  } else {
+    return 8 // MealFlags.SNACK
+  }
+}

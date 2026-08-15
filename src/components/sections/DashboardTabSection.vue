@@ -13,6 +13,7 @@ interface Props {
   biometrics: Biometric[]
   meals: Meal[]
   waterLogs: WaterLog[]
+  microsOpt?: number
 }
 
 defineProps<Props>()
@@ -27,7 +28,7 @@ const emit = defineEmits<{
   (e: 'delete-biometric', id: string): void
   (e: 'add-meal', meal: Meal): void
   (e: 'edit-meal', meal: Meal): void
-  (e: 'log-meal'): void
+  (e: 'log-meal', slotBit?: number): void
   (e: 'delete-meal', id: string): void
   (e: 'update-micros', mealId: string, micros: Record<string, number>): void
   (e: 'add-water', amount: number): void
@@ -82,7 +83,8 @@ const { t } = useI18n()
       v-if="modelValue === 'meals'"
       :meals="meals"
       :target-date="targetDate"
-      @log-meal="emit('log-meal')"
+      :micros-opt="microsOpt"
+      @log-meal="(slot) => emit('log-meal', slot)"
       @edit-meal="(m) => emit('edit-meal', m)"
       @delete-meal="(id) => emit('delete-meal', id)"
       @update-micros="(id, micros) => emit('update-micros', id, micros)"

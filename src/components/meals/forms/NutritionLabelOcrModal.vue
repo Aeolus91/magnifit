@@ -190,11 +190,11 @@ const handleApply = () => {
         </div>
         <div class="p-2 rounded-lg bg-slate-900 border border-slate-800">
           <div class="text-[10px] text-slate-500 font-sans">Carbs</div>
-          <div class="text-sm font-bold text-amber-300">{{ detectedMacros.carb_g }}g</div>
+          <div class="text-sm font-bold text-yellow-400">{{ detectedMacros.carb_g }}g</div>
         </div>
         <div class="p-2 rounded-lg bg-slate-900 border border-slate-800">
           <div class="text-[10px] text-slate-500 font-sans">Fat</div>
-          <div class="text-sm font-bold text-rose-300">{{ detectedMacros.fat_g }}g</div>
+          <div class="text-sm font-bold text-rose-400">{{ detectedMacros.fat_g }}g</div>
         </div>
       </div>
 

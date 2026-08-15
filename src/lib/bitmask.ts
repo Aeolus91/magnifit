@@ -36,6 +36,30 @@ export const MicroNutrientFlags: Record<string, { bit: number; col: string }> = 
   VIT_B12: { bit: 1 << 21, col: 'vit_b12_mcg' }
 }
 
+/** Check if a specific micronutrient column is enabled by user's micros_opt bitmask */
+export function isMicroColumnTracked(colName: string, microsOpt: number | undefined | null): boolean {
+  // If user has not configured (0 or undefined/null), default to showing all
+  if (!microsOpt || microsOpt === 0) return true
+  const entry = Object.values(MicroNutrientFlags).find(f => f.col === colName)
+  if (!entry) return true
+  return (microsOpt & entry.bit) !== 0
+}
+
+/** Filter a microLabels record based on user's micros_opt bitmask */
+export function filterTrackedMicroLabels<T>(
+  labelsMap: Record<string, T>,
+  microsOpt: number | undefined | null
+): Record<string, T> {
+  if (!microsOpt || microsOpt === 0) return labelsMap
+  const filtered: Record<string, T> = {}
+  Object.entries(labelsMap).forEach(([k, v]) => {
+    if (isMicroColumnTracked(k, microsOpt)) {
+      filtered[k] = v
+    }
+  })
+  return filtered
+}
+
 export const MealFlags = {
   BREAKFAST: 1 << 0,  // 1
   LUNCH: 1 << 1,      // 2

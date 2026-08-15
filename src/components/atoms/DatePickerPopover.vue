@@ -276,6 +276,9 @@ const handleResize = () => {
 }
 
 onMounted(() => {
+  if (!props.modelValue) {
+    emit('update:modelValue', todayStr)
+  }
   window.addEventListener('click', handleClickOutside)
   window.addEventListener('resize', handleResize)
 })

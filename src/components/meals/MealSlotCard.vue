@@ -9,6 +9,7 @@ const props = withDefaults(defineProps<{
   slotBit: number
   meals: Meal[]
   isLoading?: boolean
+  microsOpt?: number
 }>(), {
   isLoading: false
 })
@@ -48,9 +49,9 @@ const slotFat = computed(() =>
         </div>
         <div v-if="isLoading" class="h-3 w-28 bg-slate-800/80 rounded animate-pulse mt-1"></div>
         <div v-else-if="meals.length > 0" class="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
-          <span class="text-emerald-300">P: {{ slotProt }}g</span>
-          <span class="text-amber-300">C: {{ slotCarb }}g</span>
-          <span class="text-rose-300">F: {{ slotFat }}g</span>
+          <span class="text-emerald-400">P: {{ slotProt }}g</span>
+          <span class="text-yellow-400">C: {{ slotCarb }}g</span>
+          <span class="text-rose-400">F: {{ slotFat }}g</span>
         </div>
       </div>
 
@@ -78,6 +79,7 @@ const slotFat = computed(() =>
         :key="m.id"
         :meal="m"
         :show-slot-badge="false"
+        :micros-opt="microsOpt"
         @edit="emit('edit-meal', $event)"
         @delete="emit('delete-meal', $event)"
         @update-micros="(mealId, newMicros) => emit('update-micros', mealId, newMicros)"

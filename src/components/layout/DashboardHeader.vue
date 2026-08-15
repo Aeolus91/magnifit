@@ -1,26 +1,31 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from '../../lib/router'
 import { useI18n } from '../../lib/i18n'
 import type { Profile } from '../../types/fitness'
-import { RefreshCw, User as UserIcon, ChevronDown, Sliders, LogOut } from '@lucide/vue'
+import { RefreshCw, User as UserIcon, ChevronDown, Sliders, LogOut, ArrowLeft, Activity } from '@lucide/vue'
 
 interface Props {
   userProfile: Profile | null
   userEmail?: string
   loading?: boolean
+  showBack?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   userProfile: null,
-  loading: false
+  loading: false,
+  showBack: false
 })
 
 const emit = defineEmits<{
   (e: 'refresh'): void
   (e: 'open-onboarding'): void
   (e: 'sign-out'): void
+  (e: 'back'): void
 }>()
 
+const { navigate } = useRouter()
 const { t } = useI18n()
 const showProfileMenu = ref(false)
 
@@ -34,12 +39,33 @@ const handleFocusOut = (e: FocusEvent) => {
 
 <template>
   <header class="flex items-center justify-between border-b border-slate-800 pb-4">
-    <div>
-      <h1 class="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
-        {{ t('brand.name') }}
-      </h1>
+    <div class="flex items-center gap-2.5">
+      <button
+        type="button"
+        @click="navigate('/dash')"
+        class="flex items-center gap-2 text-left cursor-pointer transition active:scale-98"
+      >
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-md shadow-emerald-950/40">
+          <Activity class="w-4 h-4 text-slate-950 stroke-[2.5]" />
+        </div>
+        <h1 class="hidden min-[360px]:block text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
+          {{ t('brand.name') }}
+        </h1>
+      </button>
     </div>
-    <div class="flex items-center gap-3">
+
+    <div class="flex items-center gap-2 sm:gap-3">
+      <!-- Back to Dashboard Button (Sub-routes) -->
+      <button
+        v-if="showBack"
+        type="button"
+        @click="emit('back')"
+        class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition active:scale-95 cursor-pointer"
+        :title="t('meals.back_to_dashboard')"
+      >
+        <ArrowLeft class="w-4 h-4" />
+      </button>
+
       <!-- Refresh Data Button -->
       <button
         type="button"

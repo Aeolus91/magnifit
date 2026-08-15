@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Plus, BookOpen, Trash2, Check, Utensils, X, Search, Camera, PenTool } from '@lucide/vue'
-import { MealFlags } from '../../../lib/bitmask'
+import { ref, computed } from 'vue'
+import { Plus, BookOpen, Trash2, Check, Utensils, X, Search, Camera, PenTool, Pencil, Share2, Loader2, AlertCircle, ChevronDown, Info } from '@lucide/vue'
+import { MealFlags, filterTrackedMicroLabels } from '../../../lib/bitmask'
 import { useI18n } from '../../../lib/i18n'
 import Modal from '../../modals/Modal.vue'
 import FoodSearchLookup from '../forms/FoodSearchLookup.vue'
@@ -10,21 +10,34 @@ import type { MealTemplate, RecipeIngredient } from '../../../types/fitness'
 
 const props = defineProps<{
   templates: MealTemplate[]
+  microsOpt?: number
 }>()
 
 const emit = defineEmits<{
   (e: 'create-template', template: Partial<MealTemplate>): void
+  (e: 'edit-template', template: MealTemplate): void
   (e: 'delete-template', id: string): void
+  (e: 'share-template', recipeId: string, handle: string, callback: (res: { success: boolean; message?: string; error?: string }) => void): void
   (e: 'log-template', template: MealTemplate, slot: number, multiplier: number): void
 }>()
 
 const { t } = useI18n()
 
 const showCreateModal = ref(false)
+const editingTemplateId = ref<string | null>(null)
+const isRecipeMicrosOpen = ref(false)
 const showLogModal = ref(false)
 const selectedTemplateForLog = ref<MealTemplate | null>(null)
 const logSlot = ref<number>(MealFlags.LUNCH)
 const logMultiplier = ref<number>(1)
+
+// Share Modal State
+const showShareModal = ref(false)
+const selectedTemplateForShare = ref<MealTemplate | null>(null)
+const shareHandle = ref('')
+const isSharing = ref(false)
+const shareMessage = ref<string | null>(null)
+const shareError = ref<string | null>(null)
 
 // Ingredient input mode
 const ingredientInputMode = ref<'search' | 'manual' | 'ocr'>('search')
@@ -92,15 +105,72 @@ const handleOcrSelectedForRecipe = (data: { meal_name?: string; cal?: number; pr
   }
 }
 
-const recipeMicros = ref<Record<string, number | undefined>>({
-  sugar_g: undefined,
-  sodium_mg: undefined,
-  potassium_mg: undefined,
-  caffeine_mg: undefined
-})
+const recipeMicros = ref<Record<string, number | undefined>>({})
+
+const allMicroLabels: Record<string, { label: string; unit: string }> = {
+  sugar_g: { label: 'Sugar', unit: 'g' },
+  added_sugar_g: { label: 'Added Sugar', unit: 'g' },
+  sat_fat_g: { label: 'Saturated Fat', unit: 'g' },
+  trans_fat_g: { label: 'Trans Fat', unit: 'g' },
+  mono_fat_g: { label: 'Monounsaturated Fat', unit: 'g' },
+  poly_fat_g: { label: 'Polyunsaturated Fat', unit: 'g' },
+  omega_3_mg: { label: 'Omega-3 Fatty Acids', unit: 'mg' },
+  omega_6_mg: { label: 'Omega-6 Fatty Acids', unit: 'mg' },
+  sodium_mg: { label: 'Sodium', unit: 'mg' },
+  potassium_mg: { label: 'Potassium', unit: 'mg' },
+  cholesterol_mg: { label: 'Cholesterol', unit: 'mg' },
+  caffeine_mg: { label: 'Caffeine', unit: 'mg' },
+  calcium_mg: { label: 'Calcium', unit: 'mg' },
+  iron_mg: { label: 'Iron', unit: 'mg' },
+  magnesium_mg: { label: 'Magnesium', unit: 'mg' },
+  zinc_mg: { label: 'Zinc', unit: 'mg' },
+  vit_a_mcg: { label: 'Vitamin A', unit: 'mcg' },
+  vit_c_mg: { label: 'Vitamin C', unit: 'mg' },
+  vit_d_mcg: { label: 'Vitamin D', unit: 'mcg' },
+  vit_b12_mcg: { label: 'Vitamin B-12', unit: 'mcg' }
+}
+
+const microLabels = computed(() =>
+  filterTrackedMicroLabels(allMicroLabels, props.microsOpt)
+)
+
+const filledRecipeMicrosCount = computed(() =>
+  Object.values(recipeMicros.value).filter(v => v !== undefined && v !== null && !isNaN(v) && v > 0).length
+)
 
 const removeIngredient = (idx: number) => {
   newIngredients.value.splice(idx, 1)
+}
+
+const openCreateModal = () => {
+  editingTemplateId.value = null
+  newName.value = ''
+  newDescription.value = ''
+  newServings.value = 1
+  newIngredients.value = []
+  recipeMicros.value = {}
+  isRecipeMicrosOpen.value = false
+  showCreateModal.value = true
+}
+
+const openEditModal = (tmpl: MealTemplate) => {
+  editingTemplateId.value = tmpl.id || null
+  newName.value = tmpl.name
+  newDescription.value = tmpl.description || ''
+  newServings.value = tmpl.servings || 1
+  newIngredients.value = (tmpl.items || []).map((i: any) => ({
+    item_name: i.item_name || i.name,
+    name: i.item_name || i.name,
+    amount: i.amount || 1,
+    unit: i.unit || 'g',
+    cal: i.cal || 0,
+    prot_g: i.prot_g || 0,
+    carb_g: i.carb_g || 0,
+    fat_g: i.fat_g || 0
+  }))
+  recipeMicros.value = tmpl.micros ? { ...tmpl.micros } : {}
+  isRecipeMicrosOpen.value = Object.values(recipeMicros.value).some(v => v !== undefined && v !== null && v > 0)
+  showCreateModal.value = true
 }
 
 const handleCreateTemplate = () => {
@@ -118,7 +188,7 @@ const handleCreateTemplate = () => {
     }
   })
 
-  emit('create-template', {
+  const recipePayload = {
     name: newName.value.trim(),
     description: newDescription.value.trim() || null,
     cal: totalCal,
@@ -136,7 +206,16 @@ const handleCreateTemplate = () => {
       fat_g: i.fat_g
     })),
     micros: Object.keys(cleanedMicros).length > 0 ? cleanedMicros : undefined
-  })
+  }
+
+  if (editingTemplateId.value) {
+    emit('edit-template', {
+      id: editingTemplateId.value,
+      ...recipePayload
+    })
+  } else {
+    emit('create-template', recipePayload)
+  }
 
   newName.value = ''
   newDescription.value = ''
@@ -147,7 +226,37 @@ const handleCreateTemplate = () => {
     potassium_mg: undefined,
     caffeine_mg: undefined
   }
+  editingTemplateId.value = null
   showCreateModal.value = false
+}
+
+const openShareModal = (tmpl: MealTemplate) => {
+  selectedTemplateForShare.value = tmpl
+  shareHandle.value = ''
+  shareError.value = null
+  shareMessage.value = null
+  isSharing.value = false
+  showShareModal.value = true
+}
+
+const handleShareSubmit = () => {
+  if (!selectedTemplateForShare.value?.id || !shareHandle.value.trim()) return
+  isSharing.value = true
+  shareError.value = null
+  shareMessage.value = null
+
+  emit('share-template', selectedTemplateForShare.value.id, shareHandle.value.trim(), (res) => {
+    isSharing.value = false
+    if (res.success) {
+      shareMessage.value = res.message || `Recipe sent to @${shareHandle.value.trim().replace(/^@/, '')}`
+      setTimeout(() => {
+        showShareModal.value = false
+        selectedTemplateForShare.value = null
+      }, 1500)
+    } else {
+      shareError.value = res.error || 'Failed to share recipe'
+    }
+  })
 }
 
 const openLogModal = (tmpl: MealTemplate) => {
@@ -175,7 +284,7 @@ const confirmLog = () => {
 
       <button
         type="button"
-        @click="showCreateModal = true"
+        @click="openCreateModal"
         class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md"
       >
         <Plus class="w-3.5 h-3.5 stroke-[3]" />
@@ -201,17 +310,40 @@ const confirmLog = () => {
       >
         <div class="flex items-start justify-between">
           <div>
-            <div class="text-sm font-bold text-slate-100 group-hover:text-amber-300 transition">{{ tmpl.name }}</div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-slate-100 group-hover:text-amber-300 transition">{{ tmpl.name }}</span>
+              <span v-if="tmpl.servings && tmpl.servings > 1" class="px-1.5 py-0.2 rounded-md bg-slate-950 border border-slate-800 text-[10px] font-mono text-amber-400/90">
+                {{ tmpl.servings }} servings
+              </span>
+            </div>
             <div v-if="tmpl.description" class="text-xs text-slate-400 mt-0.5 line-clamp-1">{{ tmpl.description }}</div>
           </div>
-          <button
-            type="button"
-            @click="tmpl.id && emit('delete-template', tmpl.id)"
-            class="text-slate-600 hover:text-rose-400 p-1 transition cursor-pointer"
-            title="Delete Recipe"
-          >
-            <Trash2 class="w-3.5 h-3.5" />
-          </button>
+          <div class="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              @click="openShareModal(tmpl)"
+              class="text-slate-500 hover:text-amber-400 p-1 transition cursor-pointer"
+              title="Share Recipe by Handle"
+            >
+              <Share2 class="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              @click="openEditModal(tmpl)"
+              class="text-slate-500 hover:text-amber-400 p-1 transition cursor-pointer"
+              title="Edit Recipe"
+            >
+              <Pencil class="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              @click="tmpl.id && emit('delete-template', tmpl.id)"
+              class="text-slate-500 hover:text-rose-400 p-1 transition cursor-pointer"
+              title="Delete Recipe"
+            >
+              <Trash2 class="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
         <!-- Macro Badges -->
@@ -226,11 +358,11 @@ const confirmLog = () => {
           </div>
           <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800/80">
             <div class="text-[9px] text-slate-500 uppercase font-sans">Carbs</div>
-            <div class="text-xs font-bold text-amber-300">{{ tmpl.carb_g }}g</div>
+            <div class="text-xs font-bold text-yellow-400">{{ tmpl.carb_g }}g</div>
           </div>
           <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800/80">
             <div class="text-[9px] text-slate-500 uppercase font-sans">Fat</div>
-            <div class="text-xs font-bold text-rose-300">{{ tmpl.fat_g }}g</div>
+            <div class="text-xs font-bold text-rose-400">{{ tmpl.fat_g }}g</div>
           </div>
         </div>
 
@@ -261,15 +393,31 @@ const confirmLog = () => {
       @close="showCreateModal = false"
     >
       <form @submit.prevent="handleCreateTemplate" class="space-y-4">
-        <div class="space-y-1">
-          <label class="text-xs font-semibold text-slate-300">Recipe Name</label>
-          <input
-            type="text"
-            v-model="newName"
-            placeholder="e.g. Post-Workout Protein Smoothie"
-            required
-            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
-          />
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2 space-y-1">
+            <label class="text-xs font-semibold text-slate-300">Recipe Name</label>
+            <input
+              type="text"
+              v-model="newName"
+              placeholder="e.g. Post-Workout Protein Smoothie"
+              required
+              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
+            />
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-slate-300">Yields Servings</label>
+            <input
+              type="number"
+              step="any"
+              min="0.1"
+              max="50"
+              v-model.number="newServings"
+              placeholder="1"
+              required
+              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none"
+            />
+          </div>
         </div>
 
         <!-- Ingredients Builder with Mode Tabs -->
@@ -394,44 +542,44 @@ const confirmLog = () => {
           </div>
         </div>
 
-        <!-- Optional Micronutrients Details -->
+        <!-- Collapsible Micronutrients Accordion Section -->
         <div class="space-y-2 pt-2 border-t border-slate-800/80">
-          <div class="text-xs font-semibold text-slate-300">Tracked Micronutrients (Optional)</div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div class="space-y-1">
-              <label class="text-[10px] text-slate-400">Sugar (g)</label>
-              <input
-                type="number"
-                v-model.number="recipeMicros.sugar_g"
-                placeholder="0"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500"
-              />
+          <button
+            type="button"
+            @click="isRecipeMicrosOpen = !isRecipeMicrosOpen"
+            class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-left group"
+          >
+            <div class="flex items-center gap-2">
+              <Info class="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span class="text-xs font-semibold text-slate-300 group-hover:text-slate-100 transition">
+                Optional Micronutrients
+              </span>
+              <span v-if="filledRecipeMicrosCount > 0" class="px-1.5 py-0.2 rounded-md bg-amber-950/80 border border-amber-800/60 text-[10px] font-mono text-amber-300 font-bold">
+                {{ filledRecipeMicrosCount }} set
+              </span>
             </div>
-            <div class="space-y-1">
-              <label class="text-[10px] text-slate-400">Sodium (mg)</label>
+            <ChevronDown
+              :class="[
+                'w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform duration-200',
+                isRecipeMicrosOpen ? 'rotate-180 text-amber-400' : ''
+              ]"
+            />
+          </button>
+
+          <div v-if="isRecipeMicrosOpen" class="max-h-60 overflow-y-auto space-y-2 pr-1 border border-slate-800/80 rounded-xl p-3 bg-slate-950/80 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div
+              v-for="(meta, key) in microLabels"
+              :key="key"
+              class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 text-xs"
+            >
+              <label class="text-slate-300 truncate text-[11px]">{{ meta.label }} ({{ meta.unit }})</label>
               <input
                 type="number"
-                v-model.number="recipeMicros.sodium_mg"
+                step="any"
+                min="0"
+                v-model.number="recipeMicros[key]"
                 placeholder="0"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-[10px] text-slate-400">Potassium (mg)</label>
-              <input
-                type="number"
-                v-model.number="recipeMicros.potassium_mg"
-                placeholder="0"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-[10px] text-slate-400">Caffeine (mg)</label>
-              <input
-                type="number"
-                v-model.number="recipeMicros.caffeine_mg"
-                placeholder="0"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500"
+                class="w-24 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono text-amber-300 text-right focus:outline-none"
               />
             </div>
           </div>
@@ -442,44 +590,46 @@ const confirmLog = () => {
           class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md"
         >
           <Check class="w-3.5 h-3.5 stroke-[3]" />
-          <span>Save Recipe Blueprint</span>
+          <span>{{ editingTemplateId ? 'Save Changes' : 'Save Recipe Blueprint' }}</span>
         </button>
       </form>
     </Modal>
 
-    <!-- Log Recipe to Date/Slot Modal -->
+    <!-- Log Template Modal -->
     <Modal
       v-if="showLogModal && selectedTemplateForLog"
-      title="Log Recipe to Day"
+      title="Log Recipe as Meal"
       :icon="Utensils"
       icon-color="text-amber-400"
-      max-width-class="max-w-sm"
-      @close="showLogModal = false"
+      max-width-class="max-w-md"
+      @close="showLogModal = false; selectedTemplateForLog = null"
     >
       <div class="space-y-4">
         <div>
           <div class="text-sm font-bold text-slate-100">{{ selectedTemplateForLog.name }}</div>
-          <div class="text-xs text-slate-400">{{ selectedTemplateForLog.cal }} kcal base</div>
+          <div class="text-xs text-slate-400 font-mono mt-0.5">
+            1 Serving = {{ selectedTemplateForLog.cal }} kcal • P:{{ selectedTemplateForLog.prot_g }}g • C:{{ selectedTemplateForLog.carb_g }}g • F:{{ selectedTemplateForLog.fat_g }}g
+          </div>
         </div>
 
-        <div class="space-y-1">
-          <label class="text-xs font-semibold text-slate-300">Target Meal Slot</label>
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-300">Meal Slot</label>
           <div class="grid grid-cols-2 gap-2">
             <button
               v-for="slot in [
-                { bit: MealFlags.BREAKFAST, label: 'Breakfast' },
-                { bit: MealFlags.LUNCH, label: 'Lunch' },
-                { bit: MealFlags.DINNER, label: 'Dinner' },
-                { bit: MealFlags.SNACK, label: 'Snack' }
+                { bit: MealFlags.BREAKFAST, label: t('meals.slot.breakfast') },
+                { bit: MealFlags.LUNCH, label: t('meals.slot.lunch') },
+                { bit: MealFlags.DINNER, label: t('meals.slot.dinner') },
+                { bit: MealFlags.SNACK, label: t('meals.slot.snack') }
               ]"
               :key="slot.bit"
               type="button"
               @click="logSlot = slot.bit"
               :class="[
-                'py-2 rounded-lg border text-xs font-semibold transition cursor-pointer text-center',
+                'py-2 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer text-center',
                 logSlot === slot.bit
                   ? 'bg-amber-950/70 border-amber-500 text-amber-300'
-                  : 'bg-slate-950 border-slate-800 text-slate-400'
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
               ]"
             >
               {{ slot.label }}
@@ -487,27 +637,89 @@ const confirmLog = () => {
           </div>
         </div>
 
-        <div class="space-y-1">
-          <label class="text-xs font-semibold text-slate-300">Servings Multiplier</label>
-          <input
-            type="number"
-            v-model.number="logMultiplier"
-            step="0.25"
-            min="0.25"
-            max="10"
-            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-100"
-          />
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-300">Number of Servings (Multiplier)</label>
+          <div class="flex items-center gap-3">
+            <input
+              type="number"
+              step="any"
+              min="0.1"
+              max="20"
+              v-model.number="logMultiplier"
+              class="w-28 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition"
+            />
+            <div class="text-xs font-mono text-amber-400 font-bold">
+              = {{ Math.round(selectedTemplateForLog.cal * (logMultiplier || 1)) }} kcal total
+            </div>
+          </div>
         </div>
 
         <button
           type="button"
           @click="confirmLog"
-          class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md"
+          class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
         >
           <Check class="w-3.5 h-3.5 stroke-[3]" />
-          <span>Confirm & Log</span>
+          <span>Confirm & Log to Diary</span>
         </button>
       </div>
+    </Modal>
+
+    <!-- Share Recipe by Handle Modal -->
+    <Modal
+      v-if="showShareModal && selectedTemplateForShare"
+      title="Share Recipe"
+      :icon="Share2"
+      icon-color="text-amber-400"
+      max-width-class="max-w-md"
+      @close="showShareModal = false; selectedTemplateForShare = null"
+    >
+      <form @submit.prevent="handleShareSubmit" class="space-y-4">
+        <div>
+          <div class="text-sm font-bold text-slate-100">{{ selectedTemplateForShare.name }}</div>
+          <p class="text-xs text-slate-400 mt-1">
+            Send a copy of this complete recipe including all ingredients and macros to another user.
+          </p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-300">Recipient Username Handle</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-amber-400 font-bold font-mono">@</span>
+            <input
+              type="text"
+              v-model="shareHandle"
+              placeholder="username"
+              required
+              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl pl-8 pr-3.5 py-2.5 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition"
+            />
+          </div>
+        </div>
+
+        <!-- Success Alert -->
+        <div v-if="shareMessage" class="p-3 rounded-xl bg-emerald-950/70 border border-emerald-800/80 text-emerald-300 text-xs flex items-center gap-2">
+          <Check class="w-4 h-4 text-emerald-400 shrink-0 stroke-[2.5]" />
+          <span>{{ shareMessage }}</span>
+        </div>
+
+        <!-- Error Alert -->
+        <div v-else-if="shareError" class="p-3 rounded-xl bg-rose-950/70 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
+          <AlertCircle class="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{{ shareError }}</span>
+        </div>
+
+        <button
+          type="submit"
+          :disabled="isSharing || !shareHandle.trim()"
+          class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
+        >
+          <Loader2 v-if="isSharing" class="w-3.5 h-3.5 animate-spin" />
+          <template v-else>
+            <Share2 class="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Send Recipe</span>
+          </template>
+        </button>
+      </form>
     </Modal>
   </div>
 </template>

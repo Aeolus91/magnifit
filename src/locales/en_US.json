@@ -98,7 +98,7 @@
   "dash.stats.water_intake": "Water Intake",
   "dash.stats.latest_weight": "Latest Weight",
   "dash.actions.refresh": "Refresh Data",
-  "dash.actions.signout": "Sign Out",
+  "dash.profile.logout": "Sign Out",
   "dash.profile.account": "Account",
   "dash.profile.redo_onboarding": "Open Onboarding Wizard",
   "dash.workout.add_title": "Log Workout",

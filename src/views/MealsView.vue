@@ -1,24 +1,28 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { supabase } from '../lib/supabaseClient'
 import { useRouter } from '../lib/router'
 import { useAuthStore } from '../stores/authStore'
 import { MealFlags } from '../lib/bitmask'
 import { useMeals } from '../composables/useMeals'
 import { useI18n } from '../lib/i18n'
+import { getTodayDateString, getSuggestedMealSlot } from '../lib/dateUtils'
 import MacroNutrientBar from '../components/cards/MacroNutrientBar.vue'
 import DatePickerPopover from '../components/atoms/DatePickerPopover.vue'
+import DashboardHeader from '../components/layout/DashboardHeader.vue'
+import OnboardingModal from '../components/modals/OnboardingModal.vue'
 import NewMealEntryForm from '../components/meals/forms/NewMealEntryForm.vue'
 import RecipeCatalogSection from '../components/meals/recipes/RecipeCatalogSection.vue'
 import MealSlotCard from '../components/meals/MealSlotCard.vue'
-import type { Meal } from '../types/fitness'
+import type { Meal, Profile } from '../types/fitness'
 import { ArrowLeft, Utensils, Plus, BookOpen, Clock } from '@lucide/vue'
 
 const { navigate, routeState } = useRouter()
 const authStore = useAuthStore()
 const { t } = useI18n()
 
-// Target date passed silently in router state or defaulted to today
-const targetDate = ref<string>(routeState.value.logDate || new Date().toISOString().split('T')[0])
+// Target date passed silently in router state or defaulted to user local today
+const targetDate = ref<string>(routeState.value.logDate || getTodayDateString())
 const loggedDates = ref<string[]>([])
 const currentUserId = computed(() => authStore.user.value?.id)
 
@@ -36,7 +40,9 @@ const {
   editMeal,
   deleteMeal,
   addTemplate,
+  editTemplate,
   deleteTemplate,
+  shareTemplateToHandle,
   logTemplateAsMeal
 } = useMeals(currentUserId, targetDate, loggedDates)
 
@@ -44,7 +50,13 @@ const activeTab = ref<'new_entry' | 'recipes' | 'summary'>(
   (routeState.value.tab as 'new_entry' | 'recipes' | 'summary') || 'new_entry'
 )
 const isSaving = ref<boolean>(false)
-const selectedSlotForNewEntry = ref<number>(MealFlags.LUNCH)
+const selectedSlotForNewEntry = ref<number>(routeState.value.initialSlot || getSuggestedMealSlot())
+
+watch(() => routeState.value.initialSlot, (newSlot) => {
+  if (newSlot) {
+    selectedSlotForNewEntry.value = newSlot
+  }
+})
 
 // Meal groupings by slot bitmask
 const breakfastMeals = computed(() => meals.value.filter(m => (m.flags || 0) === MealFlags.BREAKFAST))
@@ -67,8 +79,52 @@ const handleQuickAddSlot = (slotBit: number) => {
   activeTab.value = 'new_entry'
 }
 
+const userProfile = ref<Profile | null>(null)
+const showOnboardingModal = ref<boolean>(false)
+
+const handleSignOut = async () => {
+  await authStore.signOut()
+  navigate('/')
+}
+
+const fetchUserProfile = async (uid: string) => {
+  const { data } = await supabase
+    .from<Profile>('profiles')
+    .select()
+    .eq('id', uid)
+    .single()
+  if (data) {
+    userProfile.value = data
+  }
+}
+
+const fetchAll = async () => {
+  if (currentUserId.value) {
+    await Promise.allSettled([
+      fetchUserProfile(currentUserId.value),
+      fetchMeals(currentUserId.value),
+      fetchTemplates(currentUserId.value)
+    ])
+  }
+}
+
+watch(currentUserId, (newUid) => {
+  if (newUid) {
+    fetchUserProfile(newUid)
+    fetchMeals(newUid)
+    fetchTemplates(newUid)
+  }
+}, { immediate: true })
+
+watch(activeTab, (tab) => {
+  if (tab === 'recipes' && currentUserId.value) {
+    fetchTemplates(currentUserId.value)
+  }
+})
+
 onMounted(() => {
   if (currentUserId.value) {
+    fetchUserProfile(currentUserId.value)
     fetchMeals(currentUserId.value)
     fetchTemplates(currentUserId.value)
   }
@@ -77,33 +133,43 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8">
+    <OnboardingModal
+      v-if="showOnboardingModal"
+      :initial-profile="userProfile"
+      @completed="(updated) => { userProfile = updated; showOnboardingModal = false; }"
+      @dismiss="showOnboardingModal = false"
+    />
+
     <div class="max-w-3xl mx-auto space-y-6">
-      <!-- Top Navigation & Header -->
-      <header class="flex items-center justify-between border-b border-slate-800 pb-4">
-        <div class="flex items-center gap-3">
-          <button type="button" @click="navigate('/dash')"
-            class="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition active:scale-95 cursor-pointer"
-            :title="t('meals.back_to_dashboard')">
-            <ArrowLeft class="w-4 h-4" />
-          </button>
-          <div>
-            <div class="flex items-center gap-2">
-              <Utensils class="w-4 h-4 text-amber-400" />
-              <h1 class="text-xl font-bold text-slate-100">{{ t('meals.title') }}</h1>
-            </div>
-            <div class="text-xs text-slate-400 pt-0.5">
-              <DatePickerPopover v-model="targetDate" :logged-dates="loggedDates" />
-            </div>
+      <!-- Global Brand & Profile Header -->
+      <DashboardHeader
+        :user-profile="userProfile"
+        :user-email="authStore.user.value?.email"
+        :loading="loading"
+        :show-back="true"
+        @back="navigate('/dash')"
+        @refresh="fetchAll"
+        @open-onboarding="showOnboardingModal = true"
+        @sign-out="handleSignOut"
+      />
+
+      <!-- Section Header: Title, Date Picker, and Total Readout -->
+      <div class="flex items-center justify-between gap-3 pt-1">
+        <div>
+          <div class="flex items-center gap-2">
+            <Utensils class="w-4 h-4 text-amber-400" />
+            <h2 class="text-xl font-bold text-slate-100">{{ t('meals.title') }}</h2>
+          </div>
+          <div class="text-xs text-slate-400 pt-1">
+            <DatePickerPopover v-model="targetDate" :logged-dates="loggedDates" />
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
-          <div class="text-right">
-            <div class="text-[11px] text-slate-400">Total Logged</div>
-            <div class="text-base font-bold text-amber-400 font-mono">{{ totalDailyCalories }} kcal</div>
-          </div>
+        <div class="text-right font-mono">
+          <div class="text-[11px] text-slate-400">Total Logged</div>
+          <div class="text-base font-bold text-amber-400">{{ totalDailyCalories }} kcal</div>
         </div>
-      </header>
+      </div>
 
       <!-- Macro Balance Summary Header Card -->
       <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
@@ -150,14 +216,29 @@ onMounted(() => {
 
       <!-- Tab 1: New Entry (Manual / Search / OCR Switcher) -->
       <div v-if="activeTab === 'new_entry'" class="space-y-6">
-        <NewMealEntryForm :initial-slot="selectedSlotForNewEntry" :log-date="targetDate" :is-submitting="isSaving"
-          @submit="handleAddMealFromForm" />
+        <NewMealEntryForm
+          :initial-slot="selectedSlotForNewEntry"
+          :log-date="targetDate"
+          :is-submitting="isSaving"
+          :micros-opt="userProfile?.micros_opt"
+          @submit="handleAddMealFromForm"
+        />
       </div>
 
       <!-- Tab 2: Recipes & Meal Templates Catalog -->
       <div v-else-if="activeTab === 'recipes'" class="space-y-6">
-        <RecipeCatalogSection :templates="templates" @create-template="addTemplate" @delete-template="deleteTemplate"
-          @log-template="(tmpl, slot, multiplier) => logTemplateAsMeal(tmpl, slot, targetDate, multiplier)" />
+        <RecipeCatalogSection
+          :templates="templates"
+          :micros-opt="userProfile?.micros_opt"
+          @create-template="addTemplate"
+          @edit-template="editTemplate"
+          @delete-template="deleteTemplate"
+          @share-template="async (id, handle, cb) => {
+            const res = await shareTemplateToHandle(id, handle)
+            cb(res)
+          }"
+          @log-template="(tmpl, slot, multiplier) => logTemplateAsMeal(tmpl, slot, targetDate, multiplier)"
+        />
       </div>
 
       <!-- Tab 3: Grouped Slots Day Summary (Breakfast, Lunch, Dinner, Snack) -->
@@ -167,6 +248,7 @@ onMounted(() => {
           :slot-bit="MealFlags.BREAKFAST"
           :meals="breakfastMeals"
           :is-loading="loading"
+          :micros-opt="userProfile?.micros_opt"
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"
@@ -181,6 +263,7 @@ onMounted(() => {
           :slot-bit="MealFlags.LUNCH"
           :meals="lunchMeals"
           :is-loading="loading"
+          :micros-opt="userProfile?.micros_opt"
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"
@@ -195,6 +278,7 @@ onMounted(() => {
           :slot-bit="MealFlags.DINNER"
           :meals="dinnerMeals"
           :is-loading="loading"
+          :micros-opt="userProfile?.micros_opt"
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"
@@ -209,6 +293,7 @@ onMounted(() => {
           :slot-bit="MealFlags.SNACK"
           :meals="snackMeals"
           :is-loading="loading"
+          :micros-opt="userProfile?.micros_opt"
           @add-item="handleQuickAddSlot"
           @edit-meal="editMeal"
           @delete-meal="deleteMeal"

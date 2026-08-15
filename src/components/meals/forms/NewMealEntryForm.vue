@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Plus, Search, Camera, PenTool } from '@lucide/vue'
-import { MealFlags } from '../../../lib/bitmask'
+import { ref, computed, watch } from 'vue'
+import { Plus, Search, Camera, PenTool, ChevronDown, Info } from '@lucide/vue'
+import { MealFlags, filterTrackedMicroLabels } from '../../../lib/bitmask'
 import { useI18n } from '../../../lib/i18n'
+import { getSuggestedMealSlot } from '../../../lib/dateUtils'
 import FoodSearchLookup from './FoodSearchLookup.vue'
 import NutritionLabelOcrModal from './NutritionLabelOcrModal.vue'
 import type { Meal } from '../../../types/fitness'
@@ -11,8 +12,9 @@ const props = withDefaults(defineProps<{
   initialSlot?: number
   logDate?: string
   isSubmitting?: boolean
+  microsOpt?: number
 }>(), {
-  initialSlot: MealFlags.LUNCH
+  initialSlot: () => getSuggestedMealSlot()
 })
 
 const emit = defineEmits<{
@@ -22,6 +24,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const activeMode = ref<'manual' | 'search' | 'ocr'>('manual')
+const isMicrosOpen = ref(false)
 const mealName = ref('')
 const calories = ref<number | null>(null)
 const proteinG = ref<number | null>(null)
@@ -31,6 +34,43 @@ const servingSize = ref<number | null>(null)
 const servingUnit = ref<string>('g')
 const servingsCount = ref<number>(1)
 const selectedMealSlot = ref<number>(props.initialSlot)
+
+watch(() => props.initialSlot, (newSlot) => {
+  if (newSlot) {
+    selectedMealSlot.value = newSlot
+  }
+})
+
+const allMicroLabels: Record<string, { label: string; unit: string }> = {
+  sugar_g: { label: 'Sugar', unit: 'g' },
+  added_sugar_g: { label: 'Added Sugar', unit: 'g' },
+  sat_fat_g: { label: 'Saturated Fat', unit: 'g' },
+  trans_fat_g: { label: 'Trans Fat', unit: 'g' },
+  mono_fat_g: { label: 'Monounsaturated Fat', unit: 'g' },
+  poly_fat_g: { label: 'Polyunsaturated Fat', unit: 'g' },
+  omega_3_mg: { label: 'Omega-3 Fatty Acids', unit: 'mg' },
+  omega_6_mg: { label: 'Omega-6 Fatty Acids', unit: 'mg' },
+  sodium_mg: { label: 'Sodium', unit: 'mg' },
+  potassium_mg: { label: 'Potassium', unit: 'mg' },
+  cholesterol_mg: { label: 'Cholesterol', unit: 'mg' },
+  caffeine_mg: { label: 'Caffeine', unit: 'mg' },
+  calcium_mg: { label: 'Calcium', unit: 'mg' },
+  iron_mg: { label: 'Iron', unit: 'mg' },
+  magnesium_mg: { label: 'Magnesium', unit: 'mg' },
+  zinc_mg: { label: 'Zinc', unit: 'mg' },
+  vit_a_mcg: { label: 'Vitamin A', unit: 'mcg' },
+  vit_c_mg: { label: 'Vitamin C', unit: 'mg' },
+  vit_d_mcg: { label: 'Vitamin D', unit: 'mcg' },
+  vit_b12_mcg: { label: 'Vitamin B-12', unit: 'mcg' }
+}
+
+const microLabels = computed(() =>
+  filterTrackedMicroLabels(allMicroLabels, props.microsOpt)
+)
+
+const filledMicrosCount = computed(() =>
+  Object.values(mealMicros.value).filter(v => v !== undefined && v !== null && !isNaN(v) && v > 0).length
+)
 
 const mealSlotOptions = [
   { bit: MealFlags.BREAKFAST, label: t('meals.slot.breakfast') },
@@ -63,6 +103,7 @@ const handleFoodSelected = (food: {
   if (food.micros) {
     mealMicros.value = food.micros
   }
+  isMicrosOpen.value = false
   activeMode.value = 'manual'
 }
 
@@ -72,6 +113,7 @@ const handleOcrAutofill = (data: { meal_name?: string; cal?: number; prot_g?: nu
   if (data.prot_g !== undefined) proteinG.value = data.prot_g
   if (data.carb_g !== undefined) carbsG.value = data.carb_g
   if (data.fat_g !== undefined) fatG.value = data.fat_g
+  isMicrosOpen.value = false
   activeMode.value = 'manual'
 }
 
@@ -109,6 +151,7 @@ const handleSubmit = () => {
   servingSize.value = null
   servingsCount.value = 1
   mealMicros.value = {}
+  isMicrosOpen.value = false
 }
 </script>
 
@@ -291,6 +334,49 @@ const handleSubmit = () => {
             min="0"
             class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition"
           />
+        </div>
+      </div>
+
+      <!-- Collapsible Tracked Micronutrients Accordion Section -->
+      <div class="space-y-2 pt-1">
+        <button
+          type="button"
+          @click="isMicrosOpen = !isMicrosOpen"
+          class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-left group"
+        >
+          <div class="flex items-center gap-2">
+            <Info class="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span class="text-xs font-semibold text-slate-300 group-hover:text-slate-100 transition">
+              Optional Micronutrients
+            </span>
+            <span v-if="filledMicrosCount > 0" class="px-1.5 py-0.2 rounded-md bg-amber-950/80 border border-amber-800/60 text-[10px] font-mono text-amber-300 font-bold">
+              {{ filledMicrosCount }} set
+            </span>
+          </div>
+          <ChevronDown
+            :class="[
+              'w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform duration-200',
+              isMicrosOpen ? 'rotate-180 text-amber-400' : ''
+            ]"
+          />
+        </button>
+
+        <div v-if="isMicrosOpen" class="max-h-60 overflow-y-auto space-y-2 pr-1 border border-slate-800/80 rounded-xl p-3 bg-slate-950/80 animate-in fade-in slide-in-from-top-1 duration-200">
+          <div
+            v-for="(meta, key) in microLabels"
+            :key="key"
+            class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 text-xs"
+          >
+            <label class="text-slate-300 truncate text-[11px]">{{ meta.label }} ({{ meta.unit }})</label>
+            <input
+              type="number"
+              step="any"
+              min="0"
+              v-model.number="mealMicros[key]"
+              placeholder="0"
+              class="w-24 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono text-amber-300 text-right focus:outline-none"
+            />
+          </div>
         </div>
       </div>
 
