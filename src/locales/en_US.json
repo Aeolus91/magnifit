@@ -15,7 +15,7 @@
   "landing.hero.highlight": "zero bloat",
   "landing.hero.desc": "Ultra-lightweight progressive web app built for instant logging, offline capability, and real-time syncing. No heavy dependencies, pure performance.",
   "landing.cta": "Start Tracking Now",
-  "landing.feature.bundle.title": "Sub-50KB Bundle",
+  "landing.feature.bundle.title": "Sub-150KB Bundle",
   "landing.feature.bundle.desc": "Custom zero-dependency SDKs ensure instant startup, reduced network egress, and maximal responsiveness.",
   "landing.feature.pwa.title": "Offline PWA Ready",
   "landing.feature.pwa.desc": "Install directly on iOS or Android. Full offline logging support with automatic background sync.",
