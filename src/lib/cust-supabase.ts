@@ -227,6 +227,24 @@ export class CustomSupabaseClient {
     )
   }
 
+  public async rpc<T = any>(fn: string, args: Record<string, any> = {}): Promise<{ data: T | null; error: Error | null }> {
+    try {
+      const res = await fetch(`${this.url}/rest/v1/rpc/${fn}`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(args)
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ message: res.statusText }))
+        return { data: null, error: new Error(errData.message || errData.msg || errData.error_description || 'RPC call failed') }
+      }
+      const data = await res.json().catch(() => null)
+      return { data, error: null }
+    } catch (err: any) {
+      return { data: null, error: err instanceof Error ? err : new Error(String(err)) }
+    }
+  }
+
   public channel(topic: string) {
     const wsUrl = this.url.replace(/^http/, 'ws') + `/realtime/v1/websocket?apikey=${this.key}&vsn=1.0.0`
     
