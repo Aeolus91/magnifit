@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watchEffect } from 'vue'
+import { watchEffect, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from './stores/authStore'
 import { useRouter } from './lib/router'
 import LandingView from './views/LandingView.vue'
@@ -26,6 +26,35 @@ watchEffect(() => {
       navigate('/auth', true)
     }
   }
+})
+
+// Mobile Virtual Keyboard Viewport Auto-Scroll
+onMounted(() => {
+  const handleFocusIn = (e: FocusEvent) => {
+    const target = e.target as HTMLElement | null
+    if (!target) return
+    if (target.matches('input, textarea, select, [contenteditable="true"]')) {
+      // 300ms delay ensures mobile keyboard slide-up animation finishes resizing viewport
+      setTimeout(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+      }, 300)
+    }
+  }
+
+  const handleViewportResize = () => {
+    const active = document.activeElement as HTMLElement | null
+    if (active && active.matches('input, textarea, select, [contenteditable="true"]')) {
+      active.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+    }
+  }
+
+  window.addEventListener('focusin', handleFocusIn)
+  window.visualViewport?.addEventListener('resize', handleViewportResize)
+
+  onUnmounted(() => {
+    window.removeEventListener('focusin', handleFocusIn)
+    window.visualViewport?.removeEventListener('resize', handleViewportResize)
+  })
 })
 </script>
 

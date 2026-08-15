@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import { useRouter } from '../lib/router'
 import { useAuthStore } from '../stores/authStore'
@@ -13,6 +13,7 @@ import DashboardHeader from '../components/layout/DashboardHeader.vue'
 import OnboardingModal from '../components/modals/OnboardingModal.vue'
 import NewMealEntryForm from '../components/meals/forms/NewMealEntryForm.vue'
 import RecipeCatalogSection from '../components/meals/recipes/RecipeCatalogSection.vue'
+import TabbedView, { type TabItem } from '../components/layout/TabbedView.vue'
 import MealSlotCard from '../components/meals/MealSlotCard.vue'
 import type { Meal, Profile } from '../types/fitness'
 import { ArrowLeft, Utensils, Plus, BookOpen, Clock } from '@lucide/vue'
@@ -51,6 +52,12 @@ const activeTab = ref<'new_entry' | 'recipes' | 'summary'>(
 )
 const isSaving = ref<boolean>(false)
 const selectedSlotForNewEntry = ref<number>(routeState.value.initialSlot || getSuggestedMealSlot())
+
+const mealTabs = computed<TabItem[]>(() => [
+  { id: 'new_entry', label: t('meals.tab.new_entry'), icon: Plus },
+  { id: 'recipes', label: t('meals.tab.recipes'), icon: BookOpen, badge: templates.value.length },
+  { id: 'summary', label: t('meals.tab.summary'), icon: Clock, badge: meals.value.length }
+])
 
 watch(() => routeState.value.initialSlot, (newSlot) => {
   if (newSlot) {
@@ -108,26 +115,12 @@ const fetchAll = async () => {
   }
 }
 
-watch(currentUserId, (newUid) => {
-  if (newUid) {
-    fetchUserProfile(newUid)
-    fetchMeals(newUid)
-    fetchTemplates(newUid)
-  }
-}, { immediate: true })
-
-watch(activeTab, (tab) => {
-  if (tab === 'recipes' && currentUserId.value) {
-    fetchTemplates(currentUserId.value)
-  }
+onMounted(async () => {
+  await fetchAll()
 })
 
-onMounted(() => {
-  if (currentUserId.value) {
-    fetchUserProfile(currentUserId.value)
-    fetchMeals(currentUserId.value)
-    fetchTemplates(currentUserId.value)
-  }
+watch(currentUserId, async () => {
+  await fetchAll()
 })
 </script>
 
@@ -140,7 +133,7 @@ onMounted(() => {
       @dismiss="showOnboardingModal = false"
     />
 
-    <div class="max-w-3xl mx-auto space-y-6">
+    <div class="max-w-4xl mx-auto space-y-6">
       <!-- Global Brand & Profile Header -->
       <DashboardHeader
         :user-profile="userProfile"
@@ -152,27 +145,22 @@ onMounted(() => {
         @open-onboarding="showOnboardingModal = true"
         @sign-out="handleSignOut"
       />
-
-      <!-- Section Header: Title, Date Picker, and Total Readout -->
-      <div class="flex items-center justify-between gap-3 pt-1">
-        <div>
+      <!-- Top Summary / Macro Gauge Section -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <Utensils class="w-4 h-4 text-amber-400" />
-            <h2 class="text-xl font-bold text-slate-100">{{ t('meals.title') }}</h2>
+            <Utensils class="w-5 h-5 text-amber-500" />
+            <h1 class="text-lg sm:text-xl font-black text-slate-100">{{ t('meals.title') }}</h1>
           </div>
-          <div class="text-xs text-slate-400 pt-1">
-            <DatePickerPopover v-model="targetDate" :logged-dates="loggedDates" />
-          </div>
+
+          <!-- Date Picker Component -->
+          <DatePickerPopover
+            v-model="targetDate"
+            :logged-dates="loggedDates"
+          />
         </div>
 
-        <div class="text-right font-mono">
-          <div class="text-[11px] text-slate-400">Total Logged</div>
-          <div class="text-base font-bold text-amber-400">{{ totalDailyCalories }} kcal</div>
-        </div>
-      </div>
-
-      <!-- Macro Balance Summary Header Card -->
-      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
+        <!-- Animated Macro Nutrients Gauges & Distribution Bar -->
         <MacroNutrientBar
           :protein-g="totalProtein"
           :carbs-g="totalCarbs"
@@ -181,128 +169,118 @@ onMounted(() => {
         />
       </div>
 
-      <!-- Navigation Tabs (New Entry, Recipes & Templates, Day Summary) -->
-      <div class="flex border-b border-slate-800 space-x-2 sm:space-x-4">
-        <button type="button" @click="activeTab = 'new_entry'" :class="[
-          'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
-          activeTab === 'new_entry'
-            ? 'border-amber-500 text-amber-400 font-bold'
-            : 'border-transparent text-slate-400 hover:text-slate-200'
-        ]">
-          <Plus class="w-4 h-4" />
-          <span>{{ t('meals.tab.new_entry') }}</span>
-        </button>
+      <!-- Centralized Tabbed View for Meals -->
+      <TabbedView
+        v-model="activeTab"
+        :tabs="mealTabs"
+        pill-color-class="bg-amber-500"
+      >
+        <!-- Tab 1: New Entry (Manual / Search / OCR Switcher) -->
+        <template #new_entry>
+          <div class="space-y-6">
+            <NewMealEntryForm
+              :initial-slot="selectedSlotForNewEntry"
+              :log-date="targetDate"
+              :is-submitting="isSaving"
+              :micros-opt="userProfile?.micros_opt"
+              @submit="handleAddMealFromForm"
+            />
+          </div>
+        </template>
 
-        <button type="button" @click="activeTab = 'recipes'" :class="[
-          'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
-          activeTab === 'recipes'
-            ? 'border-amber-500 text-amber-400 font-bold'
-            : 'border-transparent text-slate-400 hover:text-slate-200'
-        ]">
-          <BookOpen class="w-4 h-4" />
-          <span>{{ t('meals.tab.recipes') }} ({{ templates.length }})</span>
-        </button>
+        <!-- Tab 2: Recipes & Meal Templates Catalog -->
+        <template #recipes>
+          <div class="space-y-6">
+            <RecipeCatalogSection
+              :templates="templates"
+              :micros-opt="userProfile?.micros_opt"
+              @create-template="addTemplate"
+              @edit-template="editTemplate"
+              @delete-template="deleteTemplate"
+              @share-template="async (id, handle, cb) => {
+                const res = await shareTemplateToHandle(id, handle)
+                cb(res)
+              }"
+              @log-template="(tmpl, slot, multiplier) => logTemplateAsMeal(tmpl, slot, targetDate, multiplier)"
+            />
+          </div>
+        </template>
 
-        <button type="button" @click="activeTab = 'summary'" :class="[
-          'pb-3 font-medium text-xs sm:text-sm transition cursor-pointer border-b-2 flex items-center gap-1.5',
-          activeTab === 'summary'
-            ? 'border-amber-500 text-amber-400 font-bold'
-            : 'border-transparent text-slate-400 hover:text-slate-200'
-        ]">
-          <Clock class="w-4 h-4" />
-          <span>{{ t('meals.tab.summary') }} ({{ meals.length }})</span>
-        </button>
-      </div>
+        <!-- Tab 3: Grouped Slots Day Summary (Breakfast, Lunch, Dinner, Snack) -->
+        <template #summary>
+          <div class="space-y-4">
+            <MealSlotCard
+              :slot-title="t('meals.slot.breakfast')"
+              :slot-bit="MealFlags.BREAKFAST"
+              :meals="breakfastMeals"
+              :is-loading="loading"
+              :micros-opt="userProfile?.micros_opt"
+              @add-item="handleQuickAddSlot"
+              @edit-meal="editMeal"
+              @delete-meal="deleteMeal"
+              @update-micros="(id, newMicros) => {
+                const m = meals.find(item => item.id === id)
+                if (m) editMeal({ ...m, micros: newMicros })
+              }"
+            />
 
-      <!-- Tab 1: New Entry (Manual / Search / OCR Switcher) -->
-      <div v-if="activeTab === 'new_entry'" class="space-y-6">
-        <NewMealEntryForm
-          :initial-slot="selectedSlotForNewEntry"
-          :log-date="targetDate"
-          :is-submitting="isSaving"
-          :micros-opt="userProfile?.micros_opt"
-          @submit="handleAddMealFromForm"
-        />
-      </div>
+            <MealSlotCard
+              :slot-title="t('meals.slot.lunch')"
+              :slot-bit="MealFlags.LUNCH"
+              :meals="lunchMeals"
+              :is-loading="loading"
+              :micros-opt="userProfile?.micros_opt"
+              @add-item="handleQuickAddSlot"
+              @edit-meal="editMeal"
+              @delete-meal="deleteMeal"
+              @update-micros="(id, newMicros) => {
+                const m = meals.find(item => item.id === id)
+                if (m) editMeal({ ...m, micros: newMicros })
+              }"
+            />
 
-      <!-- Tab 2: Recipes & Meal Templates Catalog -->
-      <div v-else-if="activeTab === 'recipes'" class="space-y-6">
-        <RecipeCatalogSection
-          :templates="templates"
-          :micros-opt="userProfile?.micros_opt"
-          @create-template="addTemplate"
-          @edit-template="editTemplate"
-          @delete-template="deleteTemplate"
-          @share-template="async (id, handle, cb) => {
-            const res = await shareTemplateToHandle(id, handle)
-            cb(res)
-          }"
-          @log-template="(tmpl, slot, multiplier) => logTemplateAsMeal(tmpl, slot, targetDate, multiplier)"
-        />
-      </div>
+            <MealSlotCard
+              :slot-title="t('meals.slot.dinner')"
+              :slot-bit="MealFlags.DINNER"
+              :meals="dinnerMeals"
+              :is-loading="loading"
+              :micros-opt="userProfile?.micros_opt"
+              @add-item="handleQuickAddSlot"
+              @edit-meal="editMeal"
+              @delete-meal="deleteMeal"
+              @update-micros="(id, newMicros) => {
+                const m = meals.find(item => item.id === id)
+                if (m) editMeal({ ...m, micros: newMicros })
+              }"
+            />
 
-      <!-- Tab 3: Grouped Slots Day Summary (Breakfast, Lunch, Dinner, Snack) -->
-      <div v-else-if="activeTab === 'summary'" class="space-y-4">
-        <MealSlotCard
-          :slot-title="t('meals.slot.breakfast')"
-          :slot-bit="MealFlags.BREAKFAST"
-          :meals="breakfastMeals"
-          :is-loading="loading"
-          :micros-opt="userProfile?.micros_opt"
-          @add-item="handleQuickAddSlot"
-          @edit-meal="editMeal"
-          @delete-meal="deleteMeal"
-          @update-micros="(id, newMicros) => {
-            const m = meals.find(item => item.id === id)
-            if (m) editMeal({ ...m, micros: newMicros })
-          }"
-        />
-
-        <MealSlotCard
-          :slot-title="t('meals.slot.lunch')"
-          :slot-bit="MealFlags.LUNCH"
-          :meals="lunchMeals"
-          :is-loading="loading"
-          :micros-opt="userProfile?.micros_opt"
-          @add-item="handleQuickAddSlot"
-          @edit-meal="editMeal"
-          @delete-meal="deleteMeal"
-          @update-micros="(id, newMicros) => {
-            const m = meals.find(item => item.id === id)
-            if (m) editMeal({ ...m, micros: newMicros })
-          }"
-        />
-
-        <MealSlotCard
-          :slot-title="t('meals.slot.dinner')"
-          :slot-bit="MealFlags.DINNER"
-          :meals="dinnerMeals"
-          :is-loading="loading"
-          :micros-opt="userProfile?.micros_opt"
-          @add-item="handleQuickAddSlot"
-          @edit-meal="editMeal"
-          @delete-meal="deleteMeal"
-          @update-micros="(id, newMicros) => {
-            const m = meals.find(item => item.id === id)
-            if (m) editMeal({ ...m, micros: newMicros })
-          }"
-        />
-
-        <MealSlotCard
-          :slot-title="t('meals.slot.snack')"
-          :slot-bit="MealFlags.SNACK"
-          :meals="snackMeals"
-          :is-loading="loading"
-          :micros-opt="userProfile?.micros_opt"
-          @add-item="handleQuickAddSlot"
-          @edit-meal="editMeal"
-          @delete-meal="deleteMeal"
-          @update-micros="(id, newMicros) => {
-            const m = meals.find(item => item.id === id)
-            if (m) editMeal({ ...m, micros: newMicros })
-          }"
-        />
-      </div>
+            <MealSlotCard
+              :slot-title="t('meals.slot.snack')"
+              :slot-bit="MealFlags.SNACK"
+              :meals="snackMeals"
+              :is-loading="loading"
+              :micros-opt="userProfile?.micros_opt"
+              @add-item="handleQuickAddSlot"
+              @edit-meal="editMeal"
+              @delete-meal="deleteMeal"
+              @update-micros="(id, newMicros) => {
+                const m = meals.find(item => item.id === id)
+                if (m) editMeal({ ...m, micros: newMicros })
+              }"
+            />
+          </div>
+        </template>
+      </TabbedView>
     </div>
   </div>
 </template>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>

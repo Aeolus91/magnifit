@@ -32,7 +32,7 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
     const targetUid = uid || userId.value
     if (!targetUid) return
     loading.value = true
-    const { data } = await supabase
+    const { data: mealRows } = await supabase
       .from<Meal>('meals')
       .select()
       .eq('user_id', targetUid)
@@ -40,9 +40,28 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       .order('id', { ascending: false })
       .get()
 
-    if (data) {
-      meals.value = data
-      data.forEach((m: Meal) => {
+    if (mealRows) {
+      const { data: microRows } = await supabase
+        .from<any>('micronutrients')
+        .select()
+        .get()
+
+      const microMap = new Map<string, any>()
+      if (microRows) {
+        microRows.forEach((r: any) => {
+          if (r.meal_id) {
+            const { meal_id, ...rest } = r
+            microMap.set(meal_id, rest)
+          }
+        })
+      }
+
+      meals.value = mealRows.map((m: Meal) => ({
+        ...m,
+        micros: m.id && microMap.has(m.id) ? microMap.get(m.id) : m.micros
+      }))
+
+      mealRows.forEach((m: Meal) => {
         const d = m.log_date || getLocalISODate(m.ts)
         if (d && !loggedDates.value.includes(d)) {
           loggedDates.value.push(d)
@@ -59,20 +78,40 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       ...mealData,
       id,
       user_id: userId.value,
-      log_date: selectedDate.value
+      log_date: mealData.log_date || selectedDate.value
     }
     meals.value.unshift(payload)
-    if (!loggedDates.value.includes(selectedDate.value)) {
-      loggedDates.value.push(selectedDate.value)
+    if (!loggedDates.value.includes(payload.log_date || selectedDate.value)) {
+      loggedDates.value.push(payload.log_date || selectedDate.value)
+    }
+
+    const mealInsertPayload: any = {
+      id,
+      user_id: userId.value,
+      meal_name: mealData.meal_name,
+      cal: Math.round(mealData.cal || mealData.calories || 0),
+      prot_g: Math.round(mealData.prot_g || mealData.protein_g || 0),
+      carb_g: Math.round(mealData.carb_g || mealData.carbs_g || 0),
+      fat_g: Math.round(mealData.fat_g || 0),
+      flags: mealData.flags || 0,
+      serving_size: mealData.serving_size || null,
+      serving_unit: mealData.serving_unit || null,
+      servings: mealData.servings || 1,
+      log_date: payload.log_date
     }
 
     try {
-      const { error } = await supabase.from<Meal>('meals').insert([payload])
+      const { error } = await supabase.from('meals').insert([mealInsertPayload])
       if (error) {
-        offlineSync.enqueue('meals', 'insert', payload)
+        offlineSync.enqueue('meals', 'insert', mealInsertPayload)
+      } else if (mealData.micros && Object.keys(mealData.micros).length > 0) {
+        await supabase.from('micronutrients').insert([{
+          meal_id: id,
+          ...mealData.micros
+        }])
       }
     } catch {
-      offlineSync.enqueue('meals', 'insert', payload)
+      offlineSync.enqueue('meals', 'insert', mealInsertPayload)
     }
   }
 
@@ -80,17 +119,14 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
     if (!userId.value || !mealData.id) return
     const updatePayload: any = {
       meal_name: mealData.meal_name,
-      cal: mealData.cal || mealData.calories,
-      prot_g: mealData.prot_g || mealData.protein_g,
-      carb_g: mealData.carb_g || mealData.carbs_g,
-      fat_g: mealData.fat_g,
-      flags: mealData.flags,
-      serving_size: mealData.serving_size,
-      serving_unit: mealData.serving_unit,
-      servings: mealData.servings
-    }
-    if (mealData.micros) {
-      updatePayload.micros = mealData.micros
+      cal: Math.round(mealData.cal || mealData.calories || 0),
+      prot_g: Math.round(mealData.prot_g || mealData.protein_g || 0),
+      carb_g: Math.round(mealData.carb_g || mealData.carbs_g || 0),
+      fat_g: Math.round(mealData.fat_g || 0),
+      flags: mealData.flags || 0,
+      serving_size: mealData.serving_size || null,
+      serving_unit: mealData.serving_unit || null,
+      servings: mealData.servings || 1
     }
 
     const idx = meals.value.findIndex(m => m.id === mealData.id)
@@ -100,12 +136,17 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
 
     try {
       const { error } = await supabase
-        .from<Meal>('meals')
+        .from('meals')
         .update(updatePayload)
         .eq('id', mealData.id)
 
       if (error) {
         offlineSync.enqueue('meals', 'update', { id: mealData.id, ...updatePayload })
+      } else if (mealData.micros && Object.keys(mealData.micros).length > 0) {
+        await supabase.from('micronutrients').upsert({
+          meal_id: mealData.id,
+          ...mealData.micros
+        })
       }
     } catch {
       offlineSync.enqueue('meals', 'update', { id: mealData.id, ...updatePayload })
