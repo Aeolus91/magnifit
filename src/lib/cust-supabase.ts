@@ -555,7 +555,19 @@ export class QueryBuilder<T> {
         options.body = JSON.stringify(this.pendingBody)
       }
 
-      const res = await fetch(this.buildUrl(), options)
+      const requestUrl = this.buildUrl()
+
+      // Instant offline return for GET requests if navigator is offline
+      if (this.pendingMethod === 'GET' && typeof navigator !== 'undefined' && !navigator.onLine) {
+        try {
+          const cached = localStorage.getItem(`mfit_cache:${requestUrl}`)
+          if (cached) {
+            return { data: JSON.parse(cached), error: null }
+          }
+        } catch {}
+      }
+
+      const res = await fetch(requestUrl, options)
       
       if (!res.ok) {
         // Reactive auto-retry on 401 Unauthorized or 403 Forbidden (expired token dropped to anon)
@@ -589,8 +601,25 @@ export class QueryBuilder<T> {
       }
 
       const data = await res.json()
+
+      // Cache successful GET responses for instant offline access
+      if (this.pendingMethod === 'GET' && data !== undefined) {
+        try {
+          localStorage.setItem(`mfit_cache:${requestUrl}`, JSON.stringify(data))
+        } catch {}
+      }
+
       return { data, error: null }
     } catch (error: any) {
+      // Fallback to cache on network fetch failure for GET requests
+      if (this.pendingMethod === 'GET') {
+        try {
+          const cached = localStorage.getItem(`mfit_cache:${this.buildUrl()}`)
+          if (cached) {
+            return { data: JSON.parse(cached), error: null }
+          }
+        } catch {}
+      }
       return { data: null, error }
     }
   }

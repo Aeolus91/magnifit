@@ -38,9 +38,48 @@ class OfflineSyncManager {
     } catch {}
   }
 
+  private applyOptimisticCache(table: string, action: 'insert' | 'update' | 'delete', payload: any, id: string): void {
+    try {
+      const prefix = 'mfit_cache:'
+      const keysToUpdate: string[] = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith(prefix) && key.includes(`/${table}`)) {
+          keysToUpdate.push(key)
+        }
+      }
+
+      for (const key of keysToUpdate) {
+        const raw = localStorage.getItem(key)
+        if (!raw) continue
+        const cached = JSON.parse(raw)
+
+        if (Array.isArray(cached)) {
+          if (action === 'insert') {
+            const filtered = cached.filter((item: any) => item.id !== id)
+            localStorage.setItem(key, JSON.stringify([payload, ...filtered]))
+          } else if (action === 'update') {
+            const updated = cached.map((item: any) => item.id === id ? { ...item, ...payload } : item)
+            localStorage.setItem(key, JSON.stringify(updated))
+          } else if (action === 'delete') {
+            const filtered = cached.filter((item: any) => item.id !== id)
+            localStorage.setItem(key, JSON.stringify(filtered))
+          }
+        } else if (cached && typeof cached === 'object' && cached.id === id) {
+          if (action === 'update') {
+            localStorage.setItem(key, JSON.stringify({ ...cached, ...payload }))
+          } else if (action === 'delete') {
+            localStorage.removeItem(key)
+          }
+        }
+      }
+    } catch {}
+  }
+
   public enqueue(table: string, action: 'insert' | 'update' | 'delete', payload: any): void {
+    const id = payload.id || crypto.randomUUID()
     const mutation: PendingMutation = {
-      id: payload.id || crypto.randomUUID(),
+      id,
       table,
       action,
       payload,
@@ -48,6 +87,7 @@ class OfflineSyncManager {
     }
     this.queue.push(mutation)
     this.saveQueue()
+    this.applyOptimisticCache(table, action, payload, id)
   }
 
   public async flush(): Promise<void> {
