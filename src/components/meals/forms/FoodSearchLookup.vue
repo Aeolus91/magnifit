@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Search, Loader2, Plus, AlertCircle, X, QrCode, Info } from '@lucide/vue'
+import { ref, computed, onMounted } from 'vue'
+import { Search, Loader2, Plus, AlertCircle, X, QrCode, Info, History, BookOpen, Utensils } from '@lucide/vue'
 import { useI18n } from '../../../lib/i18n'
 import Modal from '../../modals/Modal.vue'
 import NutritionBreakdownModal from '../../modals/NutritionBreakdownModal.vue'
+import type { MealTemplate, Meal } from '../../../types/fitness'
 
 export interface FoodSearchResult {
   name: string
@@ -16,6 +17,34 @@ export interface FoodSearchResult {
   serving_label?: string
   micros?: Record<string, number>
 }
+
+export interface QuickPickItem {
+  id: string
+  name: string
+  type: 'recent' | 'recipe'
+  cal: number
+  prot_g: number
+  carb_g: number
+  fat_g: number
+  serving_size?: number
+  serving_unit?: string
+  servings?: number
+  micros?: Record<string, number>
+  cal_100g?: number
+  prot_100g?: number
+  carb_100g?: number
+  fat_100g?: number
+}
+
+interface Props {
+  templates?: MealTemplate[]
+  recentMeals?: Meal[]
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  templates: () => [],
+  recentMeals: () => []
+})
 
 const emit = defineEmits<{
   (e: 'select-food', food: {
@@ -40,6 +69,109 @@ const selectedFood = ref<FoodSearchResult | null>(null)
 const inspectedFood = ref<FoodSearchResult | null>(null)
 const servingUnitGrams = ref<number>(100)
 const servingCount = ref<number>(1)
+
+onMounted(() => {
+  // Purge any legacy client cache
+  try {
+    localStorage.removeItem('mfit_recent_foods')
+  } catch {}
+})
+
+const quickPickList = computed<QuickPickItem[]>(() => {
+  const list: QuickPickItem[] = []
+  const seenNames = new Set<string>()
+
+  // Populated exclusively from live database rows in public.meals
+  if (props.recentMeals && props.recentMeals.length > 0) {
+    for (const m of props.recentMeals) {
+      const cleanName = (m.meal_name || '').trim()
+      if (!cleanName) continue
+
+      const lower = cleanName.toLowerCase()
+      // Strip parenthetical portion suffixes like "(200g)" or "(1 serving)" to match recipe names
+      const baseName = cleanName.replace(/\s*\([^)]*\)\s*$/, '').trim().toLowerCase()
+
+      if (seenNames.has(lower) || (baseName && seenNames.has(baseName))) continue
+      seenNames.add(lower)
+      if (baseName) seenNames.add(baseName)
+
+      const matchedRecipe = props.templates?.find(t => {
+        const tLower = (t.name || '').trim().toLowerCase()
+        return tLower === lower || tLower === baseName
+      })
+      const isRecipeMatch = !!matchedRecipe
+
+      // Query recipe serving size, unit, and micros from recipe blueprint if matched
+      const servingSize = m.serving_size || matchedRecipe?.serving_size || undefined
+      const servingUnit = m.serving_unit || matchedRecipe?.serving_unit || 'g'
+      const servings = m.servings || 1
+      const micros = (m.micros || matchedRecipe?.micros) as Record<string, number> | undefined
+
+      list.push({
+        id: `db-${m.id || lower}`,
+        name: isRecipeMatch && matchedRecipe ? matchedRecipe.name : cleanName,
+        type: isRecipeMatch ? 'recipe' : 'recent',
+        cal: m.cal || m.calories || matchedRecipe?.cal || 0,
+        prot_g: m.prot_g || m.protein_g || matchedRecipe?.prot_g || 0,
+        carb_g: m.carb_g || m.carbs_g || matchedRecipe?.carb_g || 0,
+        fat_g: m.fat_g || matchedRecipe?.fat_g || 0,
+        serving_size: servingSize,
+        serving_unit: servingUnit,
+        servings: servings,
+        micros: micros
+      })
+
+      if (list.length >= 10) break
+    }
+  }
+
+  return list
+})
+
+const confirmingRecentFood = ref<QuickPickItem | null>(null)
+const recentFoodServings = ref<number>(1)
+
+const handleSelectQuickPick = (item: QuickPickItem) => {
+  confirmingRecentFood.value = item
+  recentFoodServings.value = 1
+}
+
+const confirmRecentFoodServing = () => {
+  if (!confirmingRecentFood.value) return
+  const item = confirmingRecentFood.value
+  const servings = Math.max(0.1, Number(recentFoodServings.value) || 1)
+
+  const scaledCal = Math.round(item.cal * servings)
+  const scaledProt = Math.round(item.prot_g * servings * 10) / 10
+  const scaledCarb = Math.round(item.carb_g * servings * 10) / 10
+  const scaledFat = Math.round(item.fat_g * servings * 10) / 10
+
+  const scaledMicros: Record<string, number> = {}
+  if (item.micros) {
+    Object.entries(item.micros).forEach(([k, v]) => {
+      scaledMicros[k] = Math.round(v * servings * 10) / 10
+    })
+  }
+
+  let formattedName = item.name
+  if (servings !== 1 && !formattedName.includes('x ')) {
+    formattedName = `${formattedName} (${servings}x)`
+  }
+
+  emit('select-food', {
+    meal_name: formattedName,
+    cal: scaledCal,
+    prot_g: scaledProt,
+    carb_g: scaledCarb,
+    fat_g: scaledFat,
+    serving_size: item.serving_size,
+    serving_unit: item.serving_unit || 'g',
+    servings: servings,
+    micros: Object.keys(scaledMicros).length > 0 ? scaledMicros : undefined
+  })
+
+  confirmingRecentFood.value = null
+}
 
 // Barcode Scanning State
 const showScannerModal = ref(false)
@@ -385,7 +517,7 @@ const stopBarcodeScan = () => {
       ? `${servingCount.value}x ${servingUnitGrams.value}g`
       : `${totalGrams}g`
 
-    emit('select-food', {
+    const foodPayload = {
       meal_name: `${fullName} (${servingInfo})`,
       cal: Math.round(selectedFood.value.cal_100g * ratio),
       prot_g: Math.round(selectedFood.value.prot_100g * ratio),
@@ -395,7 +527,9 @@ const stopBarcodeScan = () => {
       serving_unit: 'g',
       servings: servingCount.value || 1,
       micros: scaledMicros
-    })
+    }
+
+    emit('select-food', foodPayload)
 
     selectedFood.value = null
   }
@@ -477,6 +611,71 @@ const stopBarcodeScan = () => {
         </p>
       </div>
     </Modal>
+
+    <!-- Quick-Pick List: Recent Foods & Saved Recipes (Visible when search query is empty) -->
+    <div v-if="!searchQuery.trim() && !isSearching && quickPickList.length > 0" class="space-y-3 pt-1">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+          <History class="w-3.5 h-3.5 text-amber-400" />
+          <span>Recently Added Foods & Recipes</span>
+        </div>
+        <span class="text-[10px] text-slate-500 font-mono">{{ quickPickList.length }} items</span>
+      </div>
+
+      <div class="space-y-2 max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-800">
+        <div
+          v-for="item in quickPickList"
+          :key="item.id"
+          @click="handleSelectQuickPick(item)"
+          class="p-3 rounded-xl bg-slate-950/80 hover:bg-slate-900 border border-slate-800/80 hover:border-amber-500/60 transition cursor-pointer flex items-center justify-between gap-3 group"
+        >
+          <div class="truncate">
+            <div class="flex items-center gap-1.5 truncate">
+              <span
+                class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider shrink-0"
+                :class="item.type === 'recipe' ? 'bg-amber-950/90 text-amber-300 border border-amber-800/60' : 'bg-slate-800 text-slate-300 border border-slate-700/60'"
+              >
+                {{ item.type }}
+              </span>
+              <span class="text-xs font-bold text-slate-200 group-hover:text-amber-300 truncate transition">
+                {{ item.name }}
+              </span>
+            </div>
+            <div class="text-[11px] text-slate-400 truncate pt-0.5">
+              <span>{{ item.cal }} kcal</span>
+              <span v-if="item.serving_size" class="text-slate-500"> • {{ item.serving_size }}{{ item.serving_unit || 'g' }}</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1.5 shrink-0">
+            <div class="flex items-center gap-1 text-[10px] font-mono">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/60 text-emerald-300">P:{{ item.prot_g }}g</span>
+              <span class="px-1.5 py-0.5 rounded bg-yellow-950/80 border border-yellow-800/60 text-yellow-300">C:{{ item.carb_g }}g</span>
+              <span class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-800/60 text-rose-300">F:{{ item.fat_g }}g</span>
+            </div>
+
+            <!-- Inspect Full Nutritional Breakdown Button -->
+            <button
+              type="button"
+              @click.stop="inspectedFood = {
+                name: item.name,
+                cal_100g: item.cal,
+                prot_100g: item.prot_g,
+                carb_100g: item.carb_g,
+                fat_100g: item.fat_g,
+                serving_size_g: item.serving_size,
+                serving_label: item.serving_size ? `${item.serving_size}${item.serving_unit || 'g'}` : undefined,
+                micros: item.micros
+              }"
+              class="p-1 rounded-md bg-slate-900 border border-slate-800 hover:border-amber-500/50 text-slate-400 hover:text-amber-300 transition cursor-pointer"
+              title="View Full Nutritional Breakdown"
+            >
+              <Info class="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Loading State -->
     <div v-if="isSearching" class="py-6 flex items-center justify-center gap-2 text-xs text-slate-400">
@@ -616,5 +815,124 @@ const stopBarcodeScan = () => {
       } : null"
       @close="inspectedFood = null"
     />
+
+    <!-- Confirm Servings Modal for Recent Foods & Recipes -->
+    <Modal
+      v-if="confirmingRecentFood"
+      :title="confirmingRecentFood.type === 'recipe' ? 'Add Recipe' : 'Add Recent Food'"
+      :icon="Utensils"
+      icon-color="text-amber-400"
+      max-width-class="max-w-md"
+      @close="confirmingRecentFood = null"
+    >
+      <div class="space-y-4">
+        <!-- Item Info -->
+        <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-start justify-between gap-3">
+          <div>
+            <div class="text-sm font-bold text-slate-100">{{ confirmingRecentFood.name }}</div>
+            <div class="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-2">
+              <span>Base: {{ confirmingRecentFood.cal }} kcal</span>
+              <span class="text-slate-600">•</span>
+              <span class="text-emerald-400">P: {{ confirmingRecentFood.prot_g }}g</span>
+              <span class="text-yellow-400">C: {{ confirmingRecentFood.carb_g }}g</span>
+              <span class="text-rose-400">F: {{ confirmingRecentFood.fat_g }}g</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            @click="inspectedFood = {
+              name: confirmingRecentFood.name,
+              cal_100g: confirmingRecentFood.cal,
+              prot_100g: confirmingRecentFood.prot_g,
+              carb_100g: confirmingRecentFood.carb_g,
+              fat_100g: confirmingRecentFood.fat_g,
+              serving_size_g: confirmingRecentFood.serving_size,
+              serving_label: confirmingRecentFood.serving_size ? `${confirmingRecentFood.serving_size}${confirmingRecentFood.serving_unit || 'g'}` : undefined,
+              micros: confirmingRecentFood.micros
+            }"
+            class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-amber-300 transition cursor-pointer shrink-0"
+            title="View Full Nutritional Breakdown"
+          >
+            <Info class="w-4 h-4" />
+          </button>
+        </div>
+
+        <!-- Servings Input & Stepper -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-300">Number of Servings</label>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              @click="recentFoodServings = Math.max(0.25, Math.round(((recentFoodServings || 1) - 0.25) * 100) / 100)"
+              class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 active:scale-95 text-slate-200 font-bold flex items-center justify-center transition cursor-pointer text-xs shrink-0"
+            >
+              -¼
+            </button>
+            <input
+              type="number"
+              v-model.number="recentFoodServings"
+              step="0.25"
+              min="0.1"
+              max="50"
+              class="flex-1 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-center text-sm font-mono text-slate-100 focus:outline-none"
+            />
+            <button
+              type="button"
+              @click="recentFoodServings = Math.round(((recentFoodServings || 1) + 0.25) * 100) / 100"
+              class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 active:scale-95 text-slate-200 font-bold flex items-center justify-center transition cursor-pointer text-xs shrink-0"
+            >
+              +¼
+            </button>
+          </div>
+        </div>
+
+        <!-- Scaled Totals Live Preview -->
+        <div class="grid grid-cols-4 gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800/80 text-center">
+          <div>
+            <div class="text-[10px] text-slate-500 font-medium uppercase">Calories</div>
+            <div class="text-sm font-bold text-amber-400">
+              {{ Math.round(confirmingRecentFood.cal * (recentFoodServings || 1)) }}
+            </div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-500 font-medium uppercase">Protein</div>
+            <div class="text-sm font-bold text-emerald-400">
+              {{ Math.round(confirmingRecentFood.prot_g * (recentFoodServings || 1) * 10) / 10 }}g
+            </div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-500 font-medium uppercase">Carbs</div>
+            <div class="text-sm font-bold text-yellow-400">
+              {{ Math.round(confirmingRecentFood.carb_g * (recentFoodServings || 1) * 10) / 10 }}g
+            </div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-500 font-medium uppercase">Fat</div>
+            <div class="text-sm font-bold text-rose-400">
+              {{ Math.round(confirmingRecentFood.fat_g * (recentFoodServings || 1) * 10) / 10 }}g
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Action Buttons -->
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button
+            type="button"
+            @click="confirmingRecentFood = null"
+            class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            @click="confirmRecentFoodServing"
+            class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md"
+          >
+            <Plus class="w-3.5 h-3.5 stroke-[3]" />
+            <span>Confirm & Add</span>
+          </button>
+        </div>
+      </div>
+    </Modal>
   </div>
 </template>

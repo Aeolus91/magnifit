@@ -34,6 +34,7 @@ export class CustomSupabaseClient {
   private authListeners: Set<AuthStateChangeListener> = new Set()
   private ws: WebSocket | null = null
   private realtimeListeners: Map<string, Array<(payload: any) => void>> = new Map()
+  private pendingJoins: Set<string> = new Set()
   private heartbeatTimer: any = null
   private refCounter = 0
 
@@ -259,15 +260,21 @@ export class CustomSupabaseClient {
       },
 
       subscribe: () => {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        this.pendingJoins.add(topic)
+
+        if (!this.ws || this.ws.readyState === WebSocket.CLOSED || this.ws.readyState === WebSocket.CLOSING) {
           this.ws = new WebSocket(wsUrl)
           this.ws.onopen = () => {
             this.startHeartbeat()
-            this.sendJoin(topic)
+            this.flushPendingJoins()
           }
           this.ws.onmessage = (e) => this.handleWsMessage(e)
-        } else {
-          this.sendJoin(topic)
+          this.ws.onerror = () => {}
+          this.ws.onclose = () => {
+            if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
+          }
+        } else if (this.ws.readyState === WebSocket.OPEN) {
+          this.flushPendingJoins()
         }
         return channelObj
       }
@@ -276,7 +283,19 @@ export class CustomSupabaseClient {
     return channelObj
   }
 
+  private flushPendingJoins(): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return
+    for (const top of this.pendingJoins) {
+      this.sendJoin(top)
+    }
+    this.pendingJoins.clear()
+  }
+
   private sendJoin(topic: string): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.pendingJoins.add(topic)
+      return
+    }
     this.refCounter++
     const msg = {
       topic: `realtime:${topic}`,
@@ -284,19 +303,25 @@ export class CustomSupabaseClient {
       payload: { config: { postgres_changes: [{ event: '*', schema: 'public' }] } },
       ref: String(this.refCounter)
     }
-    this.ws?.send(JSON.stringify(msg))
+    try {
+      this.ws.send(JSON.stringify(msg))
+    } catch {}
   }
 
   private startHeartbeat(): void {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
     this.heartbeatTimer = setInterval(() => {
-      this.refCounter++
-      this.ws?.send(JSON.stringify({
-        topic: 'phoenix',
-        event: 'heartbeat',
-        payload: {},
-        ref: String(this.refCounter)
-      }))
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.refCounter++
+        try {
+          this.ws.send(JSON.stringify({
+            topic: 'phoenix',
+            event: 'heartbeat',
+            payload: {},
+            ref: String(this.refCounter)
+          }))
+        } catch {}
+      }
     }, 30000)
   }
 

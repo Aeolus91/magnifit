@@ -28,6 +28,7 @@ const loggedDates = ref<string[]>([])
 const currentUserId = computed(() => authStore.user.value?.id)
 
 const {
+  meals: allMeals,
   filteredMeals: meals,
   templates,
   totalCaloriesConsumed: totalDailyCalories,
@@ -105,8 +106,13 @@ const fetchUserProfile = async (uid: string) => {
   }
 }
 
-const fetchAll = async () => {
+const fetchAll = async (invalidate = false) => {
   if (currentUserId.value) {
+    if (invalidate) {
+      try {
+        localStorage.removeItem('mfit_recent_foods')
+      } catch {}
+    }
     await Promise.allSettled([
       fetchUserProfile(currentUserId.value),
       fetchMeals(currentUserId.value),
@@ -114,6 +120,12 @@ const fetchAll = async () => {
     ])
   }
 }
+
+const refreshFetchers = computed(() => [
+  () => fetchUserProfile(currentUserId.value),
+  () => fetchMeals(currentUserId.value),
+  () => fetchTemplates(currentUserId.value)
+])
 
 onMounted(async () => {
   await fetchAll()
@@ -140,8 +152,8 @@ watch(currentUserId, async () => {
         :user-email="authStore.user.value?.email"
         :loading="loading"
         :show-back="true"
+        :fetchers="refreshFetchers"
         @back="navigate('/dash')"
-        @refresh="fetchAll"
         @open-onboarding="showOnboardingModal = true"
         @sign-out="handleSignOut"
       />
@@ -183,6 +195,8 @@ watch(currentUserId, async () => {
               :log-date="targetDate"
               :is-submitting="isSaving"
               :micros-opt="userProfile?.micros_opt"
+              :templates="templates"
+              :recent-meals="allMeals"
               @submit="handleAddMealFromForm"
             />
           </div>

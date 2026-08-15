@@ -235,6 +235,8 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       carb_g: Math.round(recipeData.carb_g || 0),
       fat_g: Math.round(recipeData.fat_g || 0),
       servings: Math.max(1, Math.round(recipeData.servings || 1)),
+      serving_size: recipeData.serving_size !== undefined ? recipeData.serving_size : null,
+      serving_unit: recipeData.serving_unit || 'g',
       flags: recipeData.flags || 0,
       is_public: recipeData.is_public || false
     }
@@ -293,7 +295,9 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       prot_g: Math.round(recipeData.prot_g * 10) / 10,
       carb_g: Math.round(recipeData.carb_g * 10) / 10,
       fat_g: Math.round(recipeData.fat_g * 10) / 10,
-      servings: recipeData.servings || 1
+      servings: recipeData.servings || 1,
+      serving_size: recipeData.serving_size !== undefined ? recipeData.serving_size : null,
+      serving_unit: recipeData.serving_unit || 'g'
     }
 
     const idx = recipes.value.findIndex((r: Recipe) => r.id === recipeData.id)
@@ -364,11 +368,17 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       user_id: userId.value,
       meal_name: multiplier !== 1 ? `${recipe.name} (${multiplier}x)` : recipe.name,
       cal: Math.round(recipe.cal * multiplier),
-      prot_g: Math.round(recipe.prot_g * multiplier),
-      carb_g: Math.round(recipe.carb_g * multiplier),
-      fat_g: Math.round(recipe.fat_g * multiplier),
+      prot_g: Math.round(recipe.prot_g * multiplier * 10) / 10,
+      carb_g: Math.round(recipe.carb_g * multiplier * 10) / 10,
+      fat_g: Math.round(recipe.fat_g * multiplier * 10) / 10,
+      serving_size: recipe.serving_size ? recipe.serving_size : undefined,
+      serving_unit: recipe.serving_unit || 'g',
+      servings: multiplier,
       flags: targetSlot,
-      log_date: dateStr || selectedDate.value
+      log_date: dateStr || selectedDate.value,
+      micros: recipe.micros ? Object.fromEntries(
+        Object.entries(recipe.micros).map(([k, v]) => [k, Math.round((v || 0) * multiplier * 10) / 10])
+      ) : undefined
     }
     await addMeal(mealPayload)
   }

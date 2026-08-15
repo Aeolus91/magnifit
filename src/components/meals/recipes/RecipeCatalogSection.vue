@@ -46,6 +46,8 @@ const ingredientInputMode = ref<'search' | 'manual' | 'ocr'>('search')
 const newName = ref('')
 const newDescription = ref('')
 const newServings = ref<number>(1)
+const newServingSize = ref<number | null>(null)
+const newServingUnit = ref<string>('g')
 const newIngredients = ref<RecipeIngredient[]>([])
 
 const ingName = ref('')
@@ -147,6 +149,8 @@ const openCreateModal = () => {
   newName.value = ''
   newDescription.value = ''
   newServings.value = 1
+  newServingSize.value = null
+  newServingUnit.value = 'g'
   newIngredients.value = []
   recipeMicros.value = {}
   isRecipeMicrosOpen.value = false
@@ -158,6 +162,8 @@ const openEditModal = (tmpl: MealTemplate) => {
   newName.value = tmpl.name
   newDescription.value = tmpl.description || ''
   newServings.value = tmpl.servings || 1
+  newServingSize.value = tmpl.serving_size || null
+  newServingUnit.value = tmpl.serving_unit || 'g'
   newIngredients.value = (tmpl.items || []).map((i: any) => ({
     item_name: i.item_name || i.name,
     name: i.item_name || i.name,
@@ -173,12 +179,26 @@ const openEditModal = (tmpl: MealTemplate) => {
   showCreateModal.value = true
 }
 
+const batchTotals = computed(() => {
+  const cal = newIngredients.value.reduce((acc: number, i: any) => acc + (Number(i.cal) || 0), 0)
+  const prot_g = newIngredients.value.reduce((acc: number, i: any) => acc + (Number(i.prot_g) || 0), 0)
+  const carb_g = newIngredients.value.reduce((acc: number, i: any) => acc + (Number(i.carb_g) || 0), 0)
+  const fat_g = newIngredients.value.reduce((acc: number, i: any) => acc + (Number(i.fat_g) || 0), 0)
+  return { cal, prot_g, carb_g, fat_g }
+})
+
+const perServingTotals = computed(() => {
+  const s = Math.max(0.1, Number(newServings.value) || 1)
+  return {
+    cal: Math.round(batchTotals.value.cal / s),
+    prot_g: Math.round((batchTotals.value.prot_g / s) * 10) / 10,
+    carb_g: Math.round((batchTotals.value.carb_g / s) * 10) / 10,
+    fat_g: Math.round((batchTotals.value.fat_g / s) * 10) / 10
+  }
+})
+
 const handleCreateTemplate = () => {
   if (!newName.value.trim()) return
-  const totalCal = newIngredients.value.reduce((acc: number, i: any) => acc + (i.cal || 0), 0)
-  const totalProt = newIngredients.value.reduce((acc: number, i: any) => acc + (i.prot_g || 0), 0)
-  const totalCarb = newIngredients.value.reduce((acc: number, i: any) => acc + (i.carb_g || 0), 0)
-  const totalFat = newIngredients.value.reduce((acc: number, i: any) => acc + (i.fat_g || 0), 0)
 
   // Clean empty micros
   const cleanedMicros: Record<string, number> = {}
@@ -191,13 +211,15 @@ const handleCreateTemplate = () => {
   const recipePayload = {
     name: newName.value.trim(),
     description: newDescription.value.trim() || null,
-    cal: totalCal,
-    prot_g: totalProt,
-    carb_g: totalCarb,
-    fat_g: totalFat,
+    cal: perServingTotals.value.cal,
+    prot_g: perServingTotals.value.prot_g,
+    carb_g: perServingTotals.value.carb_g,
+    fat_g: perServingTotals.value.fat_g,
     servings: newServings.value || 1,
+    serving_size: newServingSize.value || null,
+    serving_unit: newServingSize.value ? (newServingUnit.value?.trim() || 'g') : (newServingUnit.value?.trim() || null),
     items: newIngredients.value.map((i: any) => ({
-      item_name: i.name,
+      item_name: i.name || i.item_name,
       amount: i.amount,
       unit: i.unit,
       cal: i.cal,
@@ -219,6 +241,8 @@ const handleCreateTemplate = () => {
 
   newName.value = ''
   newDescription.value = ''
+  newServingSize.value = null
+  newServingUnit.value = 'g'
   newIngredients.value = []
   recipeMicros.value = {
     sugar_g: undefined,
@@ -310,10 +334,13 @@ const confirmLog = () => {
       >
         <div class="flex items-start justify-between">
           <div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="text-sm font-bold text-slate-100 group-hover:text-amber-300 transition">{{ tmpl.name }}</span>
               <span v-if="tmpl.servings && tmpl.servings > 1" class="px-1.5 py-0.2 rounded-md bg-slate-950 border border-slate-800 text-[10px] font-mono text-amber-400/90">
                 {{ tmpl.servings }} servings
+              </span>
+              <span v-if="tmpl.serving_size" class="px-1.5 py-0.2 rounded-md bg-slate-950 border border-slate-800 text-[10px] font-mono text-slate-400">
+                {{ tmpl.serving_size }}{{ tmpl.serving_unit || 'g' }}
               </span>
             </div>
             <div v-if="tmpl.description" class="text-xs text-slate-400 mt-0.5 line-clamp-1">{{ tmpl.description }}</div>
@@ -389,24 +416,24 @@ const confirmLog = () => {
       title="Create Recipe Blueprint"
       :icon="BookOpen"
       icon-color="text-amber-400"
-      max-width-class="max-w-lg"
+      max-width-class="max-w-xl"
       @close="showCreateModal = false"
     >
       <form @submit.prevent="handleCreateTemplate" class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div class="sm:col-span-2 space-y-1">
             <label class="text-xs font-semibold text-slate-300">Recipe Name</label>
             <input
               type="text"
               v-model="newName"
-              placeholder="e.g. Post-Workout Protein Smoothie"
+              placeholder="e.g. Post-Workout Smoothie"
               required
               class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
             />
           </div>
 
           <div class="space-y-1">
-            <label class="text-xs font-semibold text-slate-300">Yields Servings</label>
+            <label class="text-xs font-semibold text-slate-300">Yield (Servings)</label>
             <input
               type="number"
               step="any"
@@ -415,8 +442,28 @@ const confirmLog = () => {
               v-model.number="newServings"
               placeholder="1"
               required
-              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none"
+              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none text-center"
             />
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-slate-300">Serving Size</label>
+            <div class="flex gap-1">
+              <input
+                type="number"
+                step="any"
+                min="0.1"
+                v-model.number="newServingSize"
+                placeholder="200"
+                class="w-14 shrink-0 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-2 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none text-center"
+              />
+              <input
+                type="text"
+                v-model="newServingUnit"
+                placeholder="g / qty"
+                class="flex-1 min-w-0 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-2 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
+              />
+            </div>
           </div>
         </div>
 
@@ -538,6 +585,36 @@ const confirmLog = () => {
                   <X class="w-3.5 h-3.5" />
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Per-Serving Nutrition Summary Bar -->
+        <div v-if="newIngredients.length > 0" class="p-3 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-amber-300">
+              Per Serving <span class="font-normal text-slate-400">({{ newServings }} yield{{ newServingSize ? ` • ${newServingSize}${newServingUnit || 'g'}` : '' }})</span>
+            </span>
+            <span v-if="newServings > 1" class="text-[11px] font-mono text-slate-500">
+              Batch Total: {{ batchTotals.cal }} kcal
+            </span>
+          </div>
+          <div class="grid grid-cols-4 gap-1.5 text-center font-mono">
+            <div class="bg-slate-900/80 p-1.5 rounded-lg border border-slate-800/80">
+              <div class="text-[9px] text-slate-500 uppercase font-sans">Energy</div>
+              <div class="text-xs font-bold text-amber-400">{{ perServingTotals.cal }}</div>
+            </div>
+            <div class="bg-slate-900/80 p-1.5 rounded-lg border border-slate-800/80">
+              <div class="text-[9px] text-slate-500 uppercase font-sans">Protein</div>
+              <div class="text-xs font-bold text-emerald-300">{{ perServingTotals.prot_g }}g</div>
+            </div>
+            <div class="bg-slate-900/80 p-1.5 rounded-lg border border-slate-800/80">
+              <div class="text-[9px] text-slate-500 uppercase font-sans">Carbs</div>
+              <div class="text-xs font-bold text-yellow-400">{{ perServingTotals.carb_g }}g</div>
+            </div>
+            <div class="bg-slate-900/80 p-1.5 rounded-lg border border-slate-800/80">
+              <div class="text-[9px] text-slate-500 uppercase font-sans">Fat</div>
+              <div class="text-xs font-bold text-rose-400">{{ perServingTotals.fat_g }}g</div>
             </div>
           </div>
         </div>

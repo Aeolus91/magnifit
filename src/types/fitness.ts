@@ -96,6 +96,8 @@ export interface Recipe {
   carb_g: number
   fat_g: number
   servings: number
+  serving_size?: number | null
+  serving_unit?: string | null
   flags?: number
   is_public?: boolean
   items?: RecipeItem[]

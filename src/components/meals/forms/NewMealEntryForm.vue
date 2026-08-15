@@ -6,15 +6,19 @@ import { useI18n } from '../../../lib/i18n'
 import { getSuggestedMealSlot } from '../../../lib/dateUtils'
 import FoodSearchLookup from './FoodSearchLookup.vue'
 import NutritionLabelOcrModal from './NutritionLabelOcrModal.vue'
-import type { Meal } from '../../../types/fitness'
+import type { Meal, MealTemplate } from '../../../types/fitness'
 
 const props = withDefaults(defineProps<{
   initialSlot?: number
   logDate?: string
   isSubmitting?: boolean
   microsOpt?: number
+  templates?: MealTemplate[]
+  recentMeals?: Meal[]
 }>(), {
-  initialSlot: () => getSuggestedMealSlot()
+  initialSlot: () => getSuggestedMealSlot(),
+  templates: () => [],
+  recentMeals: () => []
 })
 
 const emit = defineEmits<{
@@ -239,7 +243,7 @@ const handleSubmit = () => {
 
     <!-- Search Food Lookup View -->
     <div v-if="activeMode === 'search'">
-      <FoodSearchLookup @select-food="handleFoodSelected" />
+      <FoodSearchLookup :templates="templates" :recent-meals="recentMeals" @select-food="handleFoodSelected" />
     </div>
 
     <!-- OCR Scanner View -->

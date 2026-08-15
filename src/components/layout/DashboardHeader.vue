@@ -10,16 +10,19 @@ interface Props {
   userEmail?: string
   loading?: boolean
   showBack?: boolean
+  fetchers?: Array<() => Promise<any>>
 }
 
 const props = withDefaults(defineProps<Props>(), {
   userProfile: null,
   loading: false,
-  showBack: false
+  showBack: false,
+  fetchers: () => []
 })
 
 const emit = defineEmits<{
   (e: 'refresh'): void
+  (e: 'refreshed'): void
   (e: 'open-onboarding'): void
   (e: 'sign-out'): void
   (e: 'back'): void
@@ -28,12 +31,34 @@ const emit = defineEmits<{
 const { navigate } = useRouter()
 const { t } = useI18n()
 const showProfileMenu = ref(false)
+const isRefreshing = ref(false)
 
 const handleFocusOut = (e: FocusEvent) => {
   const currentTarget = e.currentTarget as HTMLElement | null
   if (currentTarget && !currentTarget.contains(e.relatedTarget as Node)) {
     showProfileMenu.value = false
   }
+}
+
+const handleRefresh = async () => {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+
+  // Invalidate client storage cache on user-initiated reload
+  try {
+    localStorage.removeItem('mfit_recent_foods')
+  } catch {}
+
+  emit('refresh')
+
+  if (props.fetchers && props.fetchers.length > 0) {
+    try {
+      await Promise.allSettled(props.fetchers.map(fn => fn()))
+    } catch {}
+  }
+
+  emit('refreshed')
+  isRefreshing.value = false
 }
 </script>
 
@@ -69,11 +94,11 @@ const handleFocusOut = (e: FocusEvent) => {
       <!-- Refresh Data Button -->
       <button
         type="button"
-        @click="emit('refresh')"
+        @click="handleRefresh"
         :title="t('dash.actions.refresh')"
         class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 transition cursor-pointer"
       >
-        <RefreshCw class="w-4 h-4 text-slate-300" :class="{ 'animate-spin': loading }" />
+        <RefreshCw class="w-4 h-4 text-slate-300" :class="{ 'animate-spin': loading || isRefreshing }" />
       </button>
 
       <!-- Profile Button & Dropdown Popover Menu -->

@@ -112,14 +112,15 @@ const fetchUserProfile = async (uid: string) => {
 const onOnboardingCompleted = async (updated: Profile) => {
   userProfile.value = updated
   showOnboardingModal.value = false
-  if (currentUserId.value) {
-    await fetchUserProfile(currentUserId.value)
-    await fetchBiometrics(currentUserId.value)
-  }
 }
 
-const fetchAll = async () => {
+const fetchAll = async (invalidate = false) => {
   if (!currentUserId.value) return
+  if (invalidate) {
+    try {
+      localStorage.removeItem('mfit_recent_foods')
+    } catch {}
+  }
   loading.value = true
   await Promise.allSettled([
     fetchUserProfile(currentUserId.value),
@@ -130,6 +131,14 @@ const fetchAll = async () => {
   ])
   loading.value = false
 }
+
+const refreshFetchers = computed(() => [
+  () => fetchUserProfile(currentUserId.value),
+  () => fetchWorkouts(currentUserId.value),
+  () => fetchBiometrics(currentUserId.value),
+  () => fetchMeals(currentUserId.value),
+  () => fetchWater(currentUserId.value)
+])
 
 const updateCalorieTarget = async (targetCal: number) => {
   if (!currentUserId.value || !userProfile.value) return
@@ -158,19 +167,37 @@ onMounted(async () => {
 
   await fetchAll()
 
-  // Auto-sync client timezone to user profile in background
-  if (authStore.user.value?.id && userProfile.value && userProfile.value.tz !== userTimezone) {
-    supabase.from('profiles').update({ tz: userTimezone }).eq('id', authStore.user.value.id)
-      .then(() => {
-        if (userProfile.value) userProfile.value.tz = userTimezone
-      })
+  if (userProfile.value && userProfile.value.tz !== userTimezone) {
+    try {
+      await supabase
+        .from('profiles')
+        .update({ tz: userTimezone })
+        .eq('id', currentUserId.value)
+      userProfile.value.tz = userTimezone
+    } catch {}
   }
 
   supabase.channel('public:workouts')
-    .on('INSERT', (payload: any) => {
-      if (payload.new && payload.new.user_id === authStore.user.value?.id) {
-        workouts.value.unshift(payload.new)
-      }
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'workouts' }, () => {
+      if (currentUserId.value) fetchWorkouts(currentUserId.value)
+    })
+    .subscribe()
+
+  supabase.channel('public:biometrics')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'biometrics' }, () => {
+      if (currentUserId.value) fetchBiometrics(currentUserId.value)
+    })
+    .subscribe()
+
+  supabase.channel('public:meals')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'meals' }, () => {
+      if (currentUserId.value) fetchMeals(currentUserId.value)
+    })
+    .subscribe()
+
+  supabase.channel('public:water_logs')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'water_logs' }, () => {
+      if (currentUserId.value) fetchWater(currentUserId.value)
     })
     .subscribe()
 })
@@ -220,7 +247,7 @@ onMounted(async () => {
         :user-profile="userProfile"
         :user-email="authStore.user.value?.email"
         :loading="loading"
-        @refresh="fetchAll"
+        :fetchers="refreshFetchers"
         @open-onboarding="showOnboardingModal = true"
         @sign-out="handleSignOut"
       />
