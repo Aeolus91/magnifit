@@ -30,19 +30,13 @@ const toggle = () => {
 </script>
 
 <template>
-  <div 
-    @click="toggle"
-    :class="[
-      'flex items-center justify-between px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl transition cursor-pointer select-none',
-      disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-700'
-    ]"
-  >
+  <div @click="toggle" :class="[
+    'flex items-center justify-between px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl transition cursor-pointer select-none',
+    disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-700'
+  ]">
     <!-- Label & Description Side -->
     <div class="flex items-center gap-2.5">
-      <div 
-        v-if="icon" 
-        :class="['flex items-center justify-center shrink-0', iconColor]"
-      >
+      <div v-if="icon" :class="['flex items-center justify-center shrink-0', iconColor]">
         <component :is="icon" class="w-4 h-4" />
       </div>
       <div>
@@ -64,7 +58,8 @@ const toggle = () => {
           <span :class="!modelValue ? 'text-emerald-400' : 'text-slate-500'">
             {{ leftLabel?.split('(')[0]?.trim() }}
           </span>
-          <span v-if="leftLabel?.includes('(')" class="text-[10px] font-normal" :class="!modelValue ? 'text-emerald-400/70' : 'text-slate-600'">
+          <span v-if="leftLabel?.includes('(')" class="text-[10px] font-normal"
+            :class="!modelValue ? 'text-emerald-400/70' : 'text-slate-600'">
             ({{ leftLabel.split('(')[1] }}
           </span>
         </div>
@@ -76,25 +71,20 @@ const toggle = () => {
           <span :class="modelValue ? 'text-emerald-400' : 'text-slate-500'">
             {{ rightLabel?.split('(')[0]?.trim() }}
           </span>
-          <span v-if="rightLabel?.includes('(')" class="text-[10px] font-normal" :class="modelValue ? 'text-emerald-400/70' : 'text-slate-600'">
+          <span v-if="rightLabel?.includes('(')" class="text-[10px] font-normal"
+            :class="modelValue ? 'text-emerald-400/70' : 'text-slate-600'">
             ({{ rightLabel.split('(')[1] }}
           </span>
         </div>
       </div>
 
       <!-- Compact Toggle Switch -->
-      <button
-        type="button"
-        role="switch"
-        :aria-checked="modelValue"
-        :disabled="disabled"
+      <button type="button" role="switch" :aria-checked="modelValue" :disabled="disabled"
         class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-        :class="modelValue ? 'bg-emerald-500' : 'bg-slate-800'"
-      >
+        :class="modelValue ? 'bg-emerald-500' : 'bg-slate-800'">
         <span
-          class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-950 shadow ring-0 transition duration-200 ease-in-out mt-[1px] ml-[1px]"
-          :class="modelValue ? 'translate-x-4' : 'translate-x-0'"
-        />
+          class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-950 shadow ring-0 transition duration-200 ease-in-out mt-px ml-px"
+          :class="modelValue ? 'translate-x-4' : 'translate-x-0'" />
       </button>
     </div>
   </div>

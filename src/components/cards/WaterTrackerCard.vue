@@ -63,64 +63,41 @@ const subtitle = computed(() => {
         </div>
       </div>
 
-      <button
-        type="button"
-        @click="openTargetModal"
+      <button type="button" @click="openTargetModal"
         class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-400 hover:text-cyan-300 transition active:scale-95 cursor-pointer shadow-sm ml-auto"
-        title="Configure Water Target"
-      >
+        title="Configure Water Target">
         <Settings class="w-4 h-4" />
       </button>
     </div>
 
     <!-- Fluid Gauge Card -->
-    <FluidGaugeCard
-      title="Hydration Intake"
-      :current="currentMl"
-      :target="safeTarget"
-      unit="ml"
-      :icon="Droplets"
-      variant="cyan"
-      :subtitle="subtitle"
-      :is-loading="isLoading"
-    >
+    <FluidGaugeCard title="Hydration Intake" :current="currentMl" :target="safeTarget" unit="ml" :icon="Droplets"
+      variant="cyan" :subtitle="subtitle" :is-loading="isLoading">
 
       <!-- Quick Water Actions: 2x2 grid on micro/320px screens, single horizontal line on standard screens (>=380px) and desktop -->
-      <div class="grid grid-cols-2 min-[380px]:flex min-[380px]:items-center min-[380px]:flex-nowrap gap-1.5 sm:gap-2 pt-1">
+      <div
+        class="grid grid-cols-2 min-[380px]:flex min-[380px]:items-center min-[380px]:flex-nowrap gap-1.5 sm:gap-2 pt-1">
         <!-- +250ml -->
-        <button
-          type="button"
-          @click="emit('add-water', 250)"
-          class="flex items-center justify-center gap-1 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-300 text-xs font-semibold px-2 min-[380px]:px-2.5 py-1.5 rounded-lg transition active:scale-95 cursor-pointer whitespace-nowrap"
-        >
+        <button type="button" @click="emit('add-water', 250)"
+          class="flex items-center justify-center gap-1 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-300 text-xs font-semibold px-2 min-[380px]:px-2.5 py-1.5 rounded-lg transition active:scale-95 cursor-pointer whitespace-nowrap">
           <Plus class="w-3 h-3" /> 250 ml
         </button>
-        
+
         <!-- +500ml -->
-        <button
-          type="button"
-          @click="emit('add-water', 500)"
-          class="flex items-center justify-center gap-1 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-300 text-xs font-semibold px-2 min-[380px]:px-2.5 py-1.5 rounded-lg transition active:scale-95 cursor-pointer whitespace-nowrap"
-        >
+        <button type="button" @click="emit('add-water', 500)"
+          class="flex items-center justify-center gap-1 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-300 text-xs font-semibold px-2 min-[380px]:px-2.5 py-1.5 rounded-lg transition active:scale-95 cursor-pointer whitespace-nowrap">
           <Plus class="w-3 h-3" /> 500 ml
         </button>
 
         <!-- +750ml -->
-        <button
-          type="button"
-          @click="emit('add-water', 750)"
-          class="flex items-center justify-center gap-1 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-300 text-xs font-semibold px-2 min-[380px]:px-2.5 py-1.5 rounded-lg transition active:scale-95 cursor-pointer whitespace-nowrap"
-        >
+        <button type="button" @click="emit('add-water', 750)"
+          class="flex items-center justify-center gap-1 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-300 text-xs font-semibold px-2 min-[380px]:px-2.5 py-1.5 rounded-lg transition active:scale-95 cursor-pointer whitespace-nowrap">
           <Plus class="w-3 h-3" /> 750 ml
         </button>
 
         <!-- Undo Button: 4th grid slot on 320px, inline 4th button on >=380px, right-aligned on desktop -->
-        <button
-          v-if="canUndo"
-          type="button"
-          @click="emit('undo')"
-          class="flex items-center justify-center gap-1 bg-slate-900 hover:bg-rose-950/40 border border-slate-700/80 hover:border-rose-800/60 text-slate-300 hover:text-rose-300 text-xs font-medium px-2 min-[380px]:px-2.5 py-1.5 rounded-lg transition active:scale-95 cursor-pointer sm:ml-auto whitespace-nowrap"
-        >
+        <button v-if="canUndo" type="button" @click="emit('undo')"
+          class="flex items-center justify-center gap-1 bg-slate-900 hover:bg-rose-950/40 border border-slate-700/80 hover:border-rose-800/60 text-slate-300 hover:text-rose-300 text-xs font-medium px-2 min-[380px]:px-2.5 py-1.5 rounded-lg transition active:scale-95 cursor-pointer sm:ml-auto whitespace-nowrap">
           <RotateCcw class="w-3 h-3" />
           <span>Undo</span>
         </button>
@@ -129,33 +106,19 @@ const subtitle = computed(() => {
 
     <!-- Set Daily Water Goal Modal -->
     <!-- Goal Setting Modal Dialog -->
-    <Modal
-      v-if="showTargetModal"
-      title="Daily Water Goal"
-      :icon="Droplets"
-      icon-color="text-cyan-400"
-      max-width-class="max-w-xs"
-      @close="showTargetModal = false"
-    >
+    <Modal v-if="showTargetModal" title="Daily Water Goal" :icon="Droplets" icon-color="text-cyan-400"
+      max-width-class="max-w-xs" @close="showTargetModal = false">
       <form @submit.prevent="handleSaveTarget" class="space-y-3.5">
         <div class="space-y-1">
           <label class="block text-xs font-semibold text-slate-300">Target Intake (ml)</label>
-          <input
-            type="text"
-            inputmode="numeric"
-            pattern="[0-9]*"
-            v-model.number="inputTargetMl"
-            required
-            class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-          />
+          <input type="text" inputmode="numeric" pattern="[0-9]*" v-model.number="inputTargetMl" required
+            class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
           <div class="text-[10px] text-slate-400">Recommended: 2,000 – 3,500 ml</div>
         </div>
 
-        <button
-          type="submit"
-          class="w-full py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 active:scale-[0.98] text-slate-950 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md shadow-cyan-950/40"
-        >
-          <Check class="w-3.5 h-3.5 stroke-[3]" />
+        <button type="submit"
+          class="w-full py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 active:scale-[0.98] text-slate-950 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md shadow-cyan-950/40">
+          <Check class="w-3.5 h-3.5 stroke-3" />
           <span>Save Goal</span>
         </button>
       </form>

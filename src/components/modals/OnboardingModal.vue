@@ -161,8 +161,8 @@ const activityLevel = ref<number | null>(
 const targetWeightKg = ref<number | null>(
   props.initialProfile?.target_weight_dg
     ? (isImperial.value
-        ? Number(((props.initialProfile.target_weight_dg / 10) / 0.453592).toFixed(1))
-        : Number((props.initialProfile.target_weight_dg / 10).toFixed(1)))
+      ? Number(((props.initialProfile.target_weight_dg / 10) / 0.453592).toFixed(1))
+      : Number((props.initialProfile.target_weight_dg / 10).toFixed(1)))
     : null
 )
 
@@ -390,11 +390,11 @@ const handleCompleteOnboarding = async () => {
     const finalHeightCm = isImperial.value ? Math.round(heightCm.value * 2.54) : Math.round(heightCm.value)
     const finalWeightRawKg = isImperial.value ? weightKg.value * 0.453592 : weightKg.value
     const userAge = Math.max(15, new Date().getFullYear() - birthYear.value)
-    
+
     // Sex offset: 1 = Male (+5), 0 = Female (-161), default = -78
     const sexDiff = sex.value === 1 ? 5 : (sex.value === 0 ? -161 : -78)
     const baselineBmr = Math.round((10 * finalWeightRawKg) + (6.25 * finalHeightCm) - (5 * userAge) + sexDiff)
-    
+
     // Activity level multiplier
     let actMultiplier = 1.375
     if (activityLevel.value === 1) actMultiplier = 1.2
@@ -457,11 +457,7 @@ const handleCompleteOnboarding = async () => {
 </script>
 
 <template>
-  <Modal
-    :show-close="false"
-    max-width-class="max-w-lg"
-    @close="isOnboardingAlreadyCompleted && emit('dismiss')"
-  >
+  <Modal :show-close="false" max-width-class="max-w-lg" @close="isOnboardingAlreadyCompleted && emit('dismiss')">
     <template #header>
       <!-- Top Progress & Header -->
       <div class="space-y-4">
@@ -471,14 +467,11 @@ const handleCompleteOnboarding = async () => {
             <span>{{ t('onboarding.title') }}</span>
           </div>
           <div class="flex items-center gap-3">
-            <span>{{ t('onboarding.step_counter', { step: currentStep, total: totalSteps, percent: progressPercent }) }}</span>
-            <button
-              v-if="isOnboardingAlreadyCompleted"
-              type="button"
-              @click="emit('dismiss')"
+            <span>{{ t('onboarding.step_counter', { step: currentStep, total: totalSteps, percent: progressPercent })
+              }}</span>
+            <button v-if="isOnboardingAlreadyCompleted" type="button" @click="emit('dismiss')"
               class="p-1 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-800 hover:text-slate-200 text-slate-400 transition cursor-pointer"
-              title="Close"
-            >
+              title="Close">
               <X class="w-4 h-4" />
             </button>
           </div>
@@ -486,7 +479,7 @@ const handleCompleteOnboarding = async () => {
 
         <!-- Segmented Progress Bar -->
         <div class="w-full bg-slate-950 border border-slate-800 rounded-full h-2 overflow-hidden">
-          <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-300 ease-out"
+          <div class="bg-linear-to-r from-emerald-500 to-teal-400 h-full transition-all duration-300 ease-out"
             :style="{ width: `${progressPercent}%` }"></div>
         </div>
       </div>
@@ -529,11 +522,7 @@ const handleCompleteOnboarding = async () => {
         </div>
 
         <div class="grid grid-cols-2 gap-4 pt-2">
-          <DropdownPicker
-            v-model="sex"
-            :label="t('onboarding.step2.sex_label')"
-            :options="sexOptions"
-          />
+          <DropdownPicker v-model="sex" :label="t('onboarding.step2.sex_label')" :options="sexOptions" />
 
           <div class="space-y-1.5">
             <label class="text-xs font-semibold text-slate-300">{{ t('onboarding.step2.birth_year_label') }}</label>
@@ -571,15 +560,9 @@ const handleCompleteOnboarding = async () => {
         </div>
 
         <div class="space-y-4 pt-2">
-          <DropdownPicker
-            v-model="activityLevel"
-            :label="t('onboarding.step3.activity_label')"
+          <DropdownPicker v-model="activityLevel" :label="t('onboarding.step3.activity_label')"
             :placeholder="t('onboarding.step3.activity_placeholder') || 'Select activity level'"
-            :options="activityOptions"
-            :icon="Activity"
-            icon-position="label-left"
-            icon-color="text-cyan-400"
-          />
+            :options="activityOptions" :icon="Activity" icon-position="label-left" icon-color="text-cyan-400" />
 
           <FormInput v-model="targetWeightKg"
             :label="isImperial ? t('onboarding.step3.target_weight_imperial_label') : t('onboarding.step3.target_weight_metric_label')"
@@ -608,39 +591,30 @@ const handleCompleteOnboarding = async () => {
             {{ t('onboarding.step4.selected_count', { count: selectedMicrosCount }) }}
           </span>
           <div class="flex items-center gap-2">
-            <button
-              type="button"
-              @click="isAllMicrosSelected ? deselectAllMicros() : selectAllMicros()"
-              class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition cursor-pointer select-none"
-            >
+            <button type="button" @click="isAllMicrosSelected ? deselectAllMicros() : selectAllMicros()"
+              class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition cursor-pointer select-none">
               {{ isAllMicrosSelected ? t('onboarding.step4.deselect_all') : t('onboarding.step4.select_all') }}
             </button>
           </div>
         </div>
 
         <!-- 2-Column Compact Scrollable Checkbox Grid -->
-        <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto overscroll-contain pr-1 scrollbar-thin scrollbar-thumb-slate-800">
-          <div
-            v-for="micro in microList"
-            :key="micro.key"
-            @click="toggleMicro(micro.bit)"
-            :class="[
-              'flex items-center justify-between p-2.5 rounded-xl border transition cursor-pointer select-none text-xs',
-              (selectedMicros & micro.bit) !== 0
-                ? 'bg-emerald-950/40 border-emerald-800/80 text-emerald-300 font-semibold'
-                : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700'
-            ]"
-          >
+        <div
+          class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto overscroll-contain pr-1 scrollbar-thin scrollbar-thumb-slate-800">
+          <div v-for="micro in microList" :key="micro.key" @click="toggleMicro(micro.bit)" :class="[
+            'flex items-center justify-between p-2.5 rounded-xl border transition cursor-pointer select-none text-xs',
+            (selectedMicros & micro.bit) !== 0
+              ? 'bg-emerald-950/40 border-emerald-800/80 text-emerald-300 font-semibold'
+              : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700'
+          ]">
             <span class="capitalize truncate mr-1.5">{{ micro.label }}</span>
-            <div
-              :class="[
-                'w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition border',
-                (selectedMicros & micro.bit) !== 0
-                  ? 'bg-emerald-500 border-emerald-500 text-slate-950'
-                  : 'border-slate-700 bg-slate-900'
-              ]"
-            >
-              <Check v-if="(selectedMicros & micro.bit) !== 0" class="w-3 h-3 stroke-[3]" />
+            <div :class="[
+              'w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition border',
+              (selectedMicros & micro.bit) !== 0
+                ? 'bg-emerald-500 border-emerald-500 text-slate-950'
+                : 'border-slate-700 bg-slate-900'
+            ]">
+              <Check v-if="(selectedMicros & micro.bit) !== 0" class="w-3 h-3 stroke-3" />
             </div>
           </div>
         </div>
@@ -657,13 +631,8 @@ const handleCompleteOnboarding = async () => {
         </button>
         <div v-else></div>
 
-        <button 
-          type="button" 
-          v-if="currentStep < totalSteps" 
-          :disabled="isSavingStep"
-          @click="nextStep"
-          class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-        >
+        <button type="button" v-if="currentStep < totalSteps" :disabled="isSavingStep" @click="nextStep"
+          class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
           <Loader2 v-if="isSavingStep" class="w-4 h-4 animate-spin" />
           <template v-else>
             <span>{{ t('common.continue') }}</span>
@@ -675,7 +644,7 @@ const handleCompleteOnboarding = async () => {
           class="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 text-xs sm:text-sm font-bold flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-emerald-950/40">
           <Loader2 v-if="isSubmitting" class="w-4 h-4 animate-spin" />
           <template v-else>
-            <Check class="w-4 h-4 stroke-[3]" />
+            <Check class="w-4 h-4 stroke-3" />
             <span>{{ t('common.finish') }}</span>
           </template>
         </button>

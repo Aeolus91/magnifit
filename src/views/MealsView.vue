@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { supabase } from '../lib/supabaseClient'
 import { useRouter } from '../lib/router'
 import { useAuthStore } from '../stores/authStore'
@@ -18,7 +18,7 @@ import MealSlotCard from '../components/meals/MealSlotCard.vue'
 import FavoriteFoodsSection from '../components/meals/favorites/FavoriteFoodsSection.vue'
 import { useFoodTemplates } from '../composables/useFoodTemplates'
 import type { Meal, Profile } from '../types/fitness'
-import { ArrowLeft, Utensils, Plus, BookOpen, Clock, Star } from '@lucide/vue'
+import { Utensils, Plus, BookOpen, Clock, Star } from '@lucide/vue'
 
 const { navigate, routeState } = useRouter()
 const authStore = useAuthStore()
@@ -33,7 +33,6 @@ const {
   meals: allMeals,
   filteredMeals: meals,
   templates,
-  totalCaloriesConsumed: totalDailyCalories,
   totalProteinG: totalProtein,
   totalCarbsG: totalCarbs,
   totalFatG: totalFat,
@@ -153,7 +152,7 @@ const fetchAll = async (invalidate = false) => {
     if (invalidate) {
       try {
         localStorage.removeItem('mfit_recent_foods')
-      } catch {}
+      } catch { }
     }
     await Promise.allSettled([
       fetchUserProfile(currentUserId.value),
@@ -182,25 +181,15 @@ watch(currentUserId, async () => {
 
 <template>
   <div class="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 lg:p-8">
-    <OnboardingModal
-      v-if="showOnboardingModal"
-      :initial-profile="userProfile"
+    <OnboardingModal v-if="showOnboardingModal" :initial-profile="userProfile"
       @completed="(updated) => { userProfile = updated; showOnboardingModal = false; }"
-      @dismiss="showOnboardingModal = false"
-    />
+      @dismiss="showOnboardingModal = false" />
 
     <div class="max-w-4xl mx-auto space-y-6">
       <!-- Global Brand & Profile Header -->
-      <DashboardHeader
-        :user-profile="userProfile"
-        :user-email="authStore.user.value?.email"
-        :loading="loading"
-        :show-back="true"
-        :fetchers="refreshFetchers"
-        @back="navigate('/dash')"
-        @open-onboarding="showOnboardingModal = true"
-        @sign-out="handleSignOut"
-      />
+      <DashboardHeader :user-profile="userProfile" :user-email="authStore.user.value?.email" :loading="loading"
+        :show-back="true" :fetchers="refreshFetchers" @back="navigate('/dash')"
+        @open-onboarding="showOnboardingModal = true" @sign-out="handleSignOut" />
       <!-- Top Summary / Macro Gauge Section -->
       <div class="space-y-4">
         <!-- Top Title & Calendar Picker Bar -->
@@ -212,136 +201,76 @@ watch(currentUserId, async () => {
 
           <!-- Date Picker Component -->
           <div class="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-            <DatePickerPopover
-              v-model="targetDate"
-              :logged-dates="loggedDates"
-            />
+            <DatePickerPopover v-model="targetDate" :logged-dates="loggedDates" />
           </div>
         </div>
 
         <!-- Animated Macro Nutrients Gauges & Distribution Bar -->
-        <MacroNutrientBar
-          :protein-g="totalProtein"
-          :carbs-g="totalCarbs"
-          :fat-g="totalFat"
-          :is-loading="loading"
-        />
+        <MacroNutrientBar :protein-g="totalProtein" :carbs-g="totalCarbs" :fat-g="totalFat" :is-loading="loading" />
       </div>
 
       <!-- Centralized Tabbed View for Meals -->
-      <TabbedView
-        v-model="activeTab"
-        :tabs="mealTabs"
-        pill-color-class="bg-amber-500"
-      >
+      <TabbedView v-model="activeTab" :tabs="mealTabs" pill-color-class="bg-amber-500">
         <!-- Tab 1: New Entry (Manual / Search / OCR Switcher) -->
         <template #new_entry>
           <div class="space-y-6">
-            <NewMealEntryForm
-              :initial-slot="selectedSlotForNewEntry"
-              :log-date="targetDate"
-              :is-submitting="isSaving"
-              :micros-opt="userProfile?.micros_opt"
-              :templates="templates"
-              :recent-meals="allMeals"
-              @submit="handleAddMealFromForm"
-            />
+            <NewMealEntryForm :initial-slot="selectedSlotForNewEntry" :log-date="targetDate" :is-submitting="isSaving"
+              :micros-opt="userProfile?.micros_opt" :templates="templates" :recent-meals="allMeals"
+              @submit="handleAddMealFromForm" />
           </div>
         </template>
 
         <!-- Tab 2: Favorite Foods -->
         <template #favorites>
           <div class="space-y-6">
-            <FavoriteFoodsSection
-              :favorites="favoriteTemplates"
-              :is-loading="loadingFavorites"
-              :micros-opt="userProfile?.micros_opt"
-              @log-favorite="handleLogFavorite"
-              @toggle-favorite="toggleFavorite"
-            />
+            <FavoriteFoodsSection :favorites="favoriteTemplates" :is-loading="loadingFavorites"
+              :micros-opt="userProfile?.micros_opt" @log-favorite="handleLogFavorite"
+              @toggle-favorite="toggleFavorite" />
           </div>
         </template>
 
         <!-- Tab 3: Recipes & Meal Templates Catalog -->
         <template #recipes>
           <div class="space-y-6">
-            <RecipeCatalogSection
-              :templates="templates"
-              :micros-opt="userProfile?.micros_opt"
-              @create-template="addTemplate"
-              @edit-template="editTemplate"
-              @delete-template="deleteTemplate"
+            <RecipeCatalogSection :templates="templates" :micros-opt="userProfile?.micros_opt"
+              @create-template="addTemplate" @edit-template="editTemplate" @delete-template="deleteTemplate"
               @share-template="async (id, handle, cb) => {
                 const res = await shareTemplateToHandle(id, handle)
                 cb(res)
-              }"
-              @log-template="(tmpl, slot, multiplier) => logTemplateAsMeal(tmpl, slot, targetDate, multiplier)"
-            />
+              }" @log-template="(tmpl, slot, multiplier) => logTemplateAsMeal(tmpl, slot, targetDate, multiplier)" />
           </div>
         </template>
 
         <!-- Tab 3: Grouped Slots Day Summary (Breakfast, Lunch, Dinner, Snack) -->
         <template #summary>
           <div class="space-y-4">
-            <MealSlotCard
-              :slot-title="t('meals.slot.breakfast')"
-              :slot-bit="MealFlags.BREAKFAST"
-              :meals="breakfastMeals"
-              :is-loading="loading"
-              :micros-opt="userProfile?.micros_opt"
-              @add-item="handleQuickAddSlot"
-              @edit-meal="editMeal"
-              @delete-meal="deleteMeal"
-              @update-micros="(id, newMicros) => {
+            <MealSlotCard :slot-title="t('meals.slot.breakfast')" :slot-bit="MealFlags.BREAKFAST"
+              :meals="breakfastMeals" :is-loading="loading" :micros-opt="userProfile?.micros_opt"
+              @add-item="handleQuickAddSlot" @edit-meal="editMeal" @delete-meal="deleteMeal" @update-micros="(id, newMicros) => {
                 const m = meals.find(item => item.id === id)
                 if (m) editMeal({ ...m, micros: newMicros })
-              }"
-            />
+              }" />
 
-            <MealSlotCard
-              :slot-title="t('meals.slot.lunch')"
-              :slot-bit="MealFlags.LUNCH"
-              :meals="lunchMeals"
-              :is-loading="loading"
-              :micros-opt="userProfile?.micros_opt"
-              @add-item="handleQuickAddSlot"
-              @edit-meal="editMeal"
-              @delete-meal="deleteMeal"
-              @update-micros="(id, newMicros) => {
+            <MealSlotCard :slot-title="t('meals.slot.lunch')" :slot-bit="MealFlags.LUNCH" :meals="lunchMeals"
+              :is-loading="loading" :micros-opt="userProfile?.micros_opt" @add-item="handleQuickAddSlot"
+              @edit-meal="editMeal" @delete-meal="deleteMeal" @update-micros="(id, newMicros) => {
                 const m = meals.find(item => item.id === id)
                 if (m) editMeal({ ...m, micros: newMicros })
-              }"
-            />
+              }" />
 
-            <MealSlotCard
-              :slot-title="t('meals.slot.dinner')"
-              :slot-bit="MealFlags.DINNER"
-              :meals="dinnerMeals"
-              :is-loading="loading"
-              :micros-opt="userProfile?.micros_opt"
-              @add-item="handleQuickAddSlot"
-              @edit-meal="editMeal"
-              @delete-meal="deleteMeal"
-              @update-micros="(id, newMicros) => {
+            <MealSlotCard :slot-title="t('meals.slot.dinner')" :slot-bit="MealFlags.DINNER" :meals="dinnerMeals"
+              :is-loading="loading" :micros-opt="userProfile?.micros_opt" @add-item="handleQuickAddSlot"
+              @edit-meal="editMeal" @delete-meal="deleteMeal" @update-micros="(id, newMicros) => {
                 const m = meals.find(item => item.id === id)
                 if (m) editMeal({ ...m, micros: newMicros })
-              }"
-            />
+              }" />
 
-            <MealSlotCard
-              :slot-title="t('meals.slot.snack')"
-              :slot-bit="MealFlags.SNACK"
-              :meals="snackMeals"
-              :is-loading="loading"
-              :micros-opt="userProfile?.micros_opt"
-              @add-item="handleQuickAddSlot"
-              @edit-meal="editMeal"
-              @delete-meal="deleteMeal"
-              @update-micros="(id, newMicros) => {
+            <MealSlotCard :slot-title="t('meals.slot.snack')" :slot-bit="MealFlags.SNACK" :meals="snackMeals"
+              :is-loading="loading" :micros-opt="userProfile?.micros_opt" @add-item="handleQuickAddSlot"
+              @edit-meal="editMeal" @delete-meal="deleteMeal" @update-micros="(id, newMicros) => {
                 const m = meals.find(item => item.id === id)
                 if (m) editMeal({ ...m, micros: newMicros })
-              }"
-            />
+              }" />
           </div>
         </template>
       </TabbedView>
@@ -353,6 +282,7 @@ watch(currentUserId, async () => {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

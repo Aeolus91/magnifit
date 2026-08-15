@@ -135,7 +135,7 @@ const handleOcrAutofill = (data: { meal_name?: string; cal?: number; prot_g?: nu
 
 const handleSubmit = () => {
   if (!mealName.value.trim() || calories.value === null) return
-  
+
   let formattedName = mealName.value.trim()
   if (servingSize.value && !formattedName.includes('(')) {
     const servingDetail = servingsCount.value !== 1
@@ -177,25 +177,21 @@ const handleSubmit = () => {
     <div class="space-y-1.5">
       <label class="text-xs font-semibold text-slate-300">{{ t('meals.slot.label') }}</label>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <button
-          v-for="slot in mealSlotOptions"
-          :key="slot.bit"
-          type="button"
-          @click="selectedMealSlot = slot.bit"
+        <button v-for="slot in mealSlotOptions" :key="slot.bit" type="button" @click="selectedMealSlot = slot.bit"
           :class="[
             'py-2 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer text-center',
             selectedMealSlot === slot.bit
               ? 'bg-amber-950/70 border-amber-500 text-amber-300'
               : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-          ]"
-        >
+          ]">
           {{ slot.label }}
         </button>
       </div>
     </div>
 
     <!-- Mode Switcher Pill Bar (Manual, Search, OCR) with Sliding Indicator -->
-    <div class="relative grid grid-cols-3 p-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold gap-1 overflow-hidden">
+    <div
+      class="relative grid grid-cols-3 p-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold gap-1 overflow-hidden">
       <!-- Animated Sliding Background Pill -->
       <div
         class="absolute top-1.5 bottom-1.5 rounded-lg bg-amber-500 shadow-md transition-all duration-300 ease-out pointer-events-none"
@@ -203,41 +199,28 @@ const handleSubmit = () => {
           width: 'calc((100% - 12px) / 3)',
           left: '6px',
           transform: activeMode === 'manual' ? 'translateX(0%)' : activeMode === 'search' ? 'translateX(calc(100% + 4px))' : 'translateX(calc(200% + 8px))'
-        }"
-      ></div>
+        }"></div>
 
-      <button
-        type="button"
-        @click="activeMode = 'manual'"
-        :class="[
-          'relative z-10 py-2 px-1.5 sm:px-2 min-h-[52px] sm:min-h-[44px] rounded-lg transition-colors duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight',
-          activeMode === 'manual' ? 'text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-        ]"
-      >
+      <button type="button" @click="activeMode = 'manual'" :class="[
+        'relative z-10 py-2 px-1.5 sm:px-2 min-h-13 sm:min-h-11 rounded-lg transition-colors duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight',
+        activeMode === 'manual' ? 'text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+      ]">
         <PenTool class="w-3.5 h-3.5 shrink-0" />
         <span class="text-[11px] sm:text-xs text-center line-clamp-2">{{ t('meals.mode.manual') }}</span>
       </button>
 
-      <button
-        type="button"
-        @click="activeMode = 'search'"
-        :class="[
-          'relative z-10 py-2 px-1.5 sm:px-2 min-h-[52px] sm:min-h-[44px] rounded-lg transition-colors duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight',
-          activeMode === 'search' ? 'text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-        ]"
-      >
+      <button type="button" @click="activeMode = 'search'" :class="[
+        'relative z-10 py-2 px-1.5 sm:px-2 min-h-13 sm:min-h-11 rounded-lg transition-colors duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight',
+        activeMode === 'search' ? 'text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+      ]">
         <Search class="w-3.5 h-3.5 shrink-0" />
         <span class="text-[11px] sm:text-xs text-center line-clamp-2">{{ t('meals.mode.search') }}</span>
       </button>
 
-      <button
-        type="button"
-        @click="activeMode = 'ocr'"
-        :class="[
-          'relative z-10 py-2 px-1.5 sm:px-2 min-h-[52px] sm:min-h-[44px] rounded-lg transition-colors duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight',
-          activeMode === 'ocr' ? 'text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-        ]"
-      >
+      <button type="button" @click="activeMode = 'ocr'" :class="[
+        'relative z-10 py-2 px-1.5 sm:px-2 min-h-13 sm:min-h-11 rounded-lg transition-colors duration-200 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight',
+        activeMode === 'ocr' ? 'text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+      ]">
         <Camera class="w-3.5 h-3.5 shrink-0" />
         <span class="text-[11px] sm:text-xs text-center line-clamp-2">{{ t('meals.mode.ocr') }}</span>
       </button>
@@ -260,26 +243,14 @@ const handleSubmit = () => {
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="sm:col-span-2 space-y-1.5">
           <label class="text-xs font-semibold text-slate-300">{{ t('meals.item_name_label') }}</label>
-          <input
-            type="text"
-            v-model="mealName"
-            :placeholder="t('meals.item_name_placeholder')"
-            required
-            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition"
-          />
+          <input type="text" v-model="mealName" :placeholder="t('meals.item_name_placeholder')" required
+            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition" />
         </div>
 
         <div class="space-y-1.5">
           <label class="text-xs font-semibold text-slate-300">{{ t('meals.cal_label') }}</label>
-          <input
-            type="number"
-            v-model.number="calories"
-            placeholder="550"
-            min="0"
-            max="10000"
-            required
-            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition"
-          />
+          <input type="number" v-model.number="calories" placeholder="550" min="0" max="10000" required
+            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
         </div>
       </div>
 
@@ -287,34 +258,20 @@ const handleSubmit = () => {
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
         <div class="space-y-1">
           <label class="text-[11px] font-medium text-slate-400">Serving Size (Optional)</label>
-          <input
-            type="number"
-            v-model.number="servingSize"
-            placeholder="100"
-            min="1"
-            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none"
-          />
+          <input type="number" v-model.number="servingSize" placeholder="100" min="1"
+            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none" />
         </div>
 
         <div class="space-y-1">
           <label class="text-[11px] font-medium text-slate-400">Unit</label>
-          <input
-            type="text"
-            v-model="servingUnit"
-            placeholder="g / ml / scoop"
-            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none"
-          />
+          <input type="text" v-model="servingUnit" placeholder="g / ml / scoop"
+            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none" />
         </div>
 
         <div class="space-y-1">
           <label class="text-[11px] font-medium text-slate-400"># of Servings</label>
-          <input
-            type="number"
-            step="0.25"
-            v-model.number="servingsCount"
-            min="0.25"
-            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none"
-          />
+          <input type="number" step="0.25" v-model.number="servingsCount" min="0.25"
+            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none" />
         </div>
       </div>
 
@@ -322,87 +279,57 @@ const handleSubmit = () => {
       <div class="grid grid-cols-3 gap-3">
         <div class="space-y-1">
           <label class="text-xs font-medium text-slate-400">{{ t('meals.prot_label') }}</label>
-          <input
-            type="number"
-            v-model.number="proteinG"
-            placeholder="40"
-            min="0"
-            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition"
-          />
+          <input type="number" v-model.number="proteinG" placeholder="40" min="0"
+            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
         </div>
 
         <div class="space-y-1">
           <label class="text-xs font-medium text-slate-400">{{ t('meals.carb_label') }}</label>
-          <input
-            type="number"
-            v-model.number="carbsG"
-            placeholder="55"
-            min="0"
-            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition"
-          />
+          <input type="number" v-model.number="carbsG" placeholder="55" min="0"
+            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
         </div>
 
         <div class="space-y-1">
           <label class="text-xs font-medium text-slate-400">{{ t('meals.fat_label') }}</label>
-          <input
-            type="number"
-            v-model.number="fatG"
-            placeholder="15"
-            min="0"
-            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition"
-          />
+          <input type="number" v-model.number="fatG" placeholder="15" min="0"
+            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
         </div>
       </div>
 
       <!-- Collapsible Tracked Micronutrients Accordion Section -->
       <div class="space-y-2 pt-1">
-        <button
-          type="button"
-          @click="isMicrosOpen = !isMicrosOpen"
-          class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-left group"
-        >
+        <button type="button" @click="isMicrosOpen = !isMicrosOpen"
+          class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-left group">
           <div class="flex items-center gap-2">
             <Info class="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span class="text-xs font-semibold text-slate-300 group-hover:text-slate-100 transition">
               Optional Micronutrients
             </span>
-            <span v-if="filledMicrosCount > 0" class="px-1.5 py-0.2 rounded-md bg-amber-950/80 border border-amber-800/60 text-[10px] font-mono text-amber-300 font-bold">
+            <span v-if="filledMicrosCount > 0"
+              class="px-1.5 py-0.2 rounded-md bg-amber-950/80 border border-amber-800/60 text-[10px] font-mono text-amber-300 font-bold">
               {{ filledMicrosCount }} set
             </span>
           </div>
-          <ChevronDown
-            :class="[
-              'w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform duration-200',
-              isMicrosOpen ? 'rotate-180 text-amber-400' : ''
-            ]"
-          />
+          <ChevronDown :class="[
+            'w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform duration-200',
+            isMicrosOpen ? 'rotate-180 text-amber-400' : ''
+          ]" />
         </button>
 
-        <div v-if="isMicrosOpen" class="max-h-60 overflow-y-auto space-y-2 pr-1 border border-slate-800/80 rounded-xl p-3 bg-slate-950/80 animate-in fade-in slide-in-from-top-1 duration-200">
-          <div
-            v-for="(meta, key) in microLabels"
-            :key="key"
-            class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 text-xs"
-          >
+        <div v-if="isMicrosOpen"
+          class="max-h-60 overflow-y-auto space-y-2 pr-1 border border-slate-800/80 rounded-xl p-3 bg-slate-950/80 animate-in fade-in slide-in-from-top-1 duration-200">
+          <div v-for="(meta, key) in microLabels" :key="key"
+            class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 text-xs">
             <label class="text-slate-300 truncate text-[11px]">{{ meta.label }} ({{ meta.unit }})</label>
-            <input
-              type="number"
-              step="any"
-              min="0"
-              v-model.number="mealMicros[key]"
-              placeholder="0"
-              class="w-24 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono text-amber-300 text-right focus:outline-none"
-            />
+            <input type="number" step="any" min="0" v-model.number="mealMicros[key]" placeholder="0"
+              class="w-24 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono text-amber-300 text-right focus:outline-none" />
           </div>
         </div>
       </div>
 
-      <button
-        type="submit"
-        :disabled="isSubmitting"
-        class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-lg shadow-amber-950/40 disabled:opacity-50"
-      >
-        <Plus class="w-4 h-4 stroke-[3]" />
+      <button type="submit" :disabled="isSubmitting"
+        class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-lg shadow-amber-950/40 disabled:opacity-50">
+        <Plus class="w-4 h-4 stroke-3" />
         <span>{{ t('meals.submit_save') }}</span>
       </button>
     </form>

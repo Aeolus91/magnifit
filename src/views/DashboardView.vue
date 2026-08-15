@@ -39,7 +39,6 @@ const currentUserId = computed(() => authStore.user.value?.id)
 
 // Composables Architecture
 const {
-  workouts,
   filteredWorkouts,
   totalActiveCalories,
   fetchWorkouts,
@@ -124,7 +123,7 @@ const handleUpdateProfilePrefs = async (newPrefs: number) => {
       .from('profiles')
       .update({ prefs: newPrefs })
       .eq('id', currentUserId.value)
-  } catch {}
+  } catch { }
 }
 
 const fetchAll = async (invalidate = false) => {
@@ -132,7 +131,7 @@ const fetchAll = async (invalidate = false) => {
   if (invalidate) {
     try {
       localStorage.removeItem('mfit_recent_foods')
-    } catch {}
+    } catch { }
   }
   loading.value = true
   await Promise.allSettled([
@@ -187,7 +186,7 @@ onMounted(async () => {
         .update({ tz: userTimezone })
         .eq('id', currentUserId.value)
       userProfile.value.tz = userTimezone
-    } catch {}
+    } catch { }
   }
 
   supabase.channel('public:workouts')
@@ -223,126 +222,68 @@ onMounted(async () => {
       @completed="onOnboardingCompleted" @dismiss="showOnboardingModal = false" />
 
     <!-- Quick Add Modal -->
-    <QuickAddModal
-      :show="showAddModal"
-      @close="showAddModal = false"
-      @select="(tab) => {
-        showAddModal = false
-        if (tab === 'meals') {
-          navigate('/meals', false, { logDate: selectedDate })
-        } else if (tab === 'workouts') {
-          activeTab = 'workouts'
-          showWorkoutModal = true
-        } else if (tab === 'biometrics') {
-          activeTab = 'biometrics'
-          showBiometricsModal = true
-        }
-      }"
-    />
+    <QuickAddModal :show="showAddModal" @close="showAddModal = false" @select="(tab) => {
+      showAddModal = false
+      if (tab === 'meals') {
+        navigate('/meals', false, { logDate: selectedDate })
+      } else if (tab === 'workouts') {
+        activeTab = 'workouts'
+        showWorkoutModal = true
+      } else if (tab === 'biometrics') {
+        activeTab = 'biometrics'
+        showBiometricsModal = true
+      }
+    }" />
 
     <!-- Standalone Workout Modal triggered via Quick Add -->
-    <WorkoutModal
-      :show="showWorkoutModal"
-      @close="showWorkoutModal = false"
-      @submit="addWorkout"
-    />
+    <WorkoutModal :show="showWorkoutModal" @close="showWorkoutModal = false" @submit="addWorkout" />
 
     <!-- Standalone Biometrics Modal triggered via Quick Add -->
-    <BiometricsModal
-      :show="showBiometricsModal"
-      @close="showBiometricsModal = false"
-      @submit="addBiometric"
-    />
+    <BiometricsModal :show="showBiometricsModal" @close="showBiometricsModal = false" @submit="addBiometric" />
 
     <div class="max-w-4xl mx-auto px-4 py-8 space-y-8">
       <!-- App Header & Profile Menu Component -->
-      <DashboardHeader
-        :user-profile="userProfile"
-        :user-email="authStore.user.value?.email"
-        :loading="loading"
-        :fetchers="refreshFetchers"
-        @open-onboarding="showOnboardingModal = true"
-        @sign-out="handleSignOut"
-      />
+      <DashboardHeader :user-profile="userProfile" :user-email="authStore.user.value?.email" :loading="loading"
+        :fetchers="refreshFetchers" @open-onboarding="showOnboardingModal = true" @sign-out="handleSignOut" />
 
-    <!-- Date Navigation Popover & Add Quick Action -->
-    <div class="flex items-center justify-between gap-3">
-      <DatePickerPopover v-model="selectedDate" :logged-dates="loggedDates" />
-      <button
-        type="button"
-        @click="showAddModal = true"
-        class="flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition active:scale-95 shadow-md shadow-emerald-950/40 cursor-pointer"
-        title="Quick Log"
-      >
-        <Plus class="w-5 h-5 stroke-[2.5]" />
-      </button>
-    </div>
+      <!-- Date Navigation Popover & Add Quick Action -->
+      <div class="flex items-center justify-between gap-3">
+        <DatePickerPopover v-model="selectedDate" :logged-dates="loggedDates" />
+        <button type="button" @click="showAddModal = true"
+          class="flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition active:scale-95 shadow-md shadow-emerald-950/40 cursor-pointer"
+          title="Quick Log">
+          <Plus class="w-5 h-5 stroke-[2.5]" />
+        </button>
+      </div>
 
       <!-- Summary Cards Grid (Scoped to selected date) -->
-      <DashboardSummaryCards
-        :total-active-calories="totalActiveCalories"
-        :latest-weight="latestWeight"
-        :latest-bmi="latestBmi"
-        :protein-g="totalProteinG"
-        :carbs-g="totalCarbsG"
-        :fat-g="totalFatG"
-        :is-loading="loading"
-      />
+      <DashboardSummaryCards :total-active-calories="totalActiveCalories" :latest-weight="latestWeight"
+        :latest-bmi="latestBmi" :protein-g="totalProteinG" :carbs-g="totalCarbsG" :fat-g="totalFatG"
+        :is-loading="loading" />
 
       <!-- Main Metric Trackers: Animated Calories & Water Gauges -->
       <div class="space-y-4">
-        <CalorieTrackerCard
-          :consumed="totalCaloriesConsumed"
-          :expenditure="totalActiveCalories"
-          :target="userProfile?.target_cal || 2000"
-          :recommended-target="recommendedCalories"
-          :bmr="bmr"
-          :tdee="tdee"
-          :formula-used="formulaUsed"
-          :has-body-fat="hasBodyFat"
-          :is-loading="loading"
+        <CalorieTrackerCard :consumed="totalCaloriesConsumed" :expenditure="totalActiveCalories"
+          :target="userProfile?.target_cal || 2000" :recommended-target="recommendedCalories" :bmr="bmr" :tdee="tdee"
+          :formula-used="formulaUsed" :has-body-fat="hasBodyFat" :is-loading="loading"
           @update-target="updateCalorieTarget"
-          @navigate-meals="navigate('/meals', false, { logDate: selectedDate, tab: 'summary' })"
-        />
-        <WaterTrackerCard
-          :current-ml="totalWaterMl"
-          :target-ml="userProfile?.target_water_ml || 2500"
-          :can-undo="filteredWaterLogs.length > 0"
-          :is-loading="loading"
-          @add-water="addWater"
-          @undo="undoLastWater"
-          @update-target="updateWaterTarget"
-        />
+          @navigate-meals="navigate('/meals', false, { logDate: selectedDate, tab: 'summary' })" />
+        <WaterTrackerCard :current-ml="totalWaterMl" :target-ml="userProfile?.target_water_ml || 2500"
+          :can-undo="filteredWaterLogs.length > 0" :is-loading="loading" @add-water="addWater" @undo="undoLastWater"
+          @update-target="updateWaterTarget" />
       </div>
 
-    <!-- Granular Tabbed Feature Sections Component -->
-    <DashboardTabSection
-      v-model="activeTab"
-      :target-date="selectedDate"
-      :workouts="filteredWorkouts"
-      :biometrics="biometrics"
-      :meals="filteredMeals"
-      :water-logs="filteredWaterLogs"
-      :micros-opt="userProfile?.micros_opt"
-      :prefs="userProfile?.prefs"
-      @add-workout="addWorkout"
-      @edit-workout="editWorkout"
-      @delete-workout="deleteWorkout"
-      @add-biometric="addBiometric"
-      @edit-biometric="editBiometric"
-      @delete-biometric="deleteBiometric"
-      @update-prefs="handleUpdateProfilePrefs"
-      @log-meal="(slot) => navigate('/meals', false, { logDate: selectedDate, initialSlot: slot })"
-      @edit-meal="editMeal"
-      @delete-meal="deleteMeal"
-      @update-micros="(id, newMicros) => {
-        const m = filteredMeals.find(item => item.id === id)
-        if (m) editMeal({ ...m, micros: newMicros })
-      }"
-      @add-water="addWater"
-      @edit-water="editWater"
-      @delete-water="deleteWater"
-    />
-  </div>
+      <!-- Granular Tabbed Feature Sections Component -->
+      <DashboardTabSection v-model="activeTab" :target-date="selectedDate" :workouts="filteredWorkouts"
+        :biometrics="biometrics" :meals="filteredMeals" :water-logs="filteredWaterLogs"
+        :micros-opt="userProfile?.micros_opt" :prefs="userProfile?.prefs" @add-workout="addWorkout"
+        @edit-workout="editWorkout" @delete-workout="deleteWorkout" @add-biometric="addBiometric"
+        @edit-biometric="editBiometric" @delete-biometric="deleteBiometric" @update-prefs="handleUpdateProfilePrefs"
+        @log-meal="(slot) => navigate('/meals', false, { logDate: selectedDate, initialSlot: slot })"
+        @edit-meal="editMeal" @delete-meal="deleteMeal" @update-micros="(id, newMicros) => {
+          const m = filteredMeals.find(item => item.id === id)
+          if (m) editMeal({ ...m, micros: newMicros })
+        }" @add-water="addWater" @edit-water="editWater" @delete-water="deleteWater" />
+    </div>
   </div>
 </template>

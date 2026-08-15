@@ -79,21 +79,12 @@ const fatDeg = computed(() => {
     <div class="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden flex gap-0.5 border border-slate-800/80">
       <div v-if="isLoading" class="w-full bg-slate-800 animate-pulse"></div>
       <template v-else>
-        <div
-          class="bg-emerald-500 transition-all duration-700 ease-out"
-          :style="{ width: isActivated ? `${proteinPct}%` : '0%' }"
-          :title="`Protein: ${proteinPct}%`"
-        ></div>
-        <div
-          class="bg-amber-400 transition-all duration-700 ease-out"
-          :style="{ width: isActivated ? `${carbsPct}%` : '0%' }"
-          :title="`Carbs: ${carbsPct}%`"
-        ></div>
-        <div
-          class="bg-rose-500 transition-all duration-700 ease-out"
-          :style="{ width: isActivated ? `${fatPct}%` : '0%' }"
-          :title="`Fat: ${fatPct}%`"
-        ></div>
+        <div class="bg-emerald-500 transition-all duration-700 ease-out"
+          :style="{ width: isActivated ? `${proteinPct}%` : '0%' }" :title="`Protein: ${proteinPct}%`"></div>
+        <div class="bg-amber-400 transition-all duration-700 ease-out"
+          :style="{ width: isActivated ? `${carbsPct}%` : '0%' }" :title="`Carbs: ${carbsPct}%`"></div>
+        <div class="bg-rose-500 transition-all duration-700 ease-out"
+          :style="{ width: isActivated ? `${fatPct}%` : '0%' }" :title="`Fat: ${fatPct}%`"></div>
       </template>
     </div>
 
@@ -102,14 +93,13 @@ const fatDeg = computed(() => {
       <!-- Protein Gauge -->
       <div class="flex flex-col items-center gap-1.5">
         <span class="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-400">Protein</span>
-        
+
         <div
           class="macro-gauge-p relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-[6px] sm:p-[7px] flex items-center justify-center my-1 shadow-inner active:scale-[0.98] transition-transform"
-          :class="isLoading ? 'opacity-40 animate-pulse' : 'opacity-100'"
-          :style="{ '--p-deg': proteinDeg }"
-        >
+          :class="isLoading ? 'opacity-40 animate-pulse' : 'opacity-100'" :style="{ '--p-deg': proteinDeg }">
           <!-- Inner Cutout -->
-          <div class="w-full h-full rounded-full bg-slate-900 flex flex-col items-center justify-center shadow-lg select-none">
+          <div
+            class="w-full h-full rounded-full bg-slate-900 flex flex-col items-center justify-center shadow-lg select-none">
             <span v-if="isLoading" class="text-xs text-slate-500 font-bold">--</span>
             <template v-else>
               <span class="text-xs sm:text-sm font-black text-slate-100 leading-none">{{ proteinG }}g</span>
@@ -126,14 +116,13 @@ const fatDeg = computed(() => {
       <!-- Carbs Gauge -->
       <div class="flex flex-col items-center gap-1.5">
         <span class="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-amber-400">Carbs</span>
-        
+
         <div
-          class="macro-gauge-c relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-[6px] sm:p-[7px] flex items-center justify-center my-1 shadow-inner active:scale-[0.98] transition-transform"
-          :class="isLoading ? 'opacity-40 animate-pulse' : 'opacity-100'"
-          :style="{ '--c-deg': carbsDeg }"
-        >
+          class="macro-gauge-c relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1.5 sm:p-1.75 flex items-center justify-center my-1 shadow-inner active:scale-[0.98] transition-transform"
+          :class="isLoading ? 'opacity-40 animate-pulse' : 'opacity-100'" :style="{ '--c-deg': carbsDeg }">
           <!-- Inner Cutout -->
-          <div class="w-full h-full rounded-full bg-slate-900 flex flex-col items-center justify-center shadow-lg select-none">
+          <div
+            class="w-full h-full rounded-full bg-slate-900 flex flex-col items-center justify-center shadow-lg select-none">
             <span v-if="isLoading" class="text-xs text-slate-500 font-bold">--</span>
             <template v-else>
               <span class="text-xs sm:text-sm font-black text-slate-100 leading-none">{{ carbsG }}g</span>
@@ -150,14 +139,13 @@ const fatDeg = computed(() => {
       <!-- Fat Gauge -->
       <div class="flex flex-col items-center gap-1.5">
         <span class="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-rose-400">Fat</span>
-        
+
         <div
-          class="macro-gauge-f relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-[6px] sm:p-[7px] flex items-center justify-center my-1 shadow-inner active:scale-[0.98] transition-transform"
-          :class="isLoading ? 'opacity-40 animate-pulse' : 'opacity-100'"
-          :style="{ '--f-deg': fatDeg }"
-        >
+          class="macro-gauge-f relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1.5 sm:p-1.75 flex items-center justify-center my-1 shadow-inner active:scale-[0.98] transition-transform"
+          :class="isLoading ? 'opacity-40 animate-pulse' : 'opacity-100'" :style="{ '--f-deg': fatDeg }">
           <!-- Inner Cutout -->
-          <div class="w-full h-full rounded-full bg-slate-900 flex flex-col items-center justify-center shadow-lg select-none">
+          <div
+            class="w-full h-full rounded-full bg-slate-900 flex flex-col items-center justify-center shadow-lg select-none">
             <span v-if="isLoading" class="text-xs text-slate-500 font-bold">--</span>
             <template v-else>
               <span class="text-xs sm:text-sm font-black text-slate-100 leading-none">{{ fatG }}g</span>

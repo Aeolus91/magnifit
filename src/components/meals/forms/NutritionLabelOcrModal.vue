@@ -34,7 +34,7 @@ const detectedMacros = ref<{
 
 const parseNutritionText = (text: string) => {
   const normalized = text.toLowerCase().replace(/\s+/g, ' ')
-  
+
   // 1. Calories parsing
   const calMatch = normalized.match(/(?:calories|energy|kcal|calory)[\s:]*([0-9]{1,4})/i)
     || normalized.match(/([0-9]{1,4})\s*(?:calories|kcal)/i)
@@ -134,8 +134,10 @@ const handleApply = () => {
 <template>
   <div class="space-y-4">
     <!-- Camera/Upload Action Area -->
-    <div class="bg-slate-950/80 border-2 border-dashed border-slate-800 hover:border-amber-500/60 rounded-2xl p-6 text-center space-y-4 transition">
-      <div class="p-3 bg-amber-950/40 border border-amber-800/60 text-amber-400 rounded-full w-12 h-12 mx-auto flex items-center justify-center">
+    <div
+      class="bg-slate-950/80 border-2 border-dashed border-slate-800 hover:border-amber-500/60 rounded-2xl p-6 text-center space-y-4 transition">
+      <div
+        class="p-3 bg-amber-950/40 border border-amber-800/60 text-amber-400 rounded-full w-12 h-12 mx-auto flex items-center justify-center">
         <Camera class="w-6 h-6" />
       </div>
 
@@ -147,7 +149,8 @@ const handleApply = () => {
       </div>
 
       <div class="flex items-center justify-center gap-3 pt-2">
-        <label class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center gap-2 cursor-pointer transition shadow-md">
+        <label
+          class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center gap-2 cursor-pointer transition shadow-md">
           <Upload class="w-4 h-4" />
           <span>{{ t('meals.ocr.upload_btn') }}</span>
           <input type="file" accept="image/*" class="hidden" @change="handleFileSelect" />
@@ -162,13 +165,15 @@ const handleApply = () => {
     </div>
 
     <!-- Error Alert -->
-    <div v-if="errorMessage" class="p-3 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
+    <div v-if="errorMessage"
+      class="p-3 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
       <AlertCircle class="w-4 h-4 text-rose-400 shrink-0" />
       <span>{{ errorMessage }}</span>
     </div>
 
     <!-- Detected Data Card -->
-    <div v-if="detectedMacros.cal !== null && !isProcessing" class="bg-slate-950 border border-emerald-500/60 rounded-2xl p-4 space-y-3 animate-in fade-in zoom-in-95">
+    <div v-if="detectedMacros.cal !== null && !isProcessing"
+      class="bg-slate-950 border border-emerald-500/60 rounded-2xl p-4 space-y-3 animate-in fade-in zoom-in-95">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
           <Sparkles class="w-4 h-4" />
@@ -198,12 +203,9 @@ const handleApply = () => {
         </div>
       </div>
 
-      <button
-        type="button"
-        @click="handleApply"
-        class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
-      >
-        <Check class="w-3.5 h-3.5 stroke-[3]" />
+      <button type="button" @click="handleApply"
+        class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md">
+        <Check class="w-3.5 h-3.5 stroke-3" />
         <span>Autofill Form</span>
       </button>
     </div>

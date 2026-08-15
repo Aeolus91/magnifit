@@ -1,88 +1,79 @@
-import { ref, computed, type Ref } from 'vue'
-import { supabase } from '../lib/supabaseClient'
-import { uuidv7 } from '../lib/uuidv7'
-import { getLocalISODate } from '../lib/dateUtils'
-import { offlineSync } from '../lib/offlineSync'
-import type { Meal, Recipe, RecipeItem } from '../types/fitness'
+import { ref, computed, type Ref } from 'vue';
+import { supabase } from '../lib/supabaseClient';
+import { uuidv7 } from '../lib/uuidv7';
+import { getLocalISODate } from '../lib/dateUtils';
+import { offlineSync } from '../lib/offlineSync';
+import type { Meal, Recipe, RecipeItem } from '../types/fitness';
 
 export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<string>, loggedDates: Ref<string[]>) {
-  const meals = ref<Meal[]>([])
-  const loading = ref(false)
+  const meals = ref<Meal[]>([]);
+  const loading = ref(false);
 
   // Date-scoped meals matching selectedDate
   const filteredMeals = computed(() =>
-    meals.value.filter(m => (m.log_date || getLocalISODate(m.ts)) === selectedDate.value)
-  )
+    meals.value.filter((m) => (m.log_date || getLocalISODate(m.ts)) === selectedDate.value),
+  );
 
   // Computed total nutritional macros on selectedDate
   const totalCaloriesConsumed = computed(() =>
-    filteredMeals.value.reduce((acc, m) => acc + (m.cal || m.calories || 0), 0)
-  )
-  const totalProteinG = computed(() =>
-    filteredMeals.value.reduce((acc, m) => acc + (m.prot_g || m.protein_g || 0), 0)
-  )
-  const totalCarbsG = computed(() =>
-    filteredMeals.value.reduce((acc, m) => acc + (m.carb_g || m.carbs_g || 0), 0)
-  )
-  const totalFatG = computed(() =>
-    filteredMeals.value.reduce((acc, m) => acc + (m.fat_g || 0), 0)
-  )
+    filteredMeals.value.reduce((acc, m) => acc + (m.cal || m.calories || 0), 0),
+  );
+  const totalProteinG = computed(() => filteredMeals.value.reduce((acc, m) => acc + (m.prot_g || m.protein_g || 0), 0));
+  const totalCarbsG = computed(() => filteredMeals.value.reduce((acc, m) => acc + (m.carb_g || m.carbs_g || 0), 0));
+  const totalFatG = computed(() => filteredMeals.value.reduce((acc, m) => acc + (m.fat_g || 0), 0));
 
   const fetchMeals = async (uid?: string) => {
-    const targetUid = uid || userId.value
-    if (!targetUid) return
-    loading.value = true
+    const targetUid = uid || userId.value;
+    if (!targetUid) return;
+    loading.value = true;
     const { data: mealRows } = await supabase
       .from<Meal>('meals')
       .select()
       .eq('user_id', targetUid)
       .order('log_date', { ascending: false })
       .order('id', { ascending: false })
-      .get()
+      .get();
 
     if (mealRows) {
-      const { data: microRows } = await supabase
-        .from<any>('micronutrients')
-        .select()
-        .get()
+      const { data: microRows } = await supabase.from<any>('micronutrients').select().get();
 
-      const microMap = new Map<string, any>()
+      const microMap = new Map<string, any>();
       if (microRows) {
         microRows.forEach((r: any) => {
           if (r.meal_id) {
-            const { meal_id, ...rest } = r
-            microMap.set(meal_id, rest)
+            const { meal_id, ...rest } = r;
+            microMap.set(meal_id, rest);
           }
-        })
+        });
       }
 
       meals.value = mealRows.map((m: Meal) => ({
         ...m,
-        micros: m.id && microMap.has(m.id) ? microMap.get(m.id) : m.micros
-      }))
+        micros: m.id && microMap.has(m.id) ? microMap.get(m.id) : m.micros,
+      }));
 
       mealRows.forEach((m: Meal) => {
-        const d = m.log_date || getLocalISODate(m.ts)
+        const d = m.log_date || getLocalISODate(m.ts);
         if (d && !loggedDates.value.includes(d)) {
-          loggedDates.value.push(d)
+          loggedDates.value.push(d);
         }
-      })
+      });
     }
-    loading.value = false
-  }
+    loading.value = false;
+  };
 
   const addMeal = async (mealData: Meal) => {
-    if (!userId.value) return
-    const id = mealData.id || uuidv7()
+    if (!userId.value) return;
+    const id = mealData.id || uuidv7();
     const payload: Meal = {
       ...mealData,
       id,
       user_id: userId.value,
-      log_date: mealData.log_date || selectedDate.value
-    }
-    meals.value.unshift(payload)
+      log_date: mealData.log_date || selectedDate.value,
+    };
+    meals.value.unshift(payload);
     if (!loggedDates.value.includes(payload.log_date || selectedDate.value)) {
-      loggedDates.value.push(payload.log_date || selectedDate.value)
+      loggedDates.value.push(payload.log_date || selectedDate.value);
     }
 
     const mealInsertPayload: any = {
@@ -98,26 +89,28 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       serving_unit: mealData.serving_unit || null,
       servings: mealData.servings || 1,
       template_id: mealData.template_id || null,
-      log_date: payload.log_date
-    }
+      log_date: payload.log_date,
+    };
 
     try {
-      const { error } = await supabase.from('meals').insert([mealInsertPayload])
+      const { error } = await supabase.from('meals').insert([mealInsertPayload]);
       if (error) {
-        offlineSync.enqueue('meals', 'insert', mealInsertPayload)
+        offlineSync.enqueue('meals', 'insert', mealInsertPayload);
       } else if (mealData.micros && Object.keys(mealData.micros).length > 0) {
-        await supabase.from('micronutrients').insert([{
-          meal_id: id,
-          ...mealData.micros
-        }])
+        await supabase.from('micronutrients').insert([
+          {
+            meal_id: id,
+            ...mealData.micros,
+          },
+        ]);
       }
     } catch {
-      offlineSync.enqueue('meals', 'insert', mealInsertPayload)
+      offlineSync.enqueue('meals', 'insert', mealInsertPayload);
     }
-  }
+  };
 
   const editMeal = async (mealData: Meal) => {
-    if (!userId.value || !mealData.id) return
+    if (!userId.value || !mealData.id) return;
     const updatePayload: any = {
       meal_name: mealData.meal_name,
       cal: Math.round(mealData.cal || mealData.calories || 0),
@@ -128,105 +121,99 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       serving_size: mealData.serving_size || null,
       serving_unit: mealData.serving_unit || null,
       servings: mealData.servings || 1,
-      template_id: mealData.template_id || null
-    }
+      template_id: mealData.template_id || null,
+    };
 
-    const idx = meals.value.findIndex(m => m.id === mealData.id)
+    const idx = meals.value.findIndex((m) => m.id === mealData.id);
     if (idx !== -1) {
-      meals.value[idx] = { ...meals.value[idx], ...mealData }
+      meals.value[idx] = { ...meals.value[idx], ...mealData };
     }
 
     try {
-      const { error } = await supabase
-        .from('meals')
-        .update(updatePayload)
-        .eq('id', mealData.id)
+      const { error } = await supabase.from('meals').update(updatePayload).eq('id', mealData.id);
 
       if (error) {
-        offlineSync.enqueue('meals', 'update', { id: mealData.id, ...updatePayload })
+        offlineSync.enqueue('meals', 'update', { id: mealData.id, ...updatePayload });
       } else if (mealData.micros && Object.keys(mealData.micros).length > 0) {
         await supabase.from('micronutrients').upsert({
           meal_id: mealData.id,
-          ...mealData.micros
-        })
+          ...mealData.micros,
+        });
       }
     } catch {
-      offlineSync.enqueue('meals', 'update', { id: mealData.id, ...updatePayload })
+      offlineSync.enqueue('meals', 'update', { id: mealData.id, ...updatePayload });
     }
-  }
+  };
 
   const deleteMeal = async (id: string) => {
-    if (!userId.value || !id) return
-    const idx = meals.value.findIndex(m => m.id === id)
+    if (!userId.value || !id) return;
+    const idx = meals.value.findIndex((m) => m.id === id);
     if (idx !== -1) {
-      meals.value.splice(idx, 1)
+      meals.value.splice(idx, 1);
     }
 
     try {
-      const { error } = await supabase.from('meals').delete().eq('id', id)
+      const { error } = await supabase.from('meals').delete().eq('id', id);
       if (error) {
-        offlineSync.enqueue('meals', 'delete', { id })
+        offlineSync.enqueue('meals', 'delete', { id });
       }
     } catch {
-      offlineSync.enqueue('meals', 'delete', { id })
+      offlineSync.enqueue('meals', 'delete', { id });
     }
-  }
+  };
 
   // Recipes & Coupled Meal Templates State
-  const recipes = ref<Recipe[]>([])
+  const recipes = ref<Recipe[]>([]);
 
   const fetchRecipes = async (uid?: string) => {
-    const targetUid = uid || userId.value
-    if (!targetUid) return
+    const targetUid = uid || userId.value;
+    if (!targetUid) return;
     const { data: recipeData } = await supabase
       .from<Recipe>('recipes')
       .select()
       .eq('user_id', targetUid)
       .order('name', { ascending: true })
-      .get()
+      .get();
 
     if (recipeData && recipeData.length > 0) {
-      // Fetch constituent items for all recipes
-      const recipeIds = recipeData.map(r => r.id).filter(Boolean) as string[]
-      
       const [itemsRes, microsRes] = await Promise.all([
         supabase.from<RecipeItem>('recipe_items').select().get(),
-        supabase.from<any>('recipe_micronutrients').select().get()
-      ])
+        supabase.from<any>('recipe_micronutrients').select().get(),
+      ]);
 
-      const itemsByRecipe: Record<string, RecipeItem[]> = {}
+      const itemsByRecipe: Record<string, RecipeItem[]> = {};
       if (itemsRes.data) {
         itemsRes.data.forEach((item: RecipeItem) => {
           if (item.recipe_id) {
-            if (!itemsByRecipe[item.recipe_id]) itemsByRecipe[item.recipe_id] = []
-            itemsByRecipe[item.recipe_id].push(item)
+            if (!itemsByRecipe[item.recipe_id]) itemsByRecipe[item.recipe_id] = [];
+            itemsByRecipe[item.recipe_id].push(item);
           }
-        })
+        });
       }
 
-      const microsByRecipe: Record<string, Record<string, number>> = {}
+      const microsByRecipe: Record<string, Record<string, number>> = {};
       if (microsRes.data) {
         microsRes.data.forEach((m: any) => {
           if (m.recipe_id) {
-            const { id: _id, recipe_id: _rid, ...rest } = m
-            microsByRecipe[m.recipe_id] = rest
+            const { id: _id, recipe_id: _rid, ...rest } = m;
+            microsByRecipe[m.recipe_id] = rest;
           }
-        })
+        });
       }
 
-      recipes.value = recipeData.map(r => ({
+      recipes.value = recipeData.map((r: any) => ({
         ...r,
-        items: r.id ? (itemsByRecipe[r.id] || []) : [],
-        micros: r.id ? microsByRecipe[r.id] : undefined
-      }))
+        items: r.id ? itemsByRecipe[r.id] || [] : [],
+        micros: r.id ? microsByRecipe[r.id] : undefined,
+      }));
     } else if (recipeData) {
-      recipes.value = []
+      recipes.value = [];
     }
-  }
+  };
 
   const addRecipe = async (recipeData: Partial<Recipe>) => {
-    if (!userId.value) return
-    const id = recipeData.id || uuidv7()
+    if (!userId.value) return;
+    const id = recipeData.id || uuidv7();
     const payload: Recipe = {
       id,
       user_id: userId.value,
@@ -240,21 +227,21 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       serving_size: recipeData.serving_size !== undefined ? recipeData.serving_size : null,
       serving_unit: recipeData.serving_unit || 'g',
       flags: recipeData.flags || 0,
-      is_public: recipeData.is_public || false
-    }
+      is_public: recipeData.is_public || false,
+    };
 
     const createdRecipe: Recipe = {
       ...payload,
       items: recipeData.items || [],
-      micros: recipeData.micros
-    }
+      micros: recipeData.micros,
+    };
 
-    recipes.value.unshift(createdRecipe)
+    recipes.value.unshift(createdRecipe);
 
     try {
-      const { error } = await supabase.from('recipes').insert(payload)
+      const { error } = await supabase.from('recipes').insert(payload);
       if (error) {
-        offlineSync.enqueue('recipes', 'insert', payload)
+        offlineSync.enqueue('recipes', 'insert', payload);
       }
 
       // Insert constituent items if present
@@ -269,9 +256,9 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
             cal: Math.round(item.cal || 0),
             prot_g: Math.round((item.prot_g || 0) * 10) / 10,
             carb_g: Math.round((item.carb_g || 0) * 10) / 10,
-            fat_g: Math.round((item.fat_g || 0) * 10) / 10
-          }
-          await supabase.from('recipe_items').insert(itemPayload)
+            fat_g: Math.round((item.fat_g || 0) * 10) / 10,
+          };
+          await supabase.from('recipe_items').insert(itemPayload);
         }
       }
 
@@ -279,17 +266,17 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       if (recipeData.micros && Object.keys(recipeData.micros).length > 0) {
         await supabase.from('recipe_micronutrients').insert({
           recipe_id: id,
-          ...recipeData.micros
-        })
+          ...recipeData.micros,
+        });
       }
     } catch {
-      offlineSync.enqueue('recipes', 'insert', payload)
+      offlineSync.enqueue('recipes', 'insert', payload);
     }
-    return createdRecipe
-  }
+    return createdRecipe;
+  };
 
   const editRecipe = async (recipeData: Recipe) => {
-    if (!userId.value || !recipeData.id) return
+    if (!userId.value || !recipeData.id) return;
     const payload = {
       name: recipeData.name,
       description: recipeData.description || null,
@@ -299,23 +286,23 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       fat_g: Math.round((recipeData.fat_g || 0) * 10) / 10,
       servings: Math.max(0.1, Math.round(Number(recipeData.servings || 1) * 10) / 10),
       serving_size: recipeData.serving_size !== undefined ? recipeData.serving_size : null,
-      serving_unit: recipeData.serving_unit || 'g'
-    }
+      serving_unit: recipeData.serving_unit || 'g',
+    };
 
-    const idx = recipes.value.findIndex((r: Recipe) => r.id === recipeData.id)
+    const idx = recipes.value.findIndex((r: Recipe) => r.id === recipeData.id);
     if (idx !== -1) {
-      recipes.value[idx] = { ...recipes.value[idx], ...recipeData, ...payload }
+      recipes.value[idx] = { ...recipes.value[idx], ...recipeData, ...payload };
     }
 
     try {
-      const { error } = await supabase.from('recipes').update(payload).eq('id', recipeData.id)
+      const { error } = await supabase.from('recipes').update(payload).eq('id', recipeData.id);
       if (error) {
-        offlineSync.enqueue('recipes', 'update', { id: recipeData.id, ...payload })
+        offlineSync.enqueue('recipes', 'update', { id: recipeData.id, ...payload });
       }
 
       // Re-insert constituent items if updated
       if (recipeData.items) {
-        await supabase.from('recipe_items').delete().eq('recipe_id', recipeData.id)
+        await supabase.from('recipe_items').delete().eq('recipe_id', recipeData.id);
         for (const item of recipeData.items) {
           const itemPayload: RecipeItem = {
             id: item.id || uuidv7(),
@@ -326,46 +313,46 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
             cal: item.cal || 0,
             prot_g: item.prot_g || 0,
             carb_g: item.carb_g || 0,
-            fat_g: item.fat_g || 0
-          }
-          await supabase.from('recipe_items').insert(itemPayload)
+            fat_g: item.fat_g || 0,
+          };
+          await supabase.from('recipe_items').insert(itemPayload);
         }
       }
 
       // Re-insert opt-in recipe micronutrients if updated
       if (recipeData.micros) {
-        await supabase.from('recipe_micronutrients').delete().eq('recipe_id', recipeData.id)
+        await supabase.from('recipe_micronutrients').delete().eq('recipe_id', recipeData.id);
         if (Object.keys(recipeData.micros).length > 0) {
           await supabase.from('recipe_micronutrients').insert({
             recipe_id: recipeData.id,
-            ...recipeData.micros
-          })
+            ...recipeData.micros,
+          });
         }
       }
     } catch {
-      offlineSync.enqueue('recipes', 'update', { id: recipeData.id, ...payload })
+      offlineSync.enqueue('recipes', 'update', { id: recipeData.id, ...payload });
     }
-  }
+  };
 
   const deleteRecipe = async (recipeId: string) => {
-    if (!userId.value || !recipeId) return
-    const idx = recipes.value.findIndex((r: Recipe) => r.id === recipeId)
+    if (!userId.value || !recipeId) return;
+    const idx = recipes.value.findIndex((r: Recipe) => r.id === recipeId);
     if (idx !== -1) {
-      recipes.value.splice(idx, 1)
+      recipes.value.splice(idx, 1);
     }
 
     try {
-      const { error } = await supabase.from('recipes').delete().eq('id', recipeId)
+      const { error } = await supabase.from('recipes').delete().eq('id', recipeId);
       if (error) {
-        offlineSync.enqueue('recipes', 'delete', { id: recipeId })
+        offlineSync.enqueue('recipes', 'delete', { id: recipeId });
       }
     } catch {
-      offlineSync.enqueue('recipes', 'delete', { id: recipeId })
+      offlineSync.enqueue('recipes', 'delete', { id: recipeId });
     }
-  }
+  };
 
   const logRecipeAsMeal = async (recipe: Recipe, targetSlot: number, dateStr?: string, multiplier: number = 1) => {
-    if (!userId.value) return
+    if (!userId.value) return;
     const mealPayload: Meal = {
       user_id: userId.value,
       meal_name: multiplier !== 1 ? `${recipe.name} (${multiplier}x)` : recipe.name,
@@ -378,32 +365,34 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       servings: multiplier,
       flags: targetSlot,
       log_date: dateStr || selectedDate.value,
-      micros: recipe.micros ? Object.fromEntries(
-        Object.entries(recipe.micros).map(([k, v]) => [k, Math.round((v || 0) * multiplier * 10) / 10])
-      ) : undefined
-    }
-    await addMeal(mealPayload)
-  }
+      micros: recipe.micros
+        ? Object.fromEntries(
+            Object.entries(recipe.micros).map(([k, v]) => [k, Math.round((v || 0) * multiplier * 10) / 10]),
+          )
+        : undefined,
+    };
+    await addMeal(mealPayload);
+  };
 
   const shareRecipeToHandle = async (recipeId: string, handle: string) => {
     if (!userId.value || !recipeId || !handle.trim()) {
-      return { success: false, error: 'Missing parameters' }
+      return { success: false, error: 'Missing parameters' };
     }
 
     try {
       const { data, error } = await supabase.rpc('share_recipe_to_handle', {
         p_recipe_id: recipeId,
-        p_target_handle: handle.trim().replace(/^@/, '')
-      })
+        p_target_handle: handle.trim().replace(/^@/, ''),
+      });
 
       if (error) {
-        return { success: false, error: error.message || 'Failed to share recipe' }
+        return { success: false, error: error.message || 'Failed to share recipe' };
       }
-      return data || { success: true }
+      return data || { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Failed to share recipe' }
+      return { success: false, error: err.message || 'Failed to share recipe' };
     }
-  }
+  };
 
   return {
     meals,
@@ -430,6 +419,6 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
     shareRecipeToHandle,
     shareTemplateToHandle: shareRecipeToHandle,
     logRecipeAsMeal,
-    logTemplateAsMeal: logRecipeAsMeal
-  }
+    logTemplateAsMeal: logRecipeAsMeal,
+  };
 }

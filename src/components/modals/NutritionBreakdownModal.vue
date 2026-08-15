@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Utensils, Info, Pencil, Check, X, ChevronDown } from '@lucide/vue'
+import { Utensils, Info, Pencil, Check } from '@lucide/vue'
 import { filterTrackedMicroLabels, isMicroColumnTracked } from '../../lib/bitmask'
 import Modal from './Modal.vue'
 
@@ -40,7 +40,6 @@ const emit = defineEmits<{
 }>()
 
 const isEditing = ref(false)
-const isMicrosOpen = ref(false)
 const editableServings = ref<number>(1)
 const editableMicros = ref<Record<string, number | null>>({})
 
@@ -177,14 +176,8 @@ const handleSave = () => {
 </script>
 
 <template>
-  <Modal
-    v-if="show && data"
-    title="Nutritional Breakdown"
-    :icon="Utensils"
-    icon-color="text-amber-400"
-    max-width-class="max-w-md"
-    @close="emit('close')"
-  >
+  <Modal v-if="show && data" title="Nutritional Breakdown" :icon="Utensils" icon-color="text-amber-400"
+    max-width-class="max-w-md" @close="emit('close')">
     <div class="space-y-4">
       <!-- Title & Subtitle Header -->
       <div class="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
@@ -201,18 +194,13 @@ const handleSave = () => {
         <!-- Editable Servings Field (Step 0.1 for 1.5, 0.5, etc.) -->
         <div v-if="isEditing" class="pt-1.5 border-t border-slate-800/80 flex items-center justify-between gap-3">
           <div class="text-xs text-slate-300 font-semibold">
-            Servings <span v-if="data.serving_size" class="text-[11px] text-slate-500 font-normal">({{ data.serving_size }} base)</span>
+            Servings <span v-if="data.serving_size" class="text-[11px] text-slate-500 font-normal">({{ data.serving_size
+              }} base)</span>
           </div>
           <div class="flex items-center gap-1.5">
-            <input
-              type="number"
-              step="any"
-              min="0.1"
-              max="50"
-              v-model.number="editableServings"
+            <input type="number" step="any" min="0.1" max="50" v-model.number="editableServings"
               @input="handleServingsChange"
-              class="w-20 bg-slate-900 border border-amber-500 rounded-lg px-2.5 py-1 text-xs font-mono font-bold text-amber-300 text-right focus:outline-none"
-            />
+              class="w-20 bg-slate-900 border border-amber-500 rounded-lg px-2.5 py-1 text-xs font-mono font-bold text-amber-300 text-right focus:outline-none" />
             <span class="text-xs text-slate-400">x</span>
           </div>
         </div>
@@ -261,30 +249,20 @@ const handleSave = () => {
 
           <!-- Edit Button (Only visible when isEditable is true) -->
           <div v-if="isEditable">
-            <button
-              v-if="!isEditing"
-              type="button"
-              @click="isEditing = true"
-              class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-amber-400 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
-            >
+            <button v-if="!isEditing" type="button" @click="isEditing = true"
+              class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-amber-400 text-xs font-semibold flex items-center gap-1 transition cursor-pointer">
               <Pencil class="w-3 h-3" />
               <span>Edit Details</span>
             </button>
 
             <div v-else class="flex items-center gap-1.5">
-              <button
-                type="button"
-                @click="isEditing = false"
-                class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 text-xs transition cursor-pointer"
-              >
+              <button type="button" @click="isEditing = false"
+                class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 text-xs transition cursor-pointer">
                 Cancel
               </button>
-              <button
-                type="button"
-                @click="handleSave"
-                class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1 transition cursor-pointer shadow-sm"
-              >
-                <Check class="w-3 h-3 stroke-[3]" />
+              <button type="button" @click="handleSave"
+                class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1 transition cursor-pointer shadow-sm">
+                <Check class="w-3 h-3 stroke-3" />
                 <span>Save</span>
               </button>
             </div>
@@ -292,36 +270,26 @@ const handleSave = () => {
         </div>
 
         <!-- Editable Form Mode -->
-        <div v-if="isEditing" class="max-h-60 overflow-y-auto space-y-2 pr-1 border border-slate-800/80 rounded-xl p-2.5 bg-slate-950/60">
-          <div
-            v-for="(meta, key) in microLabels"
-            :key="key"
-            class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs"
-          >
+        <div v-if="isEditing"
+          class="max-h-60 overflow-y-auto space-y-2 pr-1 border border-slate-800/80 rounded-xl p-2.5 bg-slate-950/60">
+          <div v-for="(meta, key) in microLabels" :key="key"
+            class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs">
             <label class="text-slate-300 truncate">{{ meta.label }} ({{ meta.unit }})</label>
-            <input
-              type="number"
-              step="any"
-              min="0"
-              v-model.number="editableMicros[key]"
-              placeholder="0"
-              class="w-24 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono text-amber-300 text-right focus:outline-none"
-            />
+            <input type="number" step="any" min="0" v-model.number="editableMicros[key]" placeholder="0"
+              class="w-24 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono text-amber-300 text-right focus:outline-none" />
           </div>
         </div>
 
         <!-- Read-Only Display Mode -->
         <template v-else>
-          <div v-if="availableMicros.length === 0" class="p-4 rounded-xl bg-slate-950/50 border border-slate-900 text-center text-xs text-slate-500">
+          <div v-if="availableMicros.length === 0"
+            class="p-4 rounded-xl bg-slate-950/50 border border-slate-900 text-center text-xs text-slate-500">
             No additional micronutrients recorded for this item.
           </div>
 
           <div v-else class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-            <div
-              v-for="micro in availableMicros"
-              :key="micro.key"
-              class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 text-xs"
-            >
+            <div v-for="micro in availableMicros" :key="micro.key"
+              class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 text-xs">
               <span class="text-slate-300 font-medium">{{ micro.label }}</span>
               <span class="font-mono font-bold text-amber-400">
                 {{ micro.value }} <span class="text-[10px] text-slate-500 font-normal">{{ micro.unit }}</span>

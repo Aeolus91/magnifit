@@ -292,11 +292,8 @@ onUnmounted(() => {
 <template>
   <div ref="containerRef" class="relative inline-block">
     <!-- Date Picker Trigger Button -->
-    <button
-      type="button"
-      @click="togglePopover"
-      class="group flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 transition active:scale-[0.98] cursor-pointer"
-    >
+    <button type="button" @click="togglePopover"
+      class="group flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 transition active:scale-[0.98] cursor-pointer">
       <CalendarIcon class="w-4 h-4 text-emerald-400 group-hover:text-emerald-300 transition" />
       <span class="text-sm font-semibold text-slate-200 group-hover:text-white transition sm:hidden">
         {{ formattedDateDisplayShort }}
@@ -306,46 +303,31 @@ onUnmounted(() => {
       </span>
       <ChevronDown
         class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform duration-200 ml-0.5"
-        :class="{ 'rotate-180 text-emerald-400': isOpen }"
-      />
+        :class="{ 'rotate-180 text-emerald-400': isOpen }" />
     </button>
 
     <!-- Calendar / Scroll Wheels Popover Menu -->
-    <div
-      v-if="isOpen"
-      :style="popoverStyle"
-      class="absolute top-full mt-2 z-50 w-76 min-h-[300px] bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl p-3.5 animate-in fade-in zoom-in-95 duration-150 max-w-[calc(100vw-24px)]"
-    >
+    <div v-if="isOpen" :style="popoverStyle"
+      class="absolute top-full mt-2 z-50 w-76 min-h-75 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl p-3.5 animate-in fade-in zoom-in-95 duration-150 max-w-[calc(100vw-24px)]">
       <Transition name="fade-slide" mode="out-in">
         <!-- Mode 1: Calendar Day View -->
         <div v-if="viewMode === 'calendar'" key="calendar" class="space-y-3">
           <!-- Month & Year Navigation Header -->
           <div class="flex items-center justify-between">
-            <button
-              type="button"
-              @click="prevMonth"
-              :disabled="!canGoPrev"
-              class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 disabled:opacity-20 disabled:pointer-events-none border border-slate-700/60 text-slate-300 hover:text-white transition cursor-pointer"
-            >
+            <button type="button" @click="prevMonth" :disabled="!canGoPrev"
+              class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 disabled:opacity-20 disabled:pointer-events-none border border-slate-700/60 text-slate-300 hover:text-white transition cursor-pointer">
               <ChevronLeft class="w-4 h-4" />
             </button>
 
             <!-- Clickable Month/Year Button (Caret Removed) -->
-            <button
-              type="button"
-              @click.stop="toggleViewMode"
+            <button type="button" @click.stop="toggleViewMode"
               class="px-3 py-1 rounded-lg hover:bg-slate-800 text-xs font-bold text-slate-200 hover:text-emerald-400 transition active:scale-95 cursor-pointer"
-              title="Click to select month and year"
-            >
+              title="Click to select month and year">
               {{ viewMonthLabel }}
             </button>
 
-            <button
-              type="button"
-              @click="nextMonth"
-              :disabled="!canGoNext"
-              class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 disabled:opacity-20 disabled:pointer-events-none border border-slate-700/60 text-slate-300 hover:text-white transition cursor-pointer"
-            >
+            <button type="button" @click="nextMonth" :disabled="!canGoNext"
+              class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 disabled:opacity-20 disabled:pointer-events-none border border-slate-700/60 text-slate-300 hover:text-white transition cursor-pointer">
               <ChevronRight class="w-4 h-4" />
             </button>
           </div>
@@ -365,47 +347,33 @@ onUnmounted(() => {
           <div class="grid grid-cols-7 gap-1 text-center">
             <template v-for="(day, idx) in calendarDays" :key="idx">
               <div v-if="!day.isCurrentMonth" class="h-8" />
-              <button
-                v-else
-                type="button"
-                @click="selectDate(day)"
-                :disabled="day.isFuture"
+              <button v-else type="button" @click="selectDate(day)" :disabled="day.isFuture"
                 class="relative h-8 w-8 mx-auto rounded-lg text-xs font-medium flex items-center justify-center transition"
                 :class="[
                   day.isFuture
                     ? 'opacity-20 text-slate-600 cursor-not-allowed'
                     : day.isSelected
-                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold shadow-[0_0_8px_rgba(52,211,153,0.3)] cursor-pointer'
-                    : day.isToday
-                    ? 'bg-slate-800 border border-slate-700 text-emerald-400 font-semibold hover:bg-slate-700 cursor-pointer'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer'
-                ]"
-              >
+                      ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold shadow-[0_0_8px_rgba(52,211,153,0.3)] cursor-pointer'
+                      : day.isToday
+                        ? 'bg-slate-800 border border-slate-700 text-emerald-400 font-semibold hover:bg-slate-700 cursor-pointer'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer'
+                ]">
                 <span class="leading-none">{{ day.dayNumber }}</span>
                 <!-- Activity Dot for Logged Dates -->
-                <span
-                  v-if="day.hasData"
-                  class="absolute bottom-1 w-1 h-1 rounded-full"
-                  :class="day.isSelected ? 'bg-emerald-300' : 'bg-emerald-400/80'"
-                />
+                <span v-if="day.hasData" class="absolute bottom-1 w-1 h-1 rounded-full"
+                  :class="day.isSelected ? 'bg-emerald-300' : 'bg-emerald-400/80'" />
               </button>
             </template>
           </div>
 
           <!-- Quick Reset Footer -->
           <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
-            <button
-              type="button"
-              @click="selectToday"
-              class="text-emerald-400 hover:text-emerald-300 font-semibold transition cursor-pointer"
-            >
+            <button type="button" @click="selectToday"
+              class="text-emerald-400 hover:text-emerald-300 font-semibold transition cursor-pointer">
               Jump to Today
             </button>
-            <button
-              type="button"
-              @click="isOpen = false"
-              class="text-slate-500 hover:text-slate-400 transition cursor-pointer"
-            >
+            <button type="button" @click="isOpen = false"
+              class="text-slate-500 hover:text-slate-400 transition cursor-pointer">
               Close
             </button>
           </div>
@@ -420,49 +388,33 @@ onUnmounted(() => {
 
           <div class="grid grid-cols-2 gap-2 h-48 py-1">
             <!-- Month Scroll Wheel -->
-            <div
-              ref="monthWheelRef"
-              class="h-full overflow-y-auto overscroll-contain space-y-1 pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent"
-            >
-              <button
-                v-for="(mName, mIdx) in monthsList"
-                :key="mIdx"
-                :data-month="mIdx"
-                type="button"
-                @click="selectWheelMonth(mIdx)"
-                :disabled="isMonthDisabledInWheel(mIdx)"
+            <div ref="monthWheelRef"
+              class="h-full overflow-y-auto overscroll-contain space-y-1 pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+              <button v-for="(mName, mIdx) in monthsList" :key="mIdx" :data-month="mIdx" type="button"
+                @click="selectWheelMonth(mIdx)" :disabled="isMonthDisabledInWheel(mIdx)"
                 class="w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between transition"
                 :class="[
                   isMonthDisabledInWheel(mIdx)
                     ? 'opacity-20 text-slate-600 cursor-not-allowed'
                     : viewDate.getMonth() === mIdx
-                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer'
-                ]"
-              >
+                      ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold'
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer'
+                ]">
                 <span>{{ mName }}</span>
                 <Check v-if="viewDate.getMonth() === mIdx" class="w-3.5 h-3.5 text-emerald-400 stroke-[2.5]" />
               </button>
             </div>
 
             <!-- Year Scroll Wheel (2025 to Current Year) -->
-            <div
-              ref="yearWheelRef"
-              class="h-full overflow-y-auto overscroll-contain space-y-1 pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent"
-            >
-              <button
-                v-for="yr in yearsList"
-                :key="yr"
-                :data-year="yr"
-                type="button"
-                @click="selectWheelYear(yr)"
+            <div ref="yearWheelRef"
+              class="h-full overflow-y-auto overscroll-contain space-y-1 pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+              <button v-for="yr in yearsList" :key="yr" :data-year="yr" type="button" @click="selectWheelYear(yr)"
                 class="w-full px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center justify-between transition cursor-pointer"
                 :class="[
                   viewDate.getFullYear() === yr
                     ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold'
                     : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                ]"
-              >
+                ]">
                 <span>{{ yr }}</span>
                 <Check v-if="viewDate.getFullYear() === yr" class="w-3.5 h-3.5 text-emerald-400 stroke-[2.5]" />
               </button>
@@ -471,11 +423,8 @@ onUnmounted(() => {
 
           <!-- Wheel Confirmation Footer -->
           <div class="pt-2 border-t border-slate-800/80 flex items-center justify-end">
-            <button
-              type="button"
-              @click.stop="viewMode = 'calendar'"
-              class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-[0.98] cursor-pointer shadow-lg shadow-emerald-950/50"
-            >
+            <button type="button" @click.stop="viewMode = 'calendar'"
+              class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-[0.98] cursor-pointer shadow-lg shadow-emerald-950/50">
               <span>Okay</span>
             </button>
           </div>

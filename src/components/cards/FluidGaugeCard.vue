@@ -74,12 +74,10 @@ const styles = computed(() => {
   <div class="relative overflow-hidden bg-slate-950/70 border border-slate-800/80 rounded-xl p-4.5 transition-all">
     <!-- Horizontal Animated Fluid Fill Layer -->
     <div
-      class="absolute inset-y-0 left-0 bg-gradient-to-r border-r transition-all duration-700 ease-out pointer-events-none"
-      :class="styles.fillGrad"
-      :style="{ width: `${fillPercent}%` }"
-    >
+      class="absolute inset-y-0 left-0 bg-linear-to-r border-r transition-all duration-700 ease-out pointer-events-none"
+      :class="styles.fillGrad" :style="{ width: `${fillPercent}%` }">
       <!-- Glowing leading edge accent -->
-      <div class="absolute right-0 top-0 bottom-0 w-[2px]" :class="styles.glowEdge" />
+      <div class="absolute right-0 top-0 bottom-0 w-0.5" :class="styles.glowEdge" />
     </div>
 
     <!-- Foreground Content -->
@@ -90,11 +88,8 @@ const styles = computed(() => {
           <span>{{ title }}</span>
         </div>
         <div class="flex items-center gap-1.5">
-          <span
-            v-if="showPercentage && safeTarget > 0"
-            class="text-xs font-medium px-2 py-0.5 rounded-full border"
-            :class="styles.badge"
-          >
+          <span v-if="showPercentage && safeTarget > 0" class="text-xs font-medium px-2 py-0.5 rounded-full border"
+            :class="styles.badge">
             {{ fillPercent }}%
           </span>
           <slot name="header-actions" />
@@ -110,7 +105,7 @@ const styles = computed(() => {
           </div>
         </div>
         <div v-if="isLoading" class="h-4 w-20 bg-slate-800 rounded animate-pulse"></div>
-        <div v-else-if="subtitle" class="text-[11px] text-slate-400 font-medium truncate max-w-[150px] text-right">
+        <div v-else-if="subtitle" class="text-[11px] text-slate-400 font-medium truncate max-w-37.5 text-right">
           {{ subtitle }}
         </div>
       </div>

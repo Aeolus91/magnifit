@@ -306,18 +306,16 @@ const confirmLog = () => {
         <p class="text-xs text-slate-400">{{ t('meals.recipes.desc') }}</p>
       </div>
 
-      <button
-        type="button"
-        @click="openCreateModal"
-        class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md"
-      >
-        <Plus class="w-3.5 h-3.5 stroke-[3]" />
+      <button type="button" @click="openCreateModal"
+        class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md">
+        <Plus class="w-3.5 h-3.5 stroke-3" />
         <span>{{ t('meals.recipes.new_btn') }}</span>
       </button>
     </div>
 
     <!-- Empty State -->
-    <div v-if="templates.length === 0" class="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 text-center space-y-3">
+    <div v-if="templates.length === 0"
+      class="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 text-center space-y-3">
       <BookOpen class="w-8 h-8 text-amber-400 mx-auto" />
       <div class="text-sm font-semibold text-slate-200">No saved recipes yet</div>
       <p class="text-xs text-slate-400 max-w-sm mx-auto">
@@ -327,47 +325,35 @@ const confirmLog = () => {
 
     <!-- Template Cards Grid -->
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div
-        v-for="tmpl in templates"
-        :key="tmpl.id"
-        class="bg-slate-900/90 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl transition group"
-      >
+      <div v-for="tmpl in templates" :key="tmpl.id"
+        class="bg-slate-900/90 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl transition group">
         <div class="flex items-start justify-between">
           <div>
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-sm font-bold text-slate-100 group-hover:text-amber-300 transition">{{ tmpl.name }}</span>
-              <span v-if="tmpl.servings && tmpl.servings > 1" class="px-1.5 py-0.2 rounded-md bg-slate-950 border border-slate-800 text-[10px] font-mono text-amber-400/90">
+              <span class="text-sm font-bold text-slate-100 group-hover:text-amber-300 transition">{{ tmpl.name
+                }}</span>
+              <span v-if="tmpl.servings && tmpl.servings > 1"
+                class="px-1.5 py-0.2 rounded-md bg-slate-950 border border-slate-800 text-[10px] font-mono text-amber-400/90">
                 {{ tmpl.servings }} servings
               </span>
-              <span v-if="tmpl.serving_size" class="px-1.5 py-0.2 rounded-md bg-slate-950 border border-slate-800 text-[10px] font-mono text-slate-400">
+              <span v-if="tmpl.serving_size"
+                class="px-1.5 py-0.2 rounded-md bg-slate-950 border border-slate-800 text-[10px] font-mono text-slate-400">
                 {{ tmpl.serving_size }}{{ tmpl.serving_unit || 'g' }}
               </span>
             </div>
             <div v-if="tmpl.description" class="text-xs text-slate-400 mt-0.5 line-clamp-1">{{ tmpl.description }}</div>
           </div>
           <div class="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              @click="openShareModal(tmpl)"
-              class="text-slate-500 hover:text-amber-400 p-1 transition cursor-pointer"
-              title="Share Recipe by Handle"
-            >
+            <button type="button" @click="openShareModal(tmpl)"
+              class="text-slate-500 hover:text-amber-400 p-1 transition cursor-pointer" title="Share Recipe by Handle">
               <Share2 class="w-3.5 h-3.5" />
             </button>
-            <button
-              type="button"
-              @click="openEditModal(tmpl)"
-              class="text-slate-500 hover:text-amber-400 p-1 transition cursor-pointer"
-              title="Edit Recipe"
-            >
+            <button type="button" @click="openEditModal(tmpl)"
+              class="text-slate-500 hover:text-amber-400 p-1 transition cursor-pointer" title="Edit Recipe">
               <Pencil class="w-3.5 h-3.5" />
             </button>
-            <button
-              type="button"
-              @click="tmpl.id && emit('delete-template', tmpl.id)"
-              class="text-slate-500 hover:text-rose-400 p-1 transition cursor-pointer"
-              title="Delete Recipe"
-            >
+            <button type="button" @click="tmpl.id && emit('delete-template', tmpl.id)"
+              class="text-slate-500 hover:text-rose-400 p-1 transition cursor-pointer" title="Delete Recipe">
               <Trash2 class="w-3.5 h-3.5" />
             </button>
           </div>
@@ -395,15 +381,12 @@ const confirmLog = () => {
 
         <!-- Ingredients / Items Preview -->
         <div v-if="tmpl.items && tmpl.items.length > 0" class="text-[11px] text-slate-400 truncate">
-          <span>{{ tmpl.items.map((i: any) => `${i.item_name || i.name} (${i.amount}${i.unit})`).join(', ') }}</span>
+          <span>{{tmpl.items.map((i: any) => `${i.item_name || i.name} (${i.amount}${i.unit})`).join(', ')}}</span>
         </div>
 
         <!-- Log Button -->
-        <button
-          type="button"
-          @click="openLogModal(tmpl)"
-          class="w-full py-2 rounded-xl bg-slate-950 hover:bg-amber-500 border border-slate-800 hover:border-amber-500 hover:text-slate-950 text-amber-400 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
-        >
+        <button type="button" @click="openLogModal(tmpl)"
+          class="w-full py-2 rounded-xl bg-slate-950 hover:bg-amber-500 border border-slate-800 hover:border-amber-500 hover:text-slate-950 text-amber-400 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md">
           <Utensils class="w-3.5 h-3.5" />
           <span>{{ t('meals.recipes.log_btn') }}</span>
         </button>
@@ -411,58 +394,29 @@ const confirmLog = () => {
     </div>
 
     <!-- Create Recipe Modal -->
-    <Modal
-      v-if="showCreateModal"
-      title="Create Recipe Blueprint"
-      :icon="BookOpen"
-      icon-color="text-amber-400"
-      max-width-class="max-w-xl"
-      @close="showCreateModal = false"
-    >
+    <Modal v-if="showCreateModal" title="Create Recipe Blueprint" :icon="BookOpen" icon-color="text-amber-400"
+      max-width-class="max-w-xl" @close="showCreateModal = false">
       <form @submit.prevent="handleCreateTemplate" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div class="sm:col-span-2 space-y-1">
             <label class="text-xs font-semibold text-slate-300">Recipe Name</label>
-            <input
-              type="text"
-              v-model="newName"
-              placeholder="e.g. Post-Workout Smoothie"
-              required
-              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
-            />
+            <input type="text" v-model="newName" placeholder="e.g. Post-Workout Smoothie" required
+              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none" />
           </div>
 
           <div class="space-y-1">
             <label class="text-xs font-semibold text-slate-300">Yield (Servings)</label>
-            <input
-              type="number"
-              step="any"
-              min="0.1"
-              max="50"
-              v-model.number="newServings"
-              placeholder="1"
-              required
-              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none text-center"
-            />
+            <input type="number" step="any" min="0.1" max="50" v-model.number="newServings" placeholder="1" required
+              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none text-center" />
           </div>
 
           <div class="space-y-1">
             <label class="text-xs font-semibold text-slate-300">Serving Size</label>
             <div class="flex gap-1">
-              <input
-                type="number"
-                step="any"
-                min="0.1"
-                v-model.number="newServingSize"
-                placeholder="200"
-                class="w-14 shrink-0 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-2 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none text-center"
-              />
-              <input
-                type="text"
-                v-model="newServingUnit"
-                placeholder="g / qty"
-                class="flex-1 min-w-0 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-2 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
-              />
+              <input type="number" step="any" min="0.1" v-model.number="newServingSize" placeholder="200"
+                class="w-14 shrink-0 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-2 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none text-center" />
+              <input type="text" v-model="newServingUnit" placeholder="g / qty"
+                class="flex-1 min-w-0 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-2 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none" />
             </div>
           </div>
         </div>
@@ -471,38 +425,26 @@ const confirmLog = () => {
         <div class="space-y-3 pt-2 border-t border-slate-800/80">
           <div class="flex items-center justify-between">
             <span class="text-xs font-semibold text-slate-300">Add Ingredients</span>
-            
+
             <div class="flex p-0.5 bg-slate-950 border border-slate-800 rounded-lg text-[10px] font-semibold">
-              <button
-                type="button"
-                @click="ingredientInputMode = 'search'"
-                :class="[
-                  'px-2 py-1 rounded transition cursor-pointer flex items-center gap-1',
-                  ingredientInputMode === 'search' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-                ]"
-              >
+              <button type="button" @click="ingredientInputMode = 'search'" :class="[
+                'px-2 py-1 rounded transition cursor-pointer flex items-center gap-1',
+                ingredientInputMode === 'search' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              ]">
                 <Search class="w-3 h-3" />
                 <span>Search</span>
               </button>
-              <button
-                type="button"
-                @click="ingredientInputMode = 'manual'"
-                :class="[
-                  'px-2 py-1 rounded transition cursor-pointer flex items-center gap-1',
-                  ingredientInputMode === 'manual' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-                ]"
-              >
+              <button type="button" @click="ingredientInputMode = 'manual'" :class="[
+                'px-2 py-1 rounded transition cursor-pointer flex items-center gap-1',
+                ingredientInputMode === 'manual' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              ]">
                 <PenTool class="w-3 h-3" />
                 <span>Manual</span>
               </button>
-              <button
-                type="button"
-                @click="ingredientInputMode = 'ocr'"
-                :class="[
-                  'px-2 py-1 rounded transition cursor-pointer flex items-center gap-1',
-                  ingredientInputMode === 'ocr' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-                ]"
-              >
+              <button type="button" @click="ingredientInputMode = 'ocr'" :class="[
+                'px-2 py-1 rounded transition cursor-pointer flex items-center gap-1',
+                ingredientInputMode === 'ocr' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              ]">
                 <Camera class="w-3 h-3" />
                 <span>OCR</span>
               </button>
@@ -522,50 +464,23 @@ const confirmLog = () => {
           <!-- Mode 3: Manual Values -->
           <div v-else class="space-y-2">
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <input
-                type="text"
-                v-model="ingName"
-                placeholder="Ingredient name"
-                class="col-span-2 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500"
-              />
-              <input
-                type="number"
-                v-model.number="ingAmount"
-                placeholder="Amount (100)"
-                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500"
-              />
-              <input
-                type="number"
-                v-model.number="ingCal"
-                placeholder="Calories"
-                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500"
-              />
+              <input type="text" v-model="ingName" placeholder="Ingredient name"
+                class="col-span-2 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500" />
+              <input type="number" v-model.number="ingAmount" placeholder="Amount (100)"
+                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500" />
+              <input type="number" v-model.number="ingCal" placeholder="Calories"
+                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500" />
             </div>
 
             <div class="grid grid-cols-4 gap-2">
-              <input
-                type="number"
-                v-model.number="ingProt"
-                placeholder="Prot (g)"
-                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500"
-              />
-              <input
-                type="number"
-                v-model.number="ingCarb"
-                placeholder="Carb (g)"
-                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500"
-              />
-              <input
-                type="number"
-                v-model.number="ingFat"
-                placeholder="Fat (g)"
-                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500"
-              />
-              <button
-                type="button"
-                @click="addIngredient"
-                class="rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-800 text-amber-300 text-xs font-bold py-1.5 transition active:scale-95 cursor-pointer"
-              >
+              <input type="number" v-model.number="ingProt" placeholder="Prot (g)"
+                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500" />
+              <input type="number" v-model.number="ingCarb" placeholder="Carb (g)"
+                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500" />
+              <input type="number" v-model.number="ingFat" placeholder="Fat (g)"
+                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500" />
+              <button type="button" @click="addIngredient"
+                class="rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-800 text-amber-300 text-xs font-bold py-1.5 transition active:scale-95 cursor-pointer">
                 + Add
               </button>
             </div>
@@ -573,15 +488,13 @@ const confirmLog = () => {
 
           <!-- Ingredients List -->
           <div v-if="newIngredients.length > 0" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-            <div
-              v-for="(ing, idx) in newIngredients"
-              :key="idx"
-              class="flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs"
-            >
+            <div v-for="(ing, idx) in newIngredients" :key="idx"
+              class="flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs">
               <span class="text-slate-200">{{ ing.name }} ({{ ing.amount }}{{ ing.unit }})</span>
               <div class="flex items-center gap-2">
                 <span class="font-mono text-amber-400">{{ ing.cal }} kcal</span>
-                <button type="button" @click="removeIngredient(idx)" class="text-slate-500 hover:text-rose-400 p-0.5 cursor-pointer">
+                <button type="button" @click="removeIngredient(idx)"
+                  class="text-slate-500 hover:text-rose-400 p-0.5 cursor-pointer">
                   <X class="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -593,7 +506,8 @@ const confirmLog = () => {
         <div v-if="newIngredients.length > 0" class="p-3 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2">
           <div class="flex items-center justify-between text-xs">
             <span class="font-bold text-amber-300">
-              Per Serving <span class="font-normal text-slate-400">({{ newServings }} yield{{ newServingSize ? ` • ${newServingSize}${newServingUnit || 'g'}` : '' }})</span>
+              Per Serving <span class="font-normal text-slate-400">({{ newServings }} yield{{ newServingSize ? ` •
+                ${newServingSize}${newServingUnit || 'g'}` : '' }})</span>
             </span>
             <span v-if="newServings > 1" class="text-[11px] font-mono text-slate-500">
               Batch Total: {{ batchTotals.cal }} kcal
@@ -621,94 +535,70 @@ const confirmLog = () => {
 
         <!-- Collapsible Micronutrients Accordion Section -->
         <div class="space-y-2 pt-2 border-t border-slate-800/80">
-          <button
-            type="button"
-            @click="isRecipeMicrosOpen = !isRecipeMicrosOpen"
-            class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-left group"
-          >
+          <button type="button" @click="isRecipeMicrosOpen = !isRecipeMicrosOpen"
+            class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-left group">
             <div class="flex items-center gap-2">
               <Info class="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span class="text-xs font-semibold text-slate-300 group-hover:text-slate-100 transition">
                 Optional Micronutrients
               </span>
-              <span v-if="filledRecipeMicrosCount > 0" class="px-1.5 py-0.2 rounded-md bg-amber-950/80 border border-amber-800/60 text-[10px] font-mono text-amber-300 font-bold">
+              <span v-if="filledRecipeMicrosCount > 0"
+                class="px-1.5 py-0.2 rounded-md bg-amber-950/80 border border-amber-800/60 text-[10px] font-mono text-amber-300 font-bold">
                 {{ filledRecipeMicrosCount }} set
               </span>
             </div>
-            <ChevronDown
-              :class="[
-                'w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform duration-200',
-                isRecipeMicrosOpen ? 'rotate-180 text-amber-400' : ''
-              ]"
-            />
+            <ChevronDown :class="[
+              'w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform duration-200',
+              isRecipeMicrosOpen ? 'rotate-180 text-amber-400' : ''
+            ]" />
           </button>
 
-          <div v-if="isRecipeMicrosOpen" class="max-h-60 overflow-y-auto space-y-2 pr-1 border border-slate-800/80 rounded-xl p-3 bg-slate-950/80 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div
-              v-for="(meta, key) in microLabels"
-              :key="key"
-              class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 text-xs"
-            >
+          <div v-if="isRecipeMicrosOpen"
+            class="max-h-60 overflow-y-auto space-y-2 pr-1 border border-slate-800/80 rounded-xl p-3 bg-slate-950/80 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div v-for="(meta, key) in microLabels" :key="key"
+              class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 text-xs">
               <label class="text-slate-300 truncate text-[11px]">{{ meta.label }} ({{ meta.unit }})</label>
-              <input
-                type="number"
-                step="any"
-                min="0"
-                v-model.number="recipeMicros[key]"
-                placeholder="0"
-                class="w-24 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono text-amber-300 text-right focus:outline-none"
-              />
+              <input type="number" step="any" min="0" v-model.number="recipeMicros[key]" placeholder="0"
+                class="w-24 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono text-amber-300 text-right focus:outline-none" />
             </div>
           </div>
         </div>
 
-        <button
-          type="submit"
-          class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md"
-        >
-          <Check class="w-3.5 h-3.5 stroke-[3]" />
+        <button type="submit"
+          class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md">
+          <Check class="w-3.5 h-3.5 stroke-3" />
           <span>{{ editingTemplateId ? 'Save Changes' : 'Save Recipe Blueprint' }}</span>
         </button>
       </form>
     </Modal>
 
     <!-- Log Template Modal -->
-    <Modal
-      v-if="showLogModal && selectedTemplateForLog"
-      title="Log Recipe as Meal"
-      :icon="Utensils"
-      icon-color="text-amber-400"
-      max-width-class="max-w-md"
-      @close="showLogModal = false; selectedTemplateForLog = null"
-    >
+    <Modal v-if="showLogModal && selectedTemplateForLog" title="Log Recipe as Meal" :icon="Utensils"
+      icon-color="text-amber-400" max-width-class="max-w-md"
+      @close="showLogModal = false; selectedTemplateForLog = null">
       <div class="space-y-4">
         <div>
           <div class="text-sm font-bold text-slate-100">{{ selectedTemplateForLog.name }}</div>
           <div class="text-xs text-slate-400 font-mono mt-0.5">
-            1 Serving = {{ selectedTemplateForLog.cal }} kcal • P:{{ selectedTemplateForLog.prot_g }}g • C:{{ selectedTemplateForLog.carb_g }}g • F:{{ selectedTemplateForLog.fat_g }}g
+            1 Serving = {{ selectedTemplateForLog.cal }} kcal • P:{{ selectedTemplateForLog.prot_g }}g • C:{{
+              selectedTemplateForLog.carb_g }}g • F:{{ selectedTemplateForLog.fat_g }}g
           </div>
         </div>
 
         <div class="space-y-1.5">
           <label class="text-xs font-semibold text-slate-300">Meal Slot</label>
           <div class="grid grid-cols-2 gap-2">
-            <button
-              v-for="slot in [
-                { bit: MealFlags.BREAKFAST, label: t('meals.slot.breakfast') },
-                { bit: MealFlags.LUNCH, label: t('meals.slot.lunch') },
-                { bit: MealFlags.DINNER, label: t('meals.slot.dinner') },
-                { bit: MealFlags.SNACK, label: t('meals.slot.snack') }
-              ]"
-              :key="slot.bit"
-              type="button"
-              @click="logSlot = slot.bit"
-              :class="[
+            <button v-for="slot in [
+              { bit: MealFlags.BREAKFAST, label: t('meals.slot.breakfast') },
+              { bit: MealFlags.LUNCH, label: t('meals.slot.lunch') },
+              { bit: MealFlags.DINNER, label: t('meals.slot.dinner') },
+              { bit: MealFlags.SNACK, label: t('meals.slot.snack') }
+            ]" :key="slot.bit" type="button" @click="logSlot = slot.bit" :class="[
                 'py-2 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer text-center',
                 logSlot === slot.bit
                   ? 'bg-amber-950/70 border-amber-500 text-amber-300'
                   : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-              ]"
-            >
+              ]">
               {{ slot.label }}
             </button>
           </div>
@@ -717,40 +607,26 @@ const confirmLog = () => {
         <div class="space-y-1.5">
           <label class="text-xs font-semibold text-slate-300">Number of Servings (Multiplier)</label>
           <div class="flex items-center gap-3">
-            <input
-              type="number"
-              step="any"
-              min="0.1"
-              max="20"
-              v-model.number="logMultiplier"
-              class="w-28 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition"
-            />
+            <input type="number" step="any" min="0.1" max="20" v-model.number="logMultiplier"
+              class="w-28 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
             <div class="text-xs font-mono text-amber-400 font-bold">
               = {{ Math.round(selectedTemplateForLog.cal * (logMultiplier || 1)) }} kcal total
             </div>
           </div>
         </div>
 
-        <button
-          type="button"
-          @click="confirmLog"
-          class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
-        >
-          <Check class="w-3.5 h-3.5 stroke-[3]" />
+        <button type="button" @click="confirmLog"
+          class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md">
+          <Check class="w-3.5 h-3.5 stroke-3" />
           <span>Confirm & Log to Diary</span>
         </button>
       </div>
     </Modal>
 
     <!-- Share Recipe by Handle Modal -->
-    <Modal
-      v-if="showShareModal && selectedTemplateForShare"
-      title="Share Recipe"
-      :icon="Share2"
-      icon-color="text-amber-400"
-      max-width-class="max-w-md"
-      @close="showShareModal = false; selectedTemplateForShare = null"
-    >
+    <Modal v-if="showShareModal && selectedTemplateForShare" title="Share Recipe" :icon="Share2"
+      icon-color="text-amber-400" max-width-class="max-w-md"
+      @close="showShareModal = false; selectedTemplateForShare = null">
       <form @submit.prevent="handleShareSubmit" class="space-y-4">
         <div>
           <div class="text-sm font-bold text-slate-100">{{ selectedTemplateForShare.name }}</div>
@@ -763,33 +639,27 @@ const confirmLog = () => {
           <label class="text-xs font-semibold text-slate-300">Recipient Username Handle</label>
           <div class="relative">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-amber-400 font-bold font-mono">@</span>
-            <input
-              type="text"
-              v-model="shareHandle"
-              placeholder="username"
-              required
-              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl pl-8 pr-3.5 py-2.5 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition"
-            />
+            <input type="text" v-model="shareHandle" placeholder="username" required
+              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl pl-8 pr-3.5 py-2.5 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
           </div>
         </div>
 
         <!-- Success Alert -->
-        <div v-if="shareMessage" class="p-3 rounded-xl bg-emerald-950/70 border border-emerald-800/80 text-emerald-300 text-xs flex items-center gap-2">
+        <div v-if="shareMessage"
+          class="p-3 rounded-xl bg-emerald-950/70 border border-emerald-800/80 text-emerald-300 text-xs flex items-center gap-2">
           <Check class="w-4 h-4 text-emerald-400 shrink-0 stroke-[2.5]" />
           <span>{{ shareMessage }}</span>
         </div>
 
         <!-- Error Alert -->
-        <div v-else-if="shareError" class="p-3 rounded-xl bg-rose-950/70 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
+        <div v-else-if="shareError"
+          class="p-3 rounded-xl bg-rose-950/70 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
           <AlertCircle class="w-4 h-4 text-rose-400 shrink-0" />
           <span>{{ shareError }}</span>
         </div>
 
-        <button
-          type="submit"
-          :disabled="isSharing || !shareHandle.trim()"
-          class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md"
-        >
+        <button type="submit" :disabled="isSharing || !shareHandle.trim()"
+          class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-md">
           <Loader2 v-if="isSharing" class="w-3.5 h-3.5 animate-spin" />
           <template v-else>
             <Share2 class="w-3.5 h-3.5 stroke-[2.5]" />

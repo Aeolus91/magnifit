@@ -71,7 +71,7 @@ watch(
         selectedCatId.value = String(b.cat)
         selectedTypeId.value = String(b.type)
         const meta = BIOMETRIC_TYPES[b.type] || BIOMETRIC_TYPES[1]
-        
+
         const f = b.flags || 0
         const hasLeft = (f & BiometricFlags.UNILATERAL_LEFT) === BiometricFlags.UNILATERAL_LEFT
         const hasRight = (f & BiometricFlags.UNILATERAL_RIGHT) === BiometricFlags.UNILATERAL_RIGHT
@@ -96,7 +96,7 @@ watch(
           inputValLeft.value = null
           inputValRight.value = null
         }
-        
+
         isFasted.value = (f & BiometricFlags.FASTED) === BiometricFlags.FASTED
         isPostWorkout.value = (f & BiometricFlags.POST_WORKOUT_PUMP) === BiometricFlags.POST_WORKOUT_PUMP
       } else {
@@ -182,35 +182,19 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <Modal
-    v-if="show"
-    :title="isEditing ? 'Edit Biometric Log' : 'Log Biometrics'"
-    :icon="isEditing ? Pencil : Scale"
-    icon-color="text-purple-400"
-    max-width-class="max-w-md"
-    @close="emit('close')"
-  >
+  <Modal v-if="show" :title="isEditing ? 'Edit Biometric Log' : 'Log Biometrics'" :icon="isEditing ? Pencil : Scale"
+    icon-color="text-purple-400" max-width-class="max-w-md" @close="emit('close')">
     <form @submit.prevent="handleSubmit" class="space-y-4">
       <!-- 1. Category Dropdown Picker -->
       <div>
-        <DropdownPicker
-          v-model="selectedCatId"
-          :options="categoryOptions"
-          label="Category"
-          :placeholder="t('dash.biometrics.category_placeholder')"
-          :disabled="isEditing"
-        />
+        <DropdownPicker v-model="selectedCatId" :options="categoryOptions" label="Category"
+          :placeholder="t('dash.biometrics.category_placeholder')" :disabled="isEditing" />
       </div>
 
       <!-- 2. Type Dropdown Picker (Revealed only when Category is selected) -->
       <div v-if="selectedCatId">
-        <DropdownPicker
-          v-model="selectedTypeId"
-          :options="filteredTypeOptions"
-          label="Biometric Type"
-          :placeholder="t('dash.biometrics.type_placeholder')"
-          :disabled="isEditing"
-        />
+        <DropdownPicker v-model="selectedTypeId" :options="filteredTypeOptions" label="Biometric Type"
+          :placeholder="t('dash.biometrics.type_placeholder')" :disabled="isEditing" />
       </div>
 
       <!-- 3. Measurement Fields (Revealed once Type is selected) -->
@@ -221,26 +205,12 @@ const handleSubmit = () => {
             {{ currentMeta.name }} Measurements ({{ currentMeta.unitLabel }})
           </label>
           <div class="grid grid-cols-2 gap-3">
-            <FormInput
-              v-model="inputValLeft"
-              type="number"
-              label="Left Side (L)"
-              :placeholder="`e.g. ${currentMeta.defaultVal}`"
-              :step="currentMeta.step"
-              :icon="Scale"
-              icon-position="field-left"
-              icon-color="text-purple-400"
-            />
-            <FormInput
-              v-model="inputValRight"
-              type="number"
-              label="Right Side (R)"
-              :placeholder="`e.g. ${currentMeta.defaultVal}`"
-              :step="currentMeta.step"
-              :icon="Scale"
-              icon-position="field-left"
-              icon-color="text-purple-400"
-            />
+            <FormInput v-model="inputValLeft" type="number" label="Left Side (L)"
+              :placeholder="`e.g. ${currentMeta.defaultVal}`" :step="currentMeta.step" :icon="Scale"
+              icon-position="field-left" icon-color="text-purple-400" />
+            <FormInput v-model="inputValRight" type="number" label="Right Side (R)"
+              :placeholder="`e.g. ${currentMeta.defaultVal}`" :step="currentMeta.step" :icon="Scale"
+              icon-position="field-left" icon-color="text-purple-400" />
           </div>
           <p class="text-[11px] text-slate-500">
             Log Left, Right, or both simultaneously in a single entry.
@@ -249,39 +219,21 @@ const handleSubmit = () => {
 
         <!-- Dynamic Metric Value Input (Non-Unilateral) -->
         <div v-else class="space-y-1.5">
-          <FormInput
-            v-model="inputVal"
-            type="number"
-            :label="`${currentMeta.name} (${currentMeta.unitLabel})`"
-            :placeholder="`e.g. ${currentMeta.defaultVal}`"
-            :step="currentMeta.step"
-            :required="true"
-            :icon="Scale"
-            icon-position="field-left"
-            icon-color="text-purple-400"
-          />
+          <FormInput v-model="inputVal" type="number" :label="`${currentMeta.name} (${currentMeta.unitLabel})`"
+            :placeholder="`e.g. ${currentMeta.defaultVal}`" :step="currentMeta.step" :required="true" :icon="Scale"
+            icon-position="field-left" icon-color="text-purple-400" />
         </div>
 
         <!-- Context Condition Flags -->
         <div class="grid grid-cols-2 gap-3 pt-1">
-          <ToggleSwitch
-            v-model="isFasted"
-            label="Fasted"
-            description="Taken before food"
-          />
-          <ToggleSwitch
-            v-model="isPostWorkout"
-            label="Post-Workout"
-            description="Measured pumped"
-          />
+          <ToggleSwitch v-model="isFasted" label="Fasted" description="Taken before food" />
+          <ToggleSwitch v-model="isPostWorkout" label="Post-Workout" description="Measured pumped" />
         </div>
 
         <!-- Submit Button -->
-        <button
-          type="submit"
-          class="w-full py-3 rounded-xl bg-purple-500 hover:bg-purple-400 active:scale-[0.98] text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-lg shadow-purple-950/40"
-        >
-          <Check class="w-4 h-4 stroke-[3]" />
+        <button type="submit"
+          class="w-full py-3 rounded-xl bg-purple-500 hover:bg-purple-400 active:scale-[0.98] text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-lg shadow-purple-950/40">
+          <Check class="w-4 h-4 stroke-3" />
           <span>{{ isEditing ? 'Update Biometrics' : 'Save Biometrics' }}</span>
         </button>
       </template>
