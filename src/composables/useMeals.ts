@@ -97,6 +97,7 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       serving_size: mealData.serving_size || null,
       serving_unit: mealData.serving_unit || null,
       servings: mealData.servings || 1,
+      template_id: mealData.template_id || null,
       log_date: payload.log_date
     }
 
@@ -126,7 +127,8 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       flags: mealData.flags || 0,
       serving_size: mealData.serving_size || null,
       serving_unit: mealData.serving_unit || null,
-      servings: mealData.servings || 1
+      servings: mealData.servings || 1,
+      template_id: mealData.template_id || null
     }
 
     const idx = meals.value.findIndex(m => m.id === mealData.id)

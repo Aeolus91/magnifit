@@ -8,7 +8,8 @@ export const ProfilePrefs = {
   PUBLIC_PROFILE: 1 << 1,       // Bit 1: 0=Private, 1=Public
   DARK_THEME: 1 << 2,           // Bit 2: 0=Auto, 1=Dark
   TRACK_MICROS: 1 << 3,         // Bit 3: 0=Off, 1=On
-  ONBOARDING_COMPLETED: 1 << 4  // Bit 4: 0=Pending Onboarding, 1=Completed
+  ONBOARDING_COMPLETED: 1 << 4, // Bit 4: 0=Pending Onboarding, 1=Completed
+  SHOW_BIO_AVERAGE: 1 << 5      // Bit 5: 0=Off, 1=Show Average Aggregate
 } as const
 
 export const MicroNutrientFlags: Record<string, { bit: number; col: string }> = {

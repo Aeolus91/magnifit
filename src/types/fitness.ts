@@ -39,11 +39,38 @@ export interface Meal {
   serving_size?: number | null
   serving_unit?: string | null
   servings?: number | null
+  template_id?: string | null
   micros?: Micronutrients
   // Legacy compatibility fields
   calories?: number
   protein_g?: number
   carbs_g?: number
+}
+
+export interface FoodTemplate {
+  id: string
+  user_id?: string | null
+  name: string
+  brand?: string | null
+  cal: number
+  prot_g: number
+  carb_g: number
+  fat_g: number
+  serving_size?: number | null
+  serving_unit?: string | null
+  is_public: boolean
+  micros?: Micronutrients
+  is_favorite?: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface UserFavoriteTemplate {
+  user_id: string
+  template_id: string
+  custom_micros?: Micronutrients | null
+  created_at?: string
+  template?: FoodTemplate
 }
 
 export interface RecipeItem {

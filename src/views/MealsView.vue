@@ -15,8 +15,10 @@ import NewMealEntryForm from '../components/meals/forms/NewMealEntryForm.vue'
 import RecipeCatalogSection from '../components/meals/recipes/RecipeCatalogSection.vue'
 import TabbedView, { type TabItem } from '../components/layout/TabbedView.vue'
 import MealSlotCard from '../components/meals/MealSlotCard.vue'
+import FavoriteFoodsSection from '../components/meals/favorites/FavoriteFoodsSection.vue'
+import { useFoodTemplates } from '../composables/useFoodTemplates'
 import type { Meal, Profile } from '../types/fitness'
-import { ArrowLeft, Utensils, Plus, BookOpen, Clock } from '@lucide/vue'
+import { ArrowLeft, Utensils, Plus, BookOpen, Clock, Star } from '@lucide/vue'
 
 const { navigate, routeState } = useRouter()
 const authStore = useAuthStore()
@@ -48,14 +50,22 @@ const {
   logTemplateAsMeal
 } = useMeals(currentUserId, targetDate, loggedDates)
 
-const activeTab = ref<'new_entry' | 'recipes' | 'summary'>(
-  (routeState.value.tab as 'new_entry' | 'recipes' | 'summary') || 'new_entry'
+const {
+  favoriteTemplates,
+  loading: loadingFavorites,
+  fetchFavorites,
+  toggleFavorite
+} = useFoodTemplates(currentUserId)
+
+const activeTab = ref<'new_entry' | 'favorites' | 'recipes' | 'summary'>(
+  (routeState.value.tab as 'new_entry' | 'favorites' | 'recipes' | 'summary') || 'new_entry'
 )
 const isSaving = ref<boolean>(false)
 const selectedSlotForNewEntry = ref<number>(routeState.value.initialSlot || getSuggestedMealSlot())
 
 const mealTabs = computed<TabItem[]>(() => [
   { id: 'new_entry', label: t('meals.tab.new_entry'), icon: Plus },
+  { id: 'favorites', label: 'Favorites', icon: Star, badge: favoriteTemplates.value.length },
   { id: 'recipes', label: t('meals.tab.recipes'), icon: BookOpen, badge: templates.value.length },
   { id: 'summary', label: t('meals.tab.summary'), icon: Clock, badge: meals.value.length }
 ])
@@ -76,6 +86,38 @@ const handleAddMealFromForm = async (mealData: Meal) => {
   isSaving.value = true
   await addMeal({
     ...mealData,
+    log_date: targetDate.value
+  })
+  activeTab.value = 'summary'
+  isSaving.value = false
+}
+
+const handleLogFavorite = async (item: {
+  template_id: string
+  name: string
+  cal: number
+  prot_g: number
+  carb_g: number
+  fat_g: number
+  serving_size?: number | null
+  serving_unit?: string | null
+  servings: number
+  slotBit: number
+  micros?: any
+}) => {
+  isSaving.value = true
+  await addMeal({
+    meal_name: item.name,
+    cal: item.cal,
+    prot_g: item.prot_g,
+    carb_g: item.carb_g,
+    fat_g: item.fat_g,
+    serving_size: item.serving_size || null,
+    serving_unit: item.serving_unit || 'g',
+    servings: item.servings,
+    template_id: item.template_id,
+    flags: item.slotBit,
+    micros: item.micros,
     log_date: targetDate.value
   })
   activeTab.value = 'summary'
@@ -116,7 +158,8 @@ const fetchAll = async (invalidate = false) => {
     await Promise.allSettled([
       fetchUserProfile(currentUserId.value),
       fetchMeals(currentUserId.value),
-      fetchTemplates(currentUserId.value)
+      fetchTemplates(currentUserId.value),
+      fetchFavorites(currentUserId.value)
     ])
   }
 }
@@ -124,7 +167,8 @@ const fetchAll = async (invalidate = false) => {
 const refreshFetchers = computed(() => [
   () => fetchUserProfile(currentUserId.value),
   () => fetchMeals(currentUserId.value),
-  () => fetchTemplates(currentUserId.value)
+  () => fetchTemplates(currentUserId.value),
+  () => fetchFavorites(currentUserId.value)
 ])
 
 onMounted(async () => {
@@ -159,17 +203,20 @@ watch(currentUserId, async () => {
       />
       <!-- Top Summary / Macro Gauge Section -->
       <div class="space-y-4">
-        <div class="flex items-center justify-between">
+        <!-- Top Title & Calendar Picker Bar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div class="flex items-center gap-2">
-            <Utensils class="w-5 h-5 text-amber-500" />
+            <Utensils class="w-5 h-5 text-amber-500 shrink-0" />
             <h1 class="text-lg sm:text-xl font-black text-slate-100">{{ t('meals.title') }}</h1>
           </div>
 
           <!-- Date Picker Component -->
-          <DatePickerPopover
-            v-model="targetDate"
-            :logged-dates="loggedDates"
-          />
+          <div class="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+            <DatePickerPopover
+              v-model="targetDate"
+              :logged-dates="loggedDates"
+            />
+          </div>
         </div>
 
         <!-- Animated Macro Nutrients Gauges & Distribution Bar -->
@@ -202,7 +249,20 @@ watch(currentUserId, async () => {
           </div>
         </template>
 
-        <!-- Tab 2: Recipes & Meal Templates Catalog -->
+        <!-- Tab 2: Favorite Foods -->
+        <template #favorites>
+          <div class="space-y-6">
+            <FavoriteFoodsSection
+              :favorites="favoriteTemplates"
+              :is-loading="loadingFavorites"
+              :micros-opt="userProfile?.micros_opt"
+              @log-favorite="handleLogFavorite"
+              @toggle-favorite="toggleFavorite"
+            />
+          </div>
+        </template>
+
+        <!-- Tab 3: Recipes & Meal Templates Catalog -->
         <template #recipes>
           <div class="space-y-6">
             <RecipeCatalogSection

@@ -1,25 +1,40 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Plus, Scale, Sparkles } from '@lucide/vue'
+import { ProfilePrefs } from '../../lib/bitmask'
 import type { Biometric } from '../../types/fitness'
 import BiometricsModal from '../modals/BiometricsModal.vue'
 import BiometricEntry from '../entries/BiometricEntry.vue'
 
 interface Props {
   biometrics: Biometric[]
+  prefs?: number
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  prefs: ProfilePrefs.SHOW_BIO_AVERAGE
+})
 
 const emit = defineEmits<{
   (e: 'add-biometric', bio: Biometric): void
   (e: 'edit-biometric', bio: Biometric): void
   (e: 'delete-biometric', id: string): void
+  (e: 'update-prefs', newPrefs: number): void
 }>()
 
 const showModal = ref(false)
 const selectedBiometric = ref<Biometric | null>(null)
-const showAverageAggregate = ref(true)
+
+const showAverageAggregate = computed(() => {
+  if (props.prefs === undefined) return true
+  return (props.prefs & ProfilePrefs.SHOW_BIO_AVERAGE) !== 0
+})
+
+const toggleAverageAggregate = () => {
+  const current = props.prefs !== undefined ? props.prefs : ProfilePrefs.SHOW_BIO_AVERAGE
+  const next = current ^ ProfilePrefs.SHOW_BIO_AVERAGE
+  emit('update-prefs', next)
+}
 
 const openCreateModal = () => {
   selectedBiometric.value = null
@@ -64,10 +79,10 @@ const handleBioSubmit = (bio: Biometric) => {
         </div>
       </button>
 
-      <!-- Bilateral Aggregate Toggle -->
+      <!-- Bilateral Aggregate Toggle (Persisted via ProfilePrefs bitmask) -->
       <button
         type="button"
-        @click="showAverageAggregate = !showAverageAggregate"
+        @click="toggleAverageAggregate"
         :class="[
           'px-3 py-2 sm:py-3.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 shrink-0',
           showAverageAggregate

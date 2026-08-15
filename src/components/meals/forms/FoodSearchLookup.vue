@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Search, Loader2, Plus, AlertCircle, X, QrCode, Info, History, BookOpen, Utensils } from '@lucide/vue'
+import { Search, Loader2, Plus, AlertCircle, X, QrCode, Info, History, BookOpen, Utensils, Star } from '@lucide/vue'
 import { useI18n } from '../../../lib/i18n'
+import { useAuthStore } from '../../../stores/authStore'
+import { useFoodTemplates } from '../../../composables/useFoodTemplates'
 import Modal from '../../modals/Modal.vue'
 import NutritionBreakdownModal from '../../modals/NutritionBreakdownModal.vue'
 import type { MealTemplate, Meal } from '../../../types/fitness'
 
 export interface FoodSearchResult {
+  id?: string
+  template_id?: string
   name: string
   brand?: string
   cal_100g: number
@@ -20,8 +24,10 @@ export interface FoodSearchResult {
 
 export interface QuickPickItem {
   id: string
+  template_id?: string
   name: string
-  type: 'recent' | 'recipe'
+  brand?: string
+  type: 'recent' | 'recipe' | 'favorite'
   cal: number
   prot_g: number
   carb_g: number
@@ -34,6 +40,7 @@ export interface QuickPickItem {
   prot_100g?: number
   carb_100g?: number
   fat_100g?: number
+  is_favorite?: boolean
 }
 
 interface Props {
@@ -56,11 +63,16 @@ const emit = defineEmits<{
     serving_size?: number
     serving_unit?: string
     servings?: number
+    template_id?: string
     micros?: Record<string, number>
   }): void
 }>()
 
 const { t } = useI18n()
+const authStore = useAuthStore()
+const currentUserId = computed(() => authStore.user.value?.id)
+const { favoriteTemplates, isFavorited, fetchFavorites, upsertFoodTemplate, toggleFavorite } = useFoodTemplates(currentUserId)
+
 const searchQuery = ref('')
 const isSearching = ref(false)
 const searchResults = ref<FoodSearchResult[]>([])
@@ -69,13 +81,114 @@ const selectedFood = ref<FoodSearchResult | null>(null)
 const inspectedFood = ref<FoodSearchResult | null>(null)
 const servingUnitGrams = ref<number>(100)
 const servingCount = ref<number>(1)
+const activeQuickPickTab = ref<'recents' | 'favorites'>('recents')
 
 onMounted(() => {
   // Purge any legacy client cache
   try {
     localStorage.removeItem('mfit_recent_foods')
   } catch {}
+  if (currentUserId.value) {
+    fetchFavorites(currentUserId.value)
+  }
 })
+
+const favoritesList = computed<QuickPickItem[]>(() => {
+  return favoriteTemplates.value.map(f => {
+    const t = f.template!
+    const resolvedMicros = f.custom_micros || t.micros
+    return {
+      id: `fav-${t.id}`,
+      template_id: t.id,
+      name: t.name,
+      brand: t.brand || undefined,
+      type: 'favorite' as const,
+      cal: t.cal,
+      prot_g: t.prot_g,
+      carb_g: t.carb_g,
+      fat_g: t.fat_g,
+      serving_size: t.serving_size || undefined,
+      serving_unit: t.serving_unit || 'g',
+      servings: 1,
+      micros: resolvedMicros as Record<string, number> | undefined,
+      is_favorite: true
+    }
+  })
+})
+
+const cleanItemName = (name: string) => {
+  return name.trim().replace(/\s*\([^)]*\)\s*$/, '').trim().toLowerCase()
+}
+
+const isItemFavorited = (item: { template_id?: string; name: string }) => {
+  if (item.template_id && isFavorited(item.template_id)) return true
+  const lower = item.name.trim().toLowerCase()
+  const base = cleanItemName(item.name)
+  return favoriteTemplates.value.some(f => {
+    const tName = f.template?.name.trim().toLowerCase() || ''
+    const tBase = cleanItemName(tName)
+    return tName === lower || tName === base || tBase === base
+  })
+}
+
+const handleToggleFavoriteItem = async (item: {
+  id?: string
+  template_id?: string
+  name: string
+  brand?: string
+  cal?: number
+  prot_g?: number
+  carb_g?: number
+  fat_g?: number
+  cal_100g?: number
+  prot_100g?: number
+  carb_100g?: number
+  fat_100g?: number
+  serving_size?: number
+  serving_size_g?: number
+  serving_unit?: string
+  micros?: Record<string, number>
+}) => {
+  let templateId = item.template_id
+  const lower = item.name.trim().toLowerCase()
+  const base = cleanItemName(item.name)
+
+  const existingFav = favoriteTemplates.value.find(f => {
+    const tName = f.template?.name.trim().toLowerCase() || ''
+    const tBase = cleanItemName(tName)
+    return (item.template_id && f.template_id === item.template_id) || tName === lower || tName === base || tBase === base
+  })
+
+  if (existingFav) {
+    templateId = existingFav.template_id
+  }
+
+  if (!templateId) {
+    const cal = item.cal ?? (item.cal_100g ?? 0)
+    const prot = item.prot_g ?? (item.prot_100g ?? 0)
+    const carb = item.carb_g ?? (item.carb_100g ?? 0)
+    const fat = item.fat_g ?? (item.fat_100g ?? 0)
+    const sSize = item.serving_size ?? (item.serving_size_g ?? 100)
+    const normalizedName = item.name.trim().replace(/\s*\([^)]*\)\s*$/, '').trim()
+
+    templateId = (await upsertFoodTemplate({
+      name: normalizedName || item.name,
+      brand: item.brand,
+      cal,
+      prot_g: prot,
+      carb_g: carb,
+      fat_g: fat,
+      serving_size: sSize,
+      serving_unit: item.serving_unit || 'g',
+      is_public: true,
+      micros: item.micros
+    })) || undefined
+  }
+
+  if (templateId) {
+    await toggleFavorite(templateId, item.micros)
+  }
+}
 
 const quickPickList = computed<QuickPickItem[]>(() => {
   const list: QuickPickItem[] = []
@@ -109,6 +222,7 @@ const quickPickList = computed<QuickPickItem[]>(() => {
 
       list.push({
         id: `db-${m.id || lower}`,
+        template_id: m.template_id || undefined,
         name: isRecipeMatch && matchedRecipe ? matchedRecipe.name : cleanName,
         type: isRecipeMatch ? 'recipe' : 'recent',
         cal: m.cal || m.calories || matchedRecipe?.cal || 0,
@@ -126,6 +240,13 @@ const quickPickList = computed<QuickPickItem[]>(() => {
   }
 
   return list
+})
+
+const activeDisplayList = computed<QuickPickItem[]>(() => {
+  if (activeQuickPickTab.value === 'favorites') {
+    return favoritesList.value
+  }
+  return quickPickList.value
 })
 
 const confirmingRecentFood = ref<QuickPickItem | null>(null)
@@ -167,6 +288,7 @@ const confirmRecentFoodServing = () => {
     serving_size: item.serving_size,
     serving_unit: item.serving_unit || 'g',
     servings: servings,
+    template_id: item.template_id,
     micros: Object.keys(scaledMicros).length > 0 ? scaledMicros : undefined
   })
 
@@ -517,16 +639,35 @@ const stopBarcodeScan = () => {
       ? `${servingCount.value}x ${servingUnitGrams.value}g`
       : `${totalGrams}g`
 
-    const foodPayload = {
+    const foodPayload: any = {
       meal_name: `${fullName} (${servingInfo})`,
       cal: Math.round(selectedFood.value.cal_100g * ratio),
-      prot_g: Math.round(selectedFood.value.prot_100g * ratio),
-      carb_g: Math.round(selectedFood.value.carb_100g * ratio),
-      fat_g: Math.round(selectedFood.value.fat_100g * ratio),
+      prot_g: Math.round(selectedFood.value.prot_100g * ratio * 10) / 10,
+      carb_g: Math.round(selectedFood.value.carb_100g * ratio * 10) / 10,
+      fat_g: Math.round(selectedFood.value.fat_100g * ratio * 10) / 10,
       serving_size: servingUnitGrams.value || 100,
       serving_unit: 'g',
       servings: servingCount.value || 1,
-      micros: scaledMicros
+      template_id: selectedFood.value.template_id,
+      micros: Object.keys(scaledMicros).length > 0 ? scaledMicros : undefined
+    }
+
+    // Persist as shared lookup template in background if not already linked
+    if (!selectedFood.value.template_id) {
+      upsertFoodTemplate({
+        name: selectedFood.value.name,
+        brand: selectedFood.value.brand,
+        cal: selectedFood.value.cal_100g,
+        prot_g: selectedFood.value.prot_100g,
+        carb_g: selectedFood.value.carb_100g,
+        fat_g: selectedFood.value.fat_100g,
+        serving_size: servingUnitGrams.value || 100,
+        serving_unit: 'g',
+        is_public: true,
+        micros: selectedFood.value.micros
+      }).then(tId => {
+        if (tId) foodPayload.template_id = tId
+      }).catch(() => {})
     }
 
     emit('select-food', foodPayload)
@@ -614,7 +755,7 @@ const stopBarcodeScan = () => {
 
     <!-- Quick-Pick List: Recent Foods & Saved Recipes (Visible when search query is empty) -->
     <div v-if="!searchQuery.trim() && !isSearching && quickPickList.length > 0" class="space-y-3 pt-1">
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
         <div class="flex items-center gap-1.5 text-xs font-bold text-slate-300">
           <History class="w-3.5 h-3.5 text-amber-400" />
           <span>Recently Added Foods & Recipes</span>
@@ -622,6 +763,7 @@ const stopBarcodeScan = () => {
         <span class="text-[10px] text-slate-500 font-mono">{{ quickPickList.length }} items</span>
       </div>
 
+      <!-- Quick Pick Items List -->
       <div class="space-y-2 max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-800">
         <div
           v-for="item in quickPickList"
@@ -633,7 +775,9 @@ const stopBarcodeScan = () => {
             <div class="flex items-center gap-1.5 truncate">
               <span
                 class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider shrink-0"
-                :class="item.type === 'recipe' ? 'bg-amber-950/90 text-amber-300 border border-amber-800/60' : 'bg-slate-800 text-slate-300 border border-slate-700/60'"
+                :class="item.type === 'recipe'
+                  ? 'bg-amber-950/90 text-amber-300 border border-amber-800/60'
+                  : 'bg-slate-800 text-slate-300 border border-slate-700/60'"
               >
                 {{ item.type }}
               </span>
@@ -653,6 +797,17 @@ const stopBarcodeScan = () => {
               <span class="px-1.5 py-0.5 rounded bg-yellow-950/80 border border-yellow-800/60 text-yellow-300">C:{{ item.carb_g }}g</span>
               <span class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-800/60 text-rose-300">F:{{ item.fat_g }}g</span>
             </div>
+
+            <!-- Favorite Star Button -->
+            <button
+              type="button"
+              @click.stop="handleToggleFavoriteItem(item)"
+              class="p-1 rounded-md bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition cursor-pointer"
+              :class="isItemFavorited(item) ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'"
+              :title="isItemFavorited(item) ? 'Remove from Favorites' : 'Add to Favorites'"
+            >
+              <Star class="w-3.5 h-3.5" :class="{ 'fill-amber-400': isItemFavorited(item) }" />
+            </button>
 
             <!-- Inspect Full Nutritional Breakdown Button -->
             <button
@@ -714,6 +869,17 @@ const stopBarcodeScan = () => {
               <span class="px-1.5 py-0.5 rounded bg-yellow-950/80 border border-yellow-800/60 text-yellow-300">C:{{ item.carb_100g }}g</span>
               <span class="px-1.5 py-0.5 rounded bg-rose-950/80 border border-rose-800/60 text-rose-300">F:{{ item.fat_100g }}g</span>
             </div>
+
+            <!-- Favorite Star Button -->
+            <button
+              type="button"
+              @click.stop="handleToggleFavoriteItem(item)"
+              class="p-1 rounded-md bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition cursor-pointer"
+              :class="isItemFavorited(item) ? 'text-amber-400' : 'text-slate-500 hover:text-amber-400'"
+              :title="isItemFavorited(item) ? 'Remove from Favorites' : 'Add to Favorites'"
+            >
+              <Star class="w-3.5 h-3.5" :class="{ 'fill-amber-400': isItemFavorited(item) }" />
+            </button>
 
             <!-- Inspect Full Nutritional Breakdown Button -->
             <button

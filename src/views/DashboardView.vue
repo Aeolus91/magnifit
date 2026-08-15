@@ -114,6 +114,19 @@ const onOnboardingCompleted = async (updated: Profile) => {
   showOnboardingModal.value = false
 }
 
+const handleUpdateProfilePrefs = async (newPrefs: number) => {
+  if (!currentUserId.value) return
+  if (userProfile.value) {
+    userProfile.value = { ...userProfile.value, prefs: newPrefs }
+  }
+  try {
+    await supabase
+      .from('profiles')
+      .update({ prefs: newPrefs })
+      .eq('id', currentUserId.value)
+  } catch {}
+}
+
 const fetchAll = async (invalidate = false) => {
   if (!currentUserId.value) return
   if (invalidate) {
@@ -311,12 +324,14 @@ onMounted(async () => {
       :meals="filteredMeals"
       :water-logs="filteredWaterLogs"
       :micros-opt="userProfile?.micros_opt"
+      :prefs="userProfile?.prefs"
       @add-workout="addWorkout"
       @edit-workout="editWorkout"
       @delete-workout="deleteWorkout"
       @add-biometric="addBiometric"
       @edit-biometric="editBiometric"
       @delete-biometric="deleteBiometric"
+      @update-prefs="handleUpdateProfilePrefs"
       @log-meal="(slot) => navigate('/meals', false, { logDate: selectedDate, initialSlot: slot })"
       @edit-meal="editMeal"
       @delete-meal="deleteMeal"

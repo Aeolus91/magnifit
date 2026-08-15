@@ -217,15 +217,22 @@ onUnmounted(() => {
         type="button"
         @click="selectTab(tab.id)"
         :class="[
-          'relative z-10 py-2 px-1 rounded-lg text-xs sm:text-sm font-semibold transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer text-center truncate select-none',
+          'relative z-10 py-1.5 sm:py-2 px-0.5 sm:px-1.5 rounded-lg text-[11px] sm:text-sm font-semibold transition-colors duration-200 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 cursor-pointer text-center truncate select-none',
           modelValue === tab.id
             ? 'text-slate-950 font-bold'
             : 'text-slate-400 hover:text-slate-200'
         ]"
       >
         <component :is="tab.icon" v-if="tab.icon" class="w-4 h-4 shrink-0" />
-        <span class="truncate">{{ tab.label }}</span>
-        <span v-if="tab.badge !== undefined" class="text-[11px] opacity-80">({{ tab.badge }})</span>
+        <div class="flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1 min-w-0 max-w-full justify-center">
+          <span class="truncate leading-tight">{{ tab.label }}</span>
+          <span
+            v-if="tab.badge !== undefined"
+            class="text-[9px] sm:text-[11px] opacity-80 shrink-0 font-mono leading-none"
+          >
+            ({{ tab.badge }})
+          </span>
+        </div>
       </button>
     </div>
 

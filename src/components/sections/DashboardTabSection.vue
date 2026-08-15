@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Dumbbell, Scale, Utensils, Droplets } from '@lucide/vue'
 import type { Workout, Biometric, Meal, WaterLog } from '../../types/fitness'
 import { useI18n } from '../../lib/i18n'
 import TabbedView, { type TabItem } from '../layout/TabbedView.vue'
@@ -16,6 +17,7 @@ interface Props {
   meals: Meal[]
   waterLogs: WaterLog[]
   microsOpt?: number
+  prefs?: number
 }
 
 const props = defineProps<Props>()
@@ -36,15 +38,16 @@ const emit = defineEmits<{
   (e: 'add-water', amount: number): void
   (e: 'edit-water', log: WaterLog): void
   (e: 'delete-water', id: string): void
+  (e: 'update-prefs', newPrefs: number): void
 }>()
 
 const { t } = useI18n()
 
 const dashboardTabs = computed<TabItem[]>(() => [
-  { id: 'workouts', label: t('dash.nav.workouts') },
-  { id: 'biometrics', label: t('dash.nav.biometrics') },
-  { id: 'meals', label: t('dash.nav.meals') },
-  { id: 'water', label: t('dash.nav.water') }
+  { id: 'workouts', label: t('dash.nav.workouts'), icon: Dumbbell, badge: props.workouts.length },
+  { id: 'biometrics', label: t('dash.nav.biometrics'), icon: Scale, badge: props.biometrics.length },
+  { id: 'meals', label: t('dash.nav.meals'), icon: Utensils, badge: props.meals.length },
+  { id: 'water', label: t('dash.nav.water'), icon: Droplets, badge: props.waterLogs.length }
 ])
 </script>
 
@@ -70,9 +73,11 @@ const dashboardTabs = computed<TabItem[]>(() => [
     <template #biometrics>
       <BiometricsSection
         :biometrics="biometrics"
+        :prefs="prefs"
         @add-biometric="(b) => emit('add-biometric', b)"
         @edit-biometric="(b) => emit('edit-biometric', b)"
         @delete-biometric="(id) => emit('delete-biometric', id)"
+        @update-prefs="(p) => emit('update-prefs', p)"
       />
     </template>
 
