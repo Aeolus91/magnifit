@@ -242,9 +242,13 @@ onUnmounted(() => {
         }"
       >
         <div
-          v-for="tab in tabs"
+          v-for="(tab, idx) in tabs"
           :key="tab.id"
-          class="w-full shrink-0 px-0.5"
+          class="w-full shrink-0 px-3 sm:px-4"
+          :class="isDragging ? '' : 'transition-opacity duration-250 ease-out'"
+          :style="{
+            opacity: Math.max(0.05, 1 - Math.abs(pillProgress - idx) * 0.95)
+          }"
         >
           <slot :name="tab.id" :tab="tab" />
         </div>
