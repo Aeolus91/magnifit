@@ -80,6 +80,9 @@ const {
 const {
   filteredMeals,
   totalCaloriesConsumed,
+  totalProteinG,
+  totalCarbsG,
+  totalFatG,
   fetchMeals,
   editMeal,
   deleteMeal
@@ -240,6 +243,9 @@ onMounted(async () => {
         :total-active-calories="totalActiveCalories"
         :latest-weight="latestWeight"
         :latest-bmi="latestBmi"
+        :protein-g="totalProteinG"
+        :carbs-g="totalCarbsG"
+        :fat-g="totalFatG"
         :is-loading="loading"
       />
 

@@ -23,7 +23,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const activeMode = ref<'manual' | 'search' | 'ocr'>('manual')
+const activeMode = ref<'manual' | 'search' | 'ocr'>('search')
 const isMicrosOpen = ref(false)
 const mealName = ref('')
 const calories = ref<number | null>(null)
@@ -92,19 +92,29 @@ const handleFoodSelected = (food: {
   servings?: number
   micros?: Record<string, number>
 }) => {
-  mealName.value = food.meal_name
-  calories.value = food.cal
-  proteinG.value = food.prot_g
-  carbsG.value = food.carb_g
-  fatG.value = food.fat_g
-  servingSize.value = food.serving_size || null
-  servingUnit.value = food.serving_unit || 'g'
-  servingsCount.value = food.servings || 1
-  if (food.micros) {
-    mealMicros.value = food.micros
+  let formattedName = food.meal_name.trim()
+  if (food.serving_size && !formattedName.includes('(')) {
+    const sUnit = food.serving_unit || 'g'
+    const sCount = food.servings || 1
+    const servingDetail = sCount !== 1
+      ? `(${sCount}x ${food.serving_size}${sUnit})`
+      : `(${food.serving_size}${sUnit})`
+    formattedName = `${formattedName} ${servingDetail}`
   }
-  isMicrosOpen.value = false
-  activeMode.value = 'manual'
+
+  emit('submit', {
+    meal_name: formattedName,
+    cal: food.cal || 0,
+    prot_g: food.prot_g || 0,
+    carb_g: food.carb_g || 0,
+    fat_g: food.fat_g || 0,
+    serving_size: food.serving_size || null,
+    serving_unit: food.serving_size ? (food.serving_unit || 'g') : 'g',
+    servings: food.servings || 1,
+    flags: selectedMealSlot.value,
+    micros: food.micros && Object.keys(food.micros).length > 0 ? food.micros : undefined,
+    log_date: props.logDate
+  })
 }
 
 const handleOcrAutofill = (data: { meal_name?: string; cal?: number; prot_g?: number; carb_g?: number; fat_g?: number }) => {
@@ -157,6 +167,27 @@ const handleSubmit = () => {
 
 <template>
   <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-6 shadow-xl">
+    <!-- Universal Meal Timing Slot Buttons -->
+    <div class="space-y-1.5">
+      <label class="text-xs font-semibold text-slate-300">{{ t('meals.slot.label') }}</label>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <button
+          v-for="slot in mealSlotOptions"
+          :key="slot.bit"
+          type="button"
+          @click="selectedMealSlot = slot.bit"
+          :class="[
+            'py-2 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer text-center',
+            selectedMealSlot === slot.bit
+              ? 'bg-amber-950/70 border-amber-500 text-amber-300'
+              : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+          ]"
+        >
+          {{ slot.label }}
+        </button>
+      </div>
+    </div>
+
     <!-- Mode Switcher Pill Bar (Manual, Search, OCR) with Sliding Indicator -->
     <div class="relative grid grid-cols-3 p-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold gap-1 overflow-hidden">
       <!-- Animated Sliding Background Pill -->
@@ -218,26 +249,6 @@ const handleSubmit = () => {
 
     <!-- Manual / Finalized Entry Form -->
     <form v-else @submit.prevent="handleSubmit" class="space-y-5">
-      <!-- Meal Timing Slot Buttons -->
-      <div class="space-y-1.5">
-        <label class="text-xs font-semibold text-slate-300">{{ t('meals.slot.label') }}</label>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <button
-            v-for="slot in mealSlotOptions"
-            :key="slot.bit"
-            type="button"
-            @click="selectedMealSlot = slot.bit"
-            :class="[
-              'py-2 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer text-center',
-              selectedMealSlot === slot.bit
-                ? 'bg-amber-950/70 border-amber-500 text-amber-300'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-            ]"
-          >
-            {{ slot.label }}
-          </button>
-        </div>
-      </div>
 
       <!-- Item Name & Total Energy -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
