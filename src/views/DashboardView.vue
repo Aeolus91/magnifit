@@ -144,13 +144,17 @@ const fetchAll = async (invalidate = false) => {
   loading.value = false
 }
 
-const refreshFetchers = computed(() => [
-  () => fetchUserProfile(currentUserId.value),
-  () => fetchWorkouts(currentUserId.value),
-  () => fetchBiometrics(currentUserId.value),
-  () => fetchMeals(currentUserId.value),
-  () => fetchWater(currentUserId.value)
-])
+const refreshFetchers = computed(() => {
+  const uid = currentUserId.value
+  if (!uid) return []
+  return [
+    () => fetchUserProfile(uid),
+    () => fetchWorkouts(uid),
+    () => fetchBiometrics(uid),
+    () => fetchMeals(uid),
+    () => fetchWater(uid)
+  ]
+})
 
 const updateCalorieTarget = async (targetCal: number) => {
   if (!currentUserId.value || !userProfile.value) return

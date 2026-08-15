@@ -163,12 +163,16 @@ const fetchAll = async (invalidate = false) => {
   }
 }
 
-const refreshFetchers = computed(() => [
-  () => fetchUserProfile(currentUserId.value),
-  () => fetchMeals(currentUserId.value),
-  () => fetchTemplates(currentUserId.value),
-  () => fetchFavorites(currentUserId.value)
-])
+const refreshFetchers = computed(() => {
+  const uid = currentUserId.value
+  if (!uid) return []
+  return [
+    () => fetchUserProfile(uid),
+    () => fetchMeals(uid),
+    () => fetchTemplates(uid),
+    () => fetchFavorites(uid)
+  ]
+})
 
 onMounted(async () => {
   await fetchAll()
