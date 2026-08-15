@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
     : [];
 
   return {
-    base: env.VITE_BASE_URL || '/',
+    base: '/',
     plugins: [
       vue(),
       tailwindcss(),
