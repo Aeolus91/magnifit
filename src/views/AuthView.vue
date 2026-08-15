@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useRouter } from '../lib/router'
 import { useI18n } from '../lib/i18n'
@@ -7,10 +7,16 @@ import FormInput from '../components/atoms/FormInput.vue'
 import { Mail, Lock, LogIn, UserPlus, AlertCircle, Loader2, ArrowLeft } from '@lucide/vue'
 
 const authStore = useAuthStore()
-const { navigate } = useRouter()
+const { navigate, routeState } = useRouter()
 const { t } = useI18n()
 
-const mode = ref<'signin' | 'signup'>('signin')
+const mode = ref<'signin' | 'signup'>(routeState.value?.mode === 'signup' ? 'signup' : 'signin')
+
+watch(() => routeState.value?.mode, (newMode) => {
+  if (newMode === 'signup' || newMode === 'signin') {
+    mode.value = newMode
+  }
+})
 const email = ref('')
 const password = ref('')
 const localError = ref<string | null>(null)
