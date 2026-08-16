@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, type Component } from 'vue'
+import { type Component } from 'vue'
 import { Info } from '@lucide/vue'
+import Popover from './Popover.vue'
 
 interface Props {
   label: string
@@ -18,31 +19,6 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false
 })
 
-const isPopoverOpen = ref(false)
-const cardRef = ref<HTMLElement | null>(null)
-
-const handleClickOutside = (e: MouseEvent) => {
-  if (cardRef.value && !cardRef.value.contains(e.target as Node)) {
-    isPopoverOpen.value = false
-  }
-}
-
-const handleKeyDown = (e: KeyboardEvent) => {
-  if (e.key === 'Escape') {
-    isPopoverOpen.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-  document.addEventListener('keydown', handleKeyDown)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-  document.removeEventListener('keydown', handleKeyDown)
-})
-
 const colorMap = {
   emerald: 'text-emerald-400',
   cyan: 'text-cyan-400',
@@ -53,7 +29,7 @@ const colorMap = {
 </script>
 
 <template>
-  <div ref="cardRef"
+  <div
     class="relative bg-slate-900 border border-slate-800 p-2 min-[360px]:p-2.5 sm:p-4 rounded-xl space-y-1 overflow-visible transition-all duration-300 active:scale-[0.99]">
     <!-- Header with Info Button -->
     <div
@@ -65,23 +41,23 @@ const colorMap = {
         <span v-else class="truncate">{{ label }}</span>
       </div>
 
-      <!-- Top Right Info Trigger -->
-      <button v-if="!isLoading && ($slots.popover || tooltip)" type="button"
-        @click.stop="isPopoverOpen = !isPopoverOpen"
-        class="p-0.5 -mr-1 rounded-md text-slate-500 hover:text-slate-200 transition-colors focus:outline-none cursor-pointer"
-        :aria-expanded="isPopoverOpen" title="Details">
-        <Info class="w-3.5 h-3.5" />
-      </button>
-    </div>
-
-    <!-- Click Popover -->
-    <div v-if="isPopoverOpen && !isLoading && ($slots.popover || tooltip)"
-      class="absolute right-2 top-8 z-40 p-2.5 rounded-xl bg-slate-950/95 border border-slate-700 shadow-2xl backdrop-blur-md text-xs text-slate-200 min-w-37.5 max-w-55">
-      <slot name="popover">
-        <div class="font-medium leading-tight text-slate-300">
-          {{ tooltip }}
+      <!-- Top Right Info Trigger using Popover atom with icon -->
+      <Popover
+        v-if="!isLoading && ($slots.popover || tooltip)"
+        :icon="Info"
+        placement="bottom-end"
+        :offset="6"
+        trigger-class="p-0.5 -mr-1 rounded-md text-slate-500 hover:text-slate-200"
+        title="Details"
+      >
+        <div class="p-2.5 rounded-xl bg-slate-950/95 border border-slate-700 shadow-2xl backdrop-blur-md text-xs text-slate-200 min-w-37.5 max-w-55">
+          <slot name="popover">
+            <div class="font-medium leading-tight text-slate-300">
+              {{ tooltip }}
+            </div>
+          </slot>
         </div>
-      </slot>
+      </Popover>
     </div>
 
     <div class="flex items-baseline gap-0.5 sm:gap-1.5 flex-nowrap overflow-hidden">
