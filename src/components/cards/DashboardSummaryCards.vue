@@ -34,7 +34,7 @@ const bmiCategory = computed(() => {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 min-[360px]:grid-cols-3 gap-2 min-[360px]:gap-2 sm:gap-4 w-full">
+  <div class="grid grid-cols-2 min-[360px]:grid-cols-3 gap-2 min-[360px]:gap-2 sm:gap-4 w-full">
     <StatCard
       :label="t('dash.stats.active_burn')"
       :value="totalActiveCalories"
@@ -71,11 +71,14 @@ const bmiCategory = computed(() => {
         </div>
       </template>
     </StatCard>
-    <MacroStatCard
-      :protein-g="proteinG"
-      :carbs-g="carbsG"
-      :fat-g="fatG"
-      :is-loading="isLoading"
-    />
+    <div class="col-span-2 min-[360px]:col-span-1 flex">
+      <MacroStatCard
+        class="w-full"
+        :protein-g="proteinG"
+        :carbs-g="carbsG"
+        :fat-g="fatG"
+        :is-loading="isLoading"
+      />
+    </div>
   </div>
 </template>

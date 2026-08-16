@@ -45,8 +45,8 @@ const { t } = useI18n()
 
 const dashboardTabs = computed<TabItem[]>(() => [
   { id: 'workouts', label: t('dash.nav.workouts'), icon: Dumbbell, badge: props.workouts.length },
-  { id: 'biometrics', label: t('dash.nav.biometrics'), icon: Scale, badge: props.biometrics.length },
   { id: 'meals', label: t('dash.nav.meals'), icon: Utensils, badge: props.meals.length },
+  { id: 'biometrics', label: t('dash.nav.biometrics'), icon: Scale, badge: props.biometrics.length },
   { id: 'water', label: t('dash.nav.water'), icon: Droplets, badge: props.waterLogs.length }
 ])
 </script>
@@ -56,7 +56,7 @@ const dashboardTabs = computed<TabItem[]>(() => [
     :model-value="modelValue"
     :tabs="dashboardTabs"
     pill-color-class="bg-emerald-500"
-    @update:model-value="(val) => emit('update:modelValue', val as 'workouts' | 'biometrics' | 'meals' | 'water')"
+    @update:model-value="(val) => emit('update:modelValue', val as 'workouts' | 'meals' | 'biometrics' | 'water')"
   >
     <!-- Workouts Pane -->
     <template #workouts>
@@ -66,18 +66,6 @@ const dashboardTabs = computed<TabItem[]>(() => [
         @add-workout="(w) => emit('add-workout', w)"
         @edit-workout="(w) => emit('edit-workout', w)"
         @delete-workout="(id) => emit('delete-workout', id)"
-      />
-    </template>
-
-    <!-- Biometrics Pane -->
-    <template #biometrics>
-      <BiometricsSection
-        :biometrics="biometrics"
-        :prefs="prefs"
-        @add-biometric="(b) => emit('add-biometric', b)"
-        @edit-biometric="(b) => emit('edit-biometric', b)"
-        @delete-biometric="(id) => emit('delete-biometric', id)"
-        @update-prefs="(p) => emit('update-prefs', p)"
       />
     </template>
 
@@ -91,6 +79,18 @@ const dashboardTabs = computed<TabItem[]>(() => [
         @edit-meal="(m) => emit('edit-meal', m)"
         @delete-meal="(id) => emit('delete-meal', id)"
         @update-micros="(id, micros) => emit('update-micros', id, micros)"
+      />
+    </template>
+
+    <!-- Biometrics Pane -->
+    <template #biometrics>
+      <BiometricsSection
+        :biometrics="biometrics"
+        :prefs="prefs"
+        @add-biometric="(b) => emit('add-biometric', b)"
+        @edit-biometric="(b) => emit('edit-biometric', b)"
+        @delete-biometric="(id) => emit('delete-biometric', id)"
+        @update-prefs="(p) => emit('update-prefs', p)"
       />
     </template>
 

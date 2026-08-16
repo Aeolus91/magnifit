@@ -49,6 +49,7 @@ const {
 
 const {
   biometrics,
+  filteredBiometrics,
   latestWeight,
   latestBmi,
   fetchBiometrics,
@@ -277,9 +278,9 @@ onMounted(async () => {
           @update-target="updateWaterTarget" />
       </div>
 
-      <!-- Granular Tabbed Feature Sections Component -->
+      <!-- Granular Tabbed Feature Sections Component (Scoped to selected date) -->
       <DashboardTabSection v-model="activeTab" :target-date="selectedDate" :workouts="filteredWorkouts"
-        :biometrics="biometrics" :meals="filteredMeals" :water-logs="filteredWaterLogs"
+        :biometrics="filteredBiometrics" :meals="filteredMeals" :water-logs="filteredWaterLogs"
         :micros-opt="userProfile?.micros_opt" :prefs="userProfile?.prefs" @add-workout="addWorkout"
         @edit-workout="editWorkout" @delete-workout="deleteWorkout" @add-biometric="addBiometric"
         @edit-biometric="editBiometric" @delete-biometric="deleteBiometric" @update-prefs="handleUpdateProfilePrefs"

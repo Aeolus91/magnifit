@@ -31,6 +31,14 @@ export function useBiometrics(
     return Number(bmiVal.toFixed(1))
   })
 
+  // Biometrics logged specifically on the selected date
+  const filteredBiometrics = computed(() => {
+    return biometrics.value.filter(b => {
+      const d = b.log_date || getLocalISODate(b.ts)
+      return d === selectedDate.value
+    })
+  })
+
   const fetchBiometrics = async (uid?: string) => {
     const targetUid = uid || userId.value
     if (!targetUid) return
@@ -133,6 +141,7 @@ export function useBiometrics(
 
   return {
     biometrics,
+    filteredBiometrics,
     latestWeight,
     latestBmi,
     loading,
