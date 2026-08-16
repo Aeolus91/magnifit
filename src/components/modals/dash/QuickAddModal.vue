@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Modal from './Modal.vue'
+import Modal from '../../atoms/Modal.vue'
 import { Plus, Dumbbell, Scale, Utensils, ChevronRight } from '@lucide/vue'
 
 defineProps<{

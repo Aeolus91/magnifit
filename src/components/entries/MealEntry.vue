@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { Utensils, Trash2 } from '@lucide/vue'
 import { MealFlags } from '../../lib/bitmask'
 import type { Meal } from '../../types/fitness'
-import NutritionBreakdownModal from '../modals/NutritionBreakdownModal.vue'
+import NutritionBreakdownModal from '../modals/food/NutritionBreakdownModal.vue'
 
 interface Props {
   meal: Meal

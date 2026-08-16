@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { Plus, Scale, Sparkles } from '@lucide/vue'
 import { ProfilePrefs } from '../../lib/bitmask'
 import type { Biometric } from '../../types/fitness'
-import BiometricsModal from '../modals/BiometricsModal.vue'
+import BiometricsModal from '../modals/dash/BiometricsModal.vue'
 import BiometricEntry from '../entries/BiometricEntry.vue'
 
 interface Props {

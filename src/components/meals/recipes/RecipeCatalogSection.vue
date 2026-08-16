@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Plus, BookOpen, Trash2, Check, Utensils, X, Search, Camera, PenTool, Pencil, Share2, Loader2, AlertCircle, ChevronDown, Info } from '@lucide/vue'
-import { MealFlags, filterTrackedMicroLabels } from '../../../lib/bitmask'
+import { Plus, BookOpen, Trash2, Check, Utensils, X, Search, Camera, PenTool, Pencil, Share2, Loader2, AlertCircle } from '@lucide/vue'
+import { MealFlags } from '../../../lib/bitmask'
 import { useI18n } from '../../../lib/i18n'
-import Modal from '../../modals/Modal.vue'
+import Modal from '../../atoms/Modal.vue'
+import MicronutrientsAccordion from '../../atoms/MicronutrientsAccordion.vue'
 import FoodSearchLookup from '../forms/FoodSearchLookup.vue'
-import NutritionLabelOcrModal from '../forms/NutritionLabelOcrModal.vue'
+import NutritionLabelOcrModal from '../../modals/food/NutritionLabelOcrModal.vue'
 import type { MealTemplate, RecipeIngredient } from '../../../types/fitness'
 
 const props = defineProps<{
@@ -38,6 +39,16 @@ const shareHandle = ref('')
 const isSharing = ref(false)
 const shareMessage = ref<string | null>(null)
 const shareError = ref<string | null>(null)
+
+// Delete Confirmation Modal State
+const deletingTemplate = ref<MealTemplate | null>(null)
+
+const confirmDeleteTemplate = () => {
+  if (deletingTemplate.value?.id) {
+    emit('delete-template', deletingTemplate.value.id)
+  }
+  deletingTemplate.value = null
+}
 
 // Ingredient input mode
 const ingredientInputMode = ref<'search' | 'manual' | 'ocr'>('search')
@@ -108,37 +119,6 @@ const handleOcrSelectedForRecipe = (data: { meal_name?: string; cal?: number; pr
 }
 
 const recipeMicros = ref<Record<string, number | undefined>>({})
-
-const allMicroLabels: Record<string, { label: string; unit: string }> = {
-  sugar_g: { label: 'Sugar', unit: 'g' },
-  added_sugar_g: { label: 'Added Sugar', unit: 'g' },
-  sat_fat_g: { label: 'Saturated Fat', unit: 'g' },
-  trans_fat_g: { label: 'Trans Fat', unit: 'g' },
-  mono_fat_g: { label: 'Monounsaturated Fat', unit: 'g' },
-  poly_fat_g: { label: 'Polyunsaturated Fat', unit: 'g' },
-  omega_3_mg: { label: 'Omega-3 Fatty Acids', unit: 'mg' },
-  omega_6_mg: { label: 'Omega-6 Fatty Acids', unit: 'mg' },
-  sodium_mg: { label: 'Sodium', unit: 'mg' },
-  potassium_mg: { label: 'Potassium', unit: 'mg' },
-  cholesterol_mg: { label: 'Cholesterol', unit: 'mg' },
-  caffeine_mg: { label: 'Caffeine', unit: 'mg' },
-  calcium_mg: { label: 'Calcium', unit: 'mg' },
-  iron_mg: { label: 'Iron', unit: 'mg' },
-  magnesium_mg: { label: 'Magnesium', unit: 'mg' },
-  zinc_mg: { label: 'Zinc', unit: 'mg' },
-  vit_a_mcg: { label: 'Vitamin A', unit: 'mcg' },
-  vit_c_mg: { label: 'Vitamin C', unit: 'mg' },
-  vit_d_mcg: { label: 'Vitamin D', unit: 'mcg' },
-  vit_b12_mcg: { label: 'Vitamin B-12', unit: 'mcg' }
-}
-
-const microLabels = computed(() =>
-  filterTrackedMicroLabels(allMicroLabels, props.microsOpt)
-)
-
-const filledRecipeMicrosCount = computed(() =>
-  Object.values(recipeMicros.value).filter(v => v !== undefined && v !== null && !isNaN(v) && v > 0).length
-)
 
 const removeIngredient = (idx: number) => {
   newIngredients.value.splice(idx, 1)
@@ -352,7 +332,7 @@ const confirmLog = () => {
               class="text-slate-500 hover:text-amber-400 p-1 transition cursor-pointer" title="Edit Recipe">
               <Pencil class="w-3.5 h-3.5" />
             </button>
-            <button type="button" @click="tmpl.id && emit('delete-template', tmpl.id)"
+            <button type="button" @click="deletingTemplate = tmpl"
               class="text-slate-500 hover:text-rose-400 p-1 transition cursor-pointer" title="Delete Recipe">
               <Trash2 class="w-3.5 h-3.5" />
             </button>
@@ -534,35 +514,7 @@ const confirmLog = () => {
         </div>
 
         <!-- Collapsible Micronutrients Accordion Section -->
-        <div class="space-y-2 pt-2 border-t border-slate-800/80">
-          <button type="button" @click="isRecipeMicrosOpen = !isRecipeMicrosOpen"
-            class="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition cursor-pointer text-left group">
-            <div class="flex items-center gap-2">
-              <Info class="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span class="text-xs font-semibold text-slate-300 group-hover:text-slate-100 transition">
-                Optional Micronutrients
-              </span>
-              <span v-if="filledRecipeMicrosCount > 0"
-                class="px-1.5 py-0.2 rounded-md bg-amber-950/80 border border-amber-800/60 text-[10px] font-mono text-amber-300 font-bold">
-                {{ filledRecipeMicrosCount }} set
-              </span>
-            </div>
-            <ChevronDown :class="[
-              'w-3.5 h-3.5 text-slate-400 group-hover:text-slate-200 transition-transform duration-200',
-              isRecipeMicrosOpen ? 'rotate-180 text-amber-400' : ''
-            ]" />
-          </button>
-
-          <div v-if="isRecipeMicrosOpen"
-            class="max-h-60 overflow-y-auto space-y-2 pr-1 border border-slate-800/80 rounded-xl p-3 bg-slate-950/80 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div v-for="(meta, key) in microLabels" :key="key"
-              class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 text-xs">
-              <label class="text-slate-300 truncate text-[11px]">{{ meta.label }} ({{ meta.unit }})</label>
-              <input type="number" step="any" min="0" v-model.number="recipeMicros[key]" placeholder="0"
-                class="w-24 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono text-amber-300 text-right focus:outline-none" />
-            </div>
-          </div>
-        </div>
+        <MicronutrientsAccordion v-model="recipeMicros" :micros-opt="microsOpt" />
 
         <button type="submit"
           class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md">
@@ -594,11 +546,11 @@ const confirmLog = () => {
               { bit: MealFlags.DINNER, label: t('meals.slot.dinner') },
               { bit: MealFlags.SNACK, label: t('meals.slot.snack') }
             ]" :key="slot.bit" type="button" @click="logSlot = slot.bit" :class="[
-                'py-2 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer text-center',
-                logSlot === slot.bit
-                  ? 'bg-amber-950/70 border-amber-500 text-amber-300'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-              ]">
+              'py-2 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer text-center',
+              logSlot === slot.bit
+                ? 'bg-amber-950/70 border-amber-500 text-amber-300'
+                : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+            ]">
               {{ slot.label }}
             </button>
           </div>
@@ -667,6 +619,20 @@ const confirmLog = () => {
           </template>
         </button>
       </form>
+    </Modal>
+
+    <!-- Delete Confirmation Modal -->
+    <Modal v-if="deletingTemplate" :title="t('meals.recipes.delete_title')" :icon="Trash2" icon-color="text-rose-400"
+      max-width-class="max-w-md" :confirm-text="t('meals.recipes.delete_btn')" confirm-variant="rose"
+      :confirm-icon="Trash2" @close="deletingTemplate = null" @confirm="confirmDeleteTemplate">
+      <div class="p-3.5 rounded-xl bg-rose-950/40 border border-rose-900/80 space-y-2">
+        <div class="text-sm font-bold text-rose-300">
+          {{ t('meals.recipes.delete_confirm_title', { name: deletingTemplate.name }) }}
+        </div>
+        <p class="text-xs text-rose-200/80 leading-relaxed">
+          {{ t('meals.recipes.delete_warning') }}
+        </p>
+      </div>
     </Modal>
   </div>
 </template>

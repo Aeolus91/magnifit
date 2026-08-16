@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import Modal from '../../../modals/Modal.vue'
+import Modal from '../../../components/atoms/Modal.vue'
 import { Utensils, Info, Plus } from '@lucide/vue'
-import type { QuickPickItem } from '../FoodSearchLookup.vue'
+import { useI18n } from '../../../lib/i18n'
+import type { QuickPickItem } from '../../../composables/useFoodSearchLookup'
 
 const props = defineProps<{
   item: QuickPickItem | null
@@ -14,6 +15,8 @@ const emit = defineEmits<{
   (e: 'confirm'): void
 }>()
 
+const { t } = useI18n()
+
 const servings = defineModel<number>('servings', { default: 1 })
 
 const scaledCal = computed(() => Math.round((props.item?.cal || 0) * (servings.value || 1)))
@@ -23,15 +26,18 @@ const scaledFat = computed(() => Math.round((props.item?.fat_g || 0) * (servings
 </script>
 
 <template>
-  <Modal v-if="item" :title="item.type === 'recipe' ? 'Add Recipe' : 'Add Recent Food'" :icon="Utensils"
-    icon-color="text-amber-400" max-width-class="max-w-md" @close="emit('close')">
+  <Modal v-if="item"
+    :title="item.type === 'recipe' ? t('meals.quick_picks.add_recipe') : t('meals.quick_picks.add_recent')"
+    :icon="Utensils" icon-color="text-amber-400" max-width-class="max-w-md"
+    :confirm-text="t('meals.quick_picks.confirm_btn')" confirm-variant="amber" :confirm-icon="Plus"
+    @close="emit('close')" @confirm="emit('confirm')">
     <div class="space-y-4">
       <!-- Item Info -->
       <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-start justify-between gap-3">
         <div>
           <div class="text-sm font-bold text-slate-100">{{ item.name }}</div>
           <div class="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-2">
-            <span>Base: {{ item.cal }} kcal</span>
+            <span>{{ t('meals.quick_picks.base', { cal: item.cal }) }}</span>
             <span class="text-slate-600">•</span>
             <span class="text-emerald-400">P: {{ item.prot_g }}g</span>
             <span class="text-yellow-400">C: {{ item.carb_g }}g</span>
@@ -40,14 +46,14 @@ const scaledFat = computed(() => Math.round((props.item?.fat_g || 0) * (servings
         </div>
         <button type="button" @click="emit('inspect', item)"
           class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-amber-300 transition cursor-pointer shrink-0"
-          title="View Full Nutritional Breakdown">
+          :title="t('meals.quick_picks.inspect_tooltip')">
           <Info class="w-4 h-4" />
         </button>
       </div>
 
       <!-- Servings Input & Stepper -->
       <div class="space-y-1.5">
-        <label class="text-xs font-semibold text-slate-300">Number of Servings</label>
+        <label class="text-xs font-semibold text-slate-300">{{ t('meals.quick_picks.servings_label') }}</label>
         <div class="flex items-center gap-2">
           <button type="button" @click="servings = Math.max(0.25, Math.round(((servings || 1) - 0.25) * 100) / 100)"
             class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 active:scale-95 text-slate-200 font-bold flex items-center justify-center transition cursor-pointer text-xs shrink-0">
@@ -80,19 +86,6 @@ const scaledFat = computed(() => Math.round((props.item?.fat_g || 0) * (servings
           <div class="text-[10px] text-slate-500 font-medium uppercase">Fat</div>
           <div class="text-sm font-bold text-rose-400">{{ scaledFat }}g</div>
         </div>
-      </div>
-
-      <!-- Modal Action Buttons -->
-      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-        <button type="button" @click="emit('close')"
-          class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-400 hover:text-slate-200 transition cursor-pointer">
-          Cancel
-        </button>
-        <button type="button" @click="emit('confirm')"
-          class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md">
-          <Plus class="w-3.5 h-3.5 stroke-3" />
-          <span>Confirm & Add</span>
-        </button>
       </div>
     </div>
   </Modal>

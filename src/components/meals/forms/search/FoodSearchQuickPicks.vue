@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { History, Star } from '@lucide/vue'
-import type { QuickPickItem } from '../FoodSearchLookup.vue'
+import { useI18n } from '../../../../lib/i18n'
+import type { QuickPickItem } from '../../../../composables/useFoodSearchLookup'
 
 defineProps<{
   quickPickList: QuickPickItem[]
@@ -11,6 +12,8 @@ const emit = defineEmits<{
   (e: 'select-item', item: QuickPickItem): void
   (e: 'toggle-favorite', item: QuickPickItem): void
 }>()
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -19,9 +22,9 @@ const emit = defineEmits<{
     <div class="flex items-center justify-between border-b border-slate-800/80 pb-2 px-1">
       <div class="flex items-center gap-1.5 text-xs font-bold text-slate-300">
         <History class="w-3.5 h-3.5 text-amber-400" />
-        <span>Recently Logged Foods</span>
+        <span>{{ t('meals.quick_picks.title') }}</span>
       </div>
-      <span class="text-[10px] text-slate-500 font-mono">{{ quickPickList.length }} items</span>
+      <span class="text-[10px] text-slate-500 font-mono">{{ t('meals.quick_picks.count', { count: quickPickList.length }) }}</span>
     </div>
 
     <!-- Quick Picks Grid -->
@@ -32,7 +35,7 @@ const emit = defineEmits<{
           <div class="flex items-center gap-1.5 truncate">
             <span v-if="item.type === 'recipe'"
               class="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-950/80 text-amber-300 border border-amber-800/50">
-              Recipe
+              {{ t('meals.quick_picks.recipe_badge') }}
             </span>
             <span class="text-xs font-semibold text-slate-200 group-hover:text-emerald-400 transition truncate">
               {{ item.name }}
@@ -50,7 +53,7 @@ const emit = defineEmits<{
         <!-- Favorite Star Button -->
         <button type="button" @click.stop="emit('toggle-favorite', item)"
           class="p-1.5 rounded-lg text-slate-500 hover:text-amber-400 transition cursor-pointer"
-          :title="isItemFavorited(item) ? 'Remove Favorite' : 'Save as Favorite'">
+          :title="isItemFavorited(item) ? t('meals.search.fav_remove_tooltip') : t('meals.search.fav_add_tooltip')">
           <Star class="w-4 h-4 transition"
             :class="isItemFavorited(item) ? 'fill-amber-400 text-amber-400' : 'text-slate-500 hover:text-amber-400'" />
         </button>

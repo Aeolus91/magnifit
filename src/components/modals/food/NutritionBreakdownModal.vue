@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { Utensils, Info, Pencil, Check } from '@lucide/vue'
-import { filterTrackedMicroLabels, isMicroColumnTracked } from '../../lib/bitmask'
-import Modal from './Modal.vue'
+import { filterTrackedMicroLabels, isMicroColumnTracked } from '../../../lib/bitmask'
+import Modal from '../../atoms/Modal.vue'
 
 interface NutritionData {
   title: string

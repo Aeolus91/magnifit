@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import Modal from '../../../modals/Modal.vue'
+import Modal from '../../../components/atoms/Modal.vue'
 import { QrCode } from '@lucide/vue'
+import { useI18n } from '../../../lib/i18n'
 
 defineProps<{
   show: boolean
@@ -13,6 +14,7 @@ const emit = defineEmits<{
   (e: 'detected', barcode: string): void
 }>()
 
+const { t } = useI18n()
 const videoRef = ref<HTMLVideoElement | null>(null)
 let stream: MediaStream | null = null
 let scanInterval: any = null
@@ -68,8 +70,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <Modal v-if="show" title="Scan Product Barcode" :icon="QrCode" icon-color="text-amber-400" max-width-class="max-w-md"
-    @close="emit('close')">
+  <Modal v-if="show" :title="t('meals.scanner.title')" :icon="QrCode" icon-color="text-amber-400"
+    max-width-class="max-w-md" @close="emit('close')">
     <div class="space-y-4 text-center">
       <div
         class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
@@ -85,7 +87,7 @@ onUnmounted(() => {
         {{ scannerError }}
       </div>
       <p v-else class="text-xs text-slate-400">
-        Center the UPC / EAN barcode in the viewfinder. The item will be recognized automatically.
+        {{ t('meals.scanner.desc') }}
       </p>
     </div>
   </Modal>

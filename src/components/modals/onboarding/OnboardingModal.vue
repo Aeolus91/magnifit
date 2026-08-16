@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { toRef } from 'vue'
-import { useI18n } from '../../lib/i18n'
-import { useOnboarding } from '../../composables/useOnboarding'
-import type { Profile, Biometric } from '../../types/fitness'
-import Modal from './Modal.vue'
-import OnboardingStepIdentity from './onboarding/OnboardingStepIdentity.vue'
-import OnboardingStepBiometrics from './onboarding/OnboardingStepBiometrics.vue'
-import OnboardingStepGoals from './onboarding/OnboardingStepGoals.vue'
-import OnboardingStepMicros from './onboarding/OnboardingStepMicros.vue'
+import { useI18n } from '../../../lib/i18n'
+import { useOnboarding } from '../../../composables/useOnboarding'
+import type { Profile, Biometric } from '../../../types/fitness'
+import Modal from '../../atoms/Modal.vue'
+import OnboardingStepIdentity from './OnboardingStepIdentity.vue'
+import OnboardingStepBiometrics from './OnboardingStepBiometrics.vue'
+import OnboardingStepGoals from './OnboardingStepGoals.vue'
+import OnboardingStepMicros from './OnboardingStepMicros.vue'
 import { Sparkles, ArrowRight, ArrowLeft, Check, AlertCircle, Loader2, X } from '@lucide/vue'
 
 const props = defineProps<{

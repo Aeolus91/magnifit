@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { WaterLog } from '../../types/fitness'
-import Modal from '../modals/Modal.vue'
+import Modal from '../atoms/Modal.vue'
 import WaterEntry from '../entries/WaterEntry.vue'
 import { Droplets, Plus, Check } from '@lucide/vue'
 

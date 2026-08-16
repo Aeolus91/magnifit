@@ -20,6 +20,7 @@ import StatCard from '../components/atoms/StatCard.vue'
 import MacroStatCard from '../components/atoms/MacroStatCard.vue'
 import FluidGaugeCard from '../components/cards/FluidGaugeCard.vue'
 import TabbedView from '../components/layout/TabbedView.vue'
+import AppFooter from '../components/layout/AppFooter.vue'
 
 const { navigate } = useRouter()
 const { t } = useI18n()
@@ -66,8 +67,10 @@ const addQuickWater = (ml: number) => {
           <Activity class="w-4 h-4 stroke-[2.5]" />
         </div>
         <div class="flex flex-col">
-          <span class="hidden min-[360px]:inline text-base font-bold tracking-tight text-white leading-none">{{ t('brand.name') }}</span>
-          <span class="hidden sm:block text-[10px] font-mono tracking-wider text-slate-400 mt-0.5">{{ t('brand.tagline') }}</span>
+          <span class="hidden min-[360px]:inline text-base font-bold tracking-tight text-white leading-none">{{
+            t('brand.name') }}</span>
+          <span class="hidden sm:block text-[10px] font-mono tracking-wider text-slate-400 mt-0.5">{{ t('brand.tagline')
+            }}</span>
         </div>
       </div>
 
@@ -241,8 +244,6 @@ const addQuickWater = (ml: number) => {
       </div>
     </main>
 
-    <footer class="border-t border-slate-900 px-6 py-6 text-center text-xs text-slate-400 font-mono">
-      {{ t('landing.footer') }}
-    </footer>
+    <AppFooter />
   </div>
 </template>

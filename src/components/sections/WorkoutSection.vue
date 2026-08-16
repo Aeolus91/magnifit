@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { Plus } from '@lucide/vue'
 import type { Workout } from '../../types/fitness'
-import WorkoutModal from '../modals/WorkoutModal.vue'
+import WorkoutModal from '../modals/dash/WorkoutModal.vue'
 import WorkoutEntry from '../entries/WorkoutEntry.vue'
 
 interface Props {

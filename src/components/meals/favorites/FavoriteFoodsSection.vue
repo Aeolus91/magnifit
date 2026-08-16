@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Star, Search, Plus, Info, Loader2, Utensils, X } from '@lucide/vue'
-import Modal from '../../modals/Modal.vue'
-import NutritionBreakdownModal from '../../modals/NutritionBreakdownModal.vue'
+import Modal from '../../atoms/Modal.vue'
+import NutritionBreakdownModal from '../../modals/food/NutritionBreakdownModal.vue'
 import { MealFlags } from '../../../lib/bitmask'
 import type { UserFavoriteTemplate, Micronutrients } from '../../../types/fitness'
 

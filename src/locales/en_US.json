@@ -34,7 +34,14 @@
   "landing.demo.workout2_cat": "Strength",
   "landing.demo.meal1_name": "Greek Yogurt Bowl",
   "landing.demo.meal2_name": "Salmon with Jasmine Rice",
-  "landing.footer": "Ultra-fast & Lightweight Fitness Tracker • No external dependencies or telemetry",
+  "landing.footer": [
+    "Free & Open Source Software",
+    "No external SDKs or telemetry",
+    {
+      "label": "GitHub",
+      "href": "https://github.com/magnifit/magnifit.github.io"
+    }
+  ],
 
   "auth.signin_tab": "Sign In",
   "auth.signup_tab": "Sign Up",
@@ -165,5 +172,44 @@
   "meals.ocr.desc": "Take or upload a photo of the nutrition facts label to autofill calories and macros.",
   "meals.ocr.upload_btn": "Upload Label Photo",
   "meals.ocr.camera_btn": "Capture with Camera",
-  "meals.ocr.processing": "Analyzing nutrition label..."
+  "meals.ocr.processing": "Analyzing nutrition label...",
+
+  "meals.quick_picks.title": "Recently Logged Foods",
+  "meals.quick_picks.count": "{count} items",
+  "meals.quick_picks.recipe_badge": "Recipe",
+  "meals.quick_picks.add_recipe": "Add Recipe",
+  "meals.quick_picks.add_recent": "Add Recent Food",
+  "meals.quick_picks.base": "Base: {cal} kcal",
+  "meals.quick_picks.servings_label": "Number of Servings",
+  "meals.quick_picks.confirm_btn": "Confirm & Add",
+  "meals.quick_picks.inspect_tooltip": "View Full Nutritional Breakdown",
+
+  "meals.search.database_results": "Database Results ({count})",
+  "meals.search.show_less": "Show Less",
+  "meals.search.view_all": "View All ({count})",
+  "meals.search.add_tooltip": "Add to Meal",
+  "meals.search.inspect_tooltip": "Inspect Nutritional Details",
+  "meals.search.fav_add_tooltip": "Save Favorite",
+  "meals.search.fav_remove_tooltip": "Remove Favorite",
+  "meals.search.calculated_for": "Calculated for {grams}g",
+  "meals.search.add_to_meal": "Add to Meal",
+  "meals.search.serving_size_g": "Serving Size (g)",
+  "meals.search.number_of_servings": "Number of Servings",
+
+  "meals.scanner.title": "Scan Product Barcode",
+  "meals.scanner.desc": "Center the UPC / EAN barcode in the viewfinder. The item will be recognized automatically.",
+  "meals.scanner.btn_title": "Scan Barcode",
+
+  "meals.recipes.delete_title": "Delete Recipe",
+  "meals.recipes.delete_confirm_title": "Are you sure you want to delete \"{name}\"?",
+  "meals.recipes.delete_warning": "This action is permanent and cannot be undone. This recipe will be deleted from your catalog and will also be removed for anyone you have previously shared it with.",
+  "meals.recipes.delete_btn": "Delete Recipe",
+  "meals.recipes.share_title": "Share Recipe",
+  "meals.recipes.share_desc": "Send a copy of this complete recipe including all ingredients and macros to another user.",
+  "meals.recipes.share_handle_label": "Recipient Username Handle",
+  "meals.recipes.share_btn": "Send Recipe",
+  "meals.recipes.save_changes": "Save Changes",
+  "meals.recipes.save_blueprint": "Save Recipe Blueprint",
+  "meals.micros.optional_title": "Optional Micronutrients",
+  "meals.micros.set_count": "{count} set"
 }

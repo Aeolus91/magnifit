@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Info, Plus, Star } from '@lucide/vue'
-import type { FoodSearchResult } from '../FoodSearchLookup.vue'
+import { useI18n } from '../../../../lib/i18n'
+import type { FoodSearchResult } from '../../../../composables/useFoodSearchLookup'
 
 defineProps<{
   searchResults: FoodSearchResult[]
@@ -15,15 +16,17 @@ const emit = defineEmits<{
   (e: 'toggle-favorite', item: FoodSearchResult): void
   (e: 'toggle-show-all'): void
 }>()
+
+const { t } = useI18n()
 </script>
 
 <template>
   <div class="space-y-2 pt-2">
     <div class="flex items-center justify-between text-xs font-semibold text-slate-400 px-1">
-      <span>Database Results ({{ searchResults.length }})</span>
+      <span>{{ t('meals.search.database_results', { count: searchResults.length }) }}</span>
       <button v-if="searchResults.length > 6" type="button" @click="emit('toggle-show-all')"
         class="text-emerald-400 hover:text-emerald-300 transition cursor-pointer">
-        {{ showAllResults ? 'Show Less' : `View All (${searchResults.length})` }}
+        {{ showAllResults ? t('meals.search.show_less') : t('meals.search.view_all', { count: searchResults.length }) }}
       </button>
     </div>
 
@@ -51,14 +54,14 @@ const emit = defineEmits<{
           <!-- Inspect Nutrition Info -->
           <button type="button" @click.stop="emit('inspect-food', item)"
             class="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer"
-            title="Inspect Nutritional Details">
+            :title="t('meals.search.inspect_tooltip')">
             <Info class="w-4 h-4" />
           </button>
 
           <!-- Favorite Star Button -->
           <button type="button" @click.stop="emit('toggle-favorite', item)"
             class="p-1.5 rounded-lg text-slate-500 hover:text-amber-400 hover:bg-slate-800 transition cursor-pointer"
-            :title="isItemFavorited(item) ? 'Favorited' : 'Save Favorite'">
+            :title="isItemFavorited(item) ? t('meals.search.fav_remove_tooltip') : t('meals.search.fav_add_tooltip')">
             <Star class="w-4 h-4 transition"
               :class="isItemFavorited(item) ? 'fill-amber-400 text-amber-400' : 'text-slate-500 hover:text-amber-400'" />
           </button>
@@ -66,7 +69,7 @@ const emit = defineEmits<{
           <!-- Add Button -->
           <button type="button" @click.stop="emit('select-food', item)"
             class="p-1.5 rounded-lg bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 transition cursor-pointer"
-            title="Add to Meal">
+            :title="t('meals.search.add_tooltip')">
             <Plus class="w-4 h-4" />
           </button>
         </div>

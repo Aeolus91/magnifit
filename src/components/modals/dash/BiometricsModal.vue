@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { useI18n } from '../../lib/i18n'
-import type { Biometric } from '../../types/fitness'
-import Modal from './Modal.vue'
-import DropdownPicker from '../atoms/DropdownPicker.vue'
-import FormInput from '../atoms/FormInput.vue'
-import ToggleSwitch from '../atoms/ToggleSwitch.vue'
+import { useI18n } from '../../../lib/i18n'
+import type { Biometric } from '../../../types/fitness'
+import Modal from '../../atoms/Modal.vue'
+import DropdownPicker from '../../atoms/DropdownPicker.vue'
+import FormInput from '../../atoms/FormInput.vue'
+import ToggleSwitch from '../../atoms/ToggleSwitch.vue'
 import {
   BIOMETRIC_CATEGORY_LABELS,
   BIOMETRIC_TYPES,
   BiometricFlags,
   type BiometricTypeMeta
-} from '../../lib/bitmask'
+} from '../../../lib/bitmask'
 import { Scale, Check, Pencil } from '@lucide/vue'
 
 const props = defineProps<{

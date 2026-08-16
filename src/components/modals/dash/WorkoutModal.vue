@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { useI18n } from '../../lib/i18n'
-import type { Workout } from '../../types/fitness'
-import Modal from './Modal.vue'
-import DropdownPicker from '../atoms/DropdownPicker.vue'
-import FormInput from '../atoms/FormInput.vue'
-import ToggleSwitch from '../atoms/ToggleSwitch.vue'
-import { WORKOUT_CATEGORIES, encodeWorkoutFlags } from '../../lib/bitmask'
+import { useI18n } from '../../../lib/i18n'
+import type { Workout } from '../../../types/fitness'
+import Modal from '../../atoms/Modal.vue'
+import DropdownPicker from '../../atoms/DropdownPicker.vue'
+import FormInput from '../../atoms/FormInput.vue'
+import ToggleSwitch from '../../atoms/ToggleSwitch.vue'
+import { WORKOUT_CATEGORIES, encodeWorkoutFlags } from '../../../lib/bitmask'
 import { Dumbbell, Check, Trees, Navigation, Flame, Timer, Pencil, Heart, Zap } from '@lucide/vue'
 
 const props = defineProps<{

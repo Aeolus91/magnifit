@@ -5,7 +5,7 @@ export type Locale = 'en_US' | 'es_ES' | 'fr_FR' | 'de_DE'
 export type TranslationKey = keyof typeof en_US
 
 const currentLocale = ref<Locale>('en_US')
-const translations = ref<Record<string, string>>({ ...en_US })
+const translations = ref<Record<string, any>>({ ...en_US })
 
 export function useI18n() {
   /**
@@ -13,7 +13,10 @@ export function useI18n() {
    * Example: t('onboarding.step_counter', { step: 1, total: 3, percent: 33 })
    */
   const t = (key: TranslationKey | string, params?: Record<string, string | number>): string => {
-    let text = translations.value[key] || key
+    const val = translations.value[key]
+    if (val === undefined || val === null) return String(key)
+    if (typeof val !== 'string') return String(val)
+    let text = val
     if (params) {
       Object.entries(params).forEach(([paramKey, paramVal]) => {
         text = text.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramVal))
@@ -22,7 +25,14 @@ export function useI18n() {
     return text
   }
 
-  const setLocale = (locale: Locale, dictionary?: Record<string, string>) => {
+  /**
+   * Retrieve raw translation entry (e.g. array or object)
+   */
+  const tm = <T = any>(key: TranslationKey | string): T => {
+    return (translations.value[key] ?? key) as T
+  }
+
+  const setLocale = (locale: Locale, dictionary?: Record<string, any>) => {
     currentLocale.value = locale
     if (dictionary) {
       translations.value = { ...en_US, ...dictionary }
@@ -32,6 +42,7 @@ export function useI18n() {
   return {
     locale: computed(() => currentLocale.value),
     t,
+    tm,
     setLocale
   }
 }
