@@ -66,8 +66,8 @@ const addQuickWater = (ml: number) => {
           <Activity class="w-4 h-4 stroke-[2.5]" />
         </div>
         <div class="flex flex-col">
-          <span class="text-base font-bold tracking-tight text-white leading-none">{{ t('brand.name') }}</span>
-          <span class="text-[10px] font-mono tracking-wider text-slate-400 mt-0.5">{{ t('brand.tagline') }}</span>
+          <span class="hidden min-[360px]:inline text-base font-bold tracking-tight text-white leading-none">{{ t('brand.name') }}</span>
+          <span class="hidden sm:block text-[10px] font-mono tracking-wider text-slate-400 mt-0.5">{{ t('brand.tagline') }}</span>
         </div>
       </div>
 
@@ -103,7 +103,7 @@ const addQuickWater = (ml: number) => {
           </p>
 
           <div class="flex flex-col sm:flex-row gap-3 pt-2">
-            <button @click="navigate('/auth', false, { mode: 'signup' })"
+            <button @click="navigate('/auth')"
               class="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/10 cursor-pointer">
               <span>{{ t('landing.cta') }}</span>
               <ArrowRight class="w-4 h-4" />
