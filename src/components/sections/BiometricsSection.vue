@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Plus, Scale, Sparkles } from '@lucide/vue'
+import { Sparkles, Scale } from '@lucide/vue'
 import { ProfilePrefs } from '../../lib/bitmask'
+import { useI18n } from '../../lib/i18n'
 import type { Biometric } from '../../types/fitness'
 import BiometricsModal from '../modals/dash/BiometricsModal.vue'
 import BiometricEntry from '../entries/BiometricEntry.vue'
+import SectionHeader from '../atoms/SectionHeader.vue'
+import EmptySectionPlaceholder from '../atoms/EmptySectionPlaceholder.vue'
 
 interface Props {
   biometrics: Biometric[]
   prefs?: number
 }
+
+const { t } = useI18n()
 
 const props = withDefaults(defineProps<Props>(), {
   prefs: ProfilePrefs.SHOW_BIO_AVERAGE
@@ -58,43 +63,31 @@ const handleBioSubmit = (bio: Biometric) => {
 <template>
   <div class="space-y-4">
     <!-- Action Trigger Row & View Settings -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-      <button
-        type="button"
-        @click="openCreateModal"
-        class="flex-1 flex items-center justify-between p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-500/50 hover:bg-slate-850 transition active:scale-[0.99] group cursor-pointer"
-      >
-        <div class="flex items-center gap-3">
-          <div class="p-2 rounded-lg bg-purple-950/60 border border-purple-800/60 text-purple-400 group-hover:text-purple-300">
-            <Scale class="w-4 h-4" />
-          </div>
-          <div class="text-left">
-            <div class="text-xs font-bold text-slate-100 group-hover:text-purple-400 transition">Log Biometrics</div>
-            <div class="text-[11px] text-slate-400">Track body stats, circumferences, vitals</div>
-          </div>
-        </div>
-        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500 hover:bg-purple-400 text-slate-950 text-xs font-bold transition">
-          <Plus class="w-3.5 h-3.5" />
-          <span>Add Entry</span>
-        </div>
-      </button>
-
-      <!-- Bilateral Aggregate Toggle (Persisted via ProfilePrefs bitmask) -->
-      <button
-        type="button"
-        @click="toggleAverageAggregate"
-        :class="[
-          'px-3 py-2 sm:py-3.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 shrink-0',
-          showAverageAggregate
-            ? 'bg-purple-950/70 border-purple-500 text-purple-300 shadow-sm'
-            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-700'
-        ]"
-        title="Toggle bilateral limb average display"
-      >
-        <Sparkles class="w-3.5 h-3.5" />
-        <span>{{ showAverageAggregate ? 'Showing Avg' : 'Show Avg' }}</span>
-      </button>
-    </div>
+    <SectionHeader
+      :title="t('dash.biometrics.title')"
+      :description="t('dash.biometrics.desc')"
+      :action-label="t('dash.biometrics.add_entry')"
+      action-variant="purple"
+      @action="openCreateModal"
+    >
+      <template #controls>
+        <!-- Bilateral Aggregate Toggle (Persisted via ProfilePrefs bitmask) -->
+        <button
+          type="button"
+          @click="toggleAverageAggregate"
+          :class="[
+            'px-3 py-2 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 shrink-0',
+            showAverageAggregate
+              ? 'bg-purple-950/70 border-purple-500 text-purple-300 shadow-sm'
+              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-700'
+          ]"
+          title="Toggle bilateral limb average display"
+        >
+          <Sparkles class="w-3.5 h-3.5" />
+          <span>{{ showAverageAggregate ? t('dash.biometrics.showing_avg') : t('dash.biometrics.show_avg') }}</span>
+        </button>
+      </template>
+    </SectionHeader>
 
     <!-- Dedicated Fullscreen Biometrics Modal -->
     <BiometricsModal
@@ -107,9 +100,14 @@ const handleBioSubmit = (bio: Biometric) => {
 
     <!-- Biometrics List -->
     <div class="space-y-2">
-      <div v-if="biometrics.length === 0" class="text-sm text-slate-500 py-4 text-center">
-        No biometrics recorded for this date.
-      </div>
+      <EmptySectionPlaceholder
+        v-if="biometrics.length === 0"
+        :title="t('dash.empty.biometrics_title')"
+        :description="t('dash.empty.biometrics_desc')"
+        :icon="Scale"
+        icon-color-class="text-cyan-400"
+        icon-bg-class="bg-cyan-950/60 border border-cyan-800/60"
+      />
       <BiometricEntry
         v-for="b in biometrics"
         :key="b.id"

@@ -2,7 +2,9 @@
 import { ref, computed } from 'vue'
 import { Star, Search, Plus, Info, Loader2, Utensils, X } from '@lucide/vue'
 import Modal from '../../atoms/Modal.vue'
+import EmptySectionPlaceholder from '../../atoms/EmptySectionPlaceholder.vue'
 import NutritionBreakdownModal from '../../modals/food/NutritionBreakdownModal.vue'
+import { useI18n } from '../../../lib/i18n'
 import { MealFlags } from '../../../lib/bitmask'
 import type { UserFavoriteTemplate, Micronutrients } from '../../../types/fitness'
 
@@ -17,6 +19,8 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   microsOpt: 0
 })
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   (e: 'log-favorite', item: {
@@ -119,19 +123,19 @@ const confirmLogFavorite = () => {
 <template>
   <div class="space-y-4">
     <!-- Header & Search Filter Bar -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-      <div class="relative flex-1">
-        <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+    <div class="flex items-center gap-2">
+      <div class="relative flex-1 min-w-0">
+        <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input type="text" v-model="searchQuery" placeholder="Filter favorite foods..."
-          class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl pl-10 pr-9 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition" />
+          class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl pl-9 pr-8 py-2 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition" />
         <button v-if="searchQuery" type="button" @click="searchQuery = ''"
-          class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-300 transition cursor-pointer">
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-300 transition cursor-pointer">
           <X class="w-3.5 h-3.5" />
         </button>
       </div>
 
-      <div class="flex items-center gap-2 text-xs font-mono text-slate-400 shrink-0 self-end sm:self-auto">
-        <span class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
+      <div class="shrink-0 text-xs font-mono">
+        <span class="px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 flex items-center justify-center whitespace-nowrap">
           {{ filteredFavorites.length }} {{ filteredFavorites.length === 1 ? 'Food' : 'Foods' }}
         </span>
       </div>
@@ -214,18 +218,14 @@ const confirmLogFavorite = () => {
     </div>
 
     <!-- Empty State -->
-    <div v-else class="py-16 text-center rounded-2xl bg-slate-950/40 border border-dashed border-slate-800 space-y-3">
-      <div
-        class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
-        <Star class="w-6 h-6" />
-      </div>
-      <div class="space-y-1">
-        <h3 class="text-sm font-bold text-slate-200">No Favorite Foods Yet</h3>
-        <p class="text-xs text-slate-500 max-w-sm mx-auto">
-          Tap the ★ icon on any food in the New Entry tab or search results to save it here for instant logging.
-        </p>
-      </div>
-    </div>
+    <EmptySectionPlaceholder
+      v-else
+      :title="t('meals.empty.favorites_title')"
+      :description="t('meals.empty.favorites_desc')"
+      :icon="Star"
+      icon-color-class="text-amber-400"
+      icon-bg-class="bg-amber-950/60 border border-amber-800/60"
+    />
 
     <!-- Log Favorite Modal -->
     <Modal v-if="loggingFavorite" title="Log Favorite Food" :icon="Utensils" icon-color="text-amber-400"

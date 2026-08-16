@@ -4,6 +4,8 @@ import { Plus, BookOpen, Trash2, Check, Utensils, X, Search, Camera, PenTool, Pe
 import { MealFlags } from '../../../lib/bitmask'
 import { useI18n } from '../../../lib/i18n'
 import Modal from '../../atoms/Modal.vue'
+import SectionHeader from '../../atoms/SectionHeader.vue'
+import EmptySectionPlaceholder from '../../atoms/EmptySectionPlaceholder.vue'
 import MicronutrientsAccordion from '../../atoms/MicronutrientsAccordion.vue'
 import FoodSearchLookup from '../forms/FoodSearchLookup.vue'
 import NutritionLabelOcrModal from '../../modals/food/NutritionLabelOcrModal.vue'
@@ -280,28 +282,24 @@ const confirmLog = () => {
 <template>
   <div class="space-y-6">
     <!-- Header with Create Button -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-lg font-bold text-slate-100">{{ t('meals.recipes.title') }}</h2>
-        <p class="text-xs text-slate-400">{{ t('meals.recipes.desc') }}</p>
-      </div>
-
-      <button type="button" @click="openCreateModal"
-        class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md">
-        <Plus class="w-3.5 h-3.5 stroke-3" />
-        <span>{{ t('meals.recipes.new_btn') }}</span>
-      </button>
-    </div>
+    <SectionHeader
+      :title="t('meals.recipes.title')"
+      :description="t('meals.recipes.desc')"
+      :action-label="t('meals.recipes.new_btn')"
+      :action-icon="Plus"
+      action-variant="amber"
+      @action="openCreateModal"
+    />
 
     <!-- Empty State -->
-    <div v-if="templates.length === 0"
-      class="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 text-center space-y-3">
-      <BookOpen class="w-8 h-8 text-amber-400 mx-auto" />
-      <div class="text-sm font-semibold text-slate-200">No saved recipes yet</div>
-      <p class="text-xs text-slate-400 max-w-sm mx-auto">
-        Create recipes with individual ingredients and macros to quickly log repeat meals in one tap.
-      </p>
-    </div>
+    <EmptySectionPlaceholder
+      v-if="templates.length === 0"
+      :title="t('meals.empty.recipes_title')"
+      :description="t('meals.empty.recipes_desc')"
+      :icon="BookOpen"
+      icon-color-class="text-amber-400"
+      icon-bg-class="bg-amber-950/60 border border-amber-800/60"
+    />
 
     <!-- Template Cards Grid -->
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
