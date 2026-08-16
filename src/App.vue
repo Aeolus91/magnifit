@@ -7,24 +7,40 @@ import AuthView from './views/AuthView.vue'
 import DashboardView from './views/DashboardView.vue'
 import MealsView from './views/MealsView.vue'
 
-const { currentRoute, navigate } = useRouter()
+const { currentRoute, navigate, beforeEach } = useRouter()
 const authStore = useAuthStore()
 
-// Route Guards
+// Register Navigation Guard with Router
+beforeEach((to) => {
+  const isAuth = authStore.isAuthenticated.value
+  const target = to.toLowerCase()
+
+  if (isAuth) {
+    // Authenticated users trying to access landing '/' or '/auth' resolve redirect intent or go to '/dash'
+    if (target === '/' || target.startsWith('/auth')) {
+      const params = new URLSearchParams(window.location.search)
+      const redirect = params.get('redirect')
+      return redirect && redirect.startsWith('/') ? redirect : '/dash'
+    }
+  } else {
+    // Unauthenticated users trying to access protected routes are sent to '/auth?redirect=...'
+    if (target.startsWith('/dash') || target.startsWith('/meals')) {
+      return `/auth?redirect=${encodeURIComponent(to)}`
+    }
+  }
+})
+
+// React to auth session changes (e.g. login, logout)
 watchEffect(() => {
   const isAuth = authStore.isAuthenticated.value
   const route = currentRoute.value
 
-  if (isAuth) {
-    // Authenticated users hitting landing '/' or '/auth' get sent directly to '/dash'
-    if (route === '/' || route === '/auth') {
-      navigate('/dash', true)
-    }
-  } else {
-    // Unauthenticated users hitting protected '/dash' or '/meals' get redirected to '/auth'
-    if (route === '/dash' || route === '/meals') {
-      navigate('/auth', true)
-    }
+  if (isAuth && (route === '/' || route === '/auth')) {
+    const params = new URLSearchParams(window.location.search)
+    const redirect = params.get('redirect')
+    navigate(redirect && redirect.startsWith('/') ? redirect : '/dash', true)
+  } else if (!isAuth && (route === '/dash' || route === '/meals')) {
+    navigate(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`, true)
   }
 })
 

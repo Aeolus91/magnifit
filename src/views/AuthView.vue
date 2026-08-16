@@ -34,7 +34,9 @@ const handleSubmit = async () => {
     } else {
       await authStore.signUp(email.value, password.value)
     }
-    navigate('/dash')
+    const params = new URLSearchParams(window.location.search)
+    const redirect = params.get('redirect')
+    navigate(redirect && redirect.startsWith('/') ? redirect : '/dash', true)
   } catch (err: any) {
     localError.value = err.message || t('auth.error_generic')
   }
