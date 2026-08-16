@@ -4,7 +4,7 @@ import Modal from '../../../components/atoms/Modal.vue'
 import { QrCode } from '@lucide/vue'
 import { useI18n } from '../../../lib/i18n'
 
-defineProps<{
+const props = defineProps<{
   show: boolean
   scannerError: string | null
 }>()
