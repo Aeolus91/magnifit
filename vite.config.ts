@@ -23,24 +23,26 @@ export default defineConfig(({ mode }) => {
       basicSsl(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+        includeAssets: ['favicon.ico', 'icon-180.png'],
         manifest: {
-          name: 'mFit Workout & Health Tracker',
-          short_name: 'mFit',
-          description: 'PWA Workout, Calorie, Biometrics & Water Tracker',
+          name: 'MagniFIT: Workout & Health Tracker',
+          short_name: 'MagniFIT',
+          description: 'Workout, Calorie, Biometrics & Water Tracker PWA',
           theme_color: '#0f172a',
           background_color: '#0f172a',
           display: 'standalone',
           icons: [
             {
-              src: 'pwa-192x192.png',
+              src: 'icon-192.png',
               sizes: '192x192',
               type: 'image/png',
+              purpose: 'any',
             },
             {
-              src: 'pwa-512x512.png',
+              src: 'icon-512.png',
               sizes: '512x512',
               type: 'image/png',
+              purpose: 'any',
             },
           ],
         },
