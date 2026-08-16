@@ -1,294 +1,195 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { supabase } from '../lib/supabaseClient'
-import { useAuthStore } from '../stores/authStore'
-import { useRouter } from '../lib/router'
-import { ProfilePrefs } from '../lib/bitmask'
-import type { Profile } from '../types/fitness'
-import { useWorkouts } from '../composables/useWorkouts'
-import { useBiometrics } from '../composables/useBiometrics'
-import { useWater } from '../composables/useWater'
-import { useMeals } from '../composables/useMeals'
-import { useEnergyExpenditure } from '../composables/useEnergyExpenditure'
+import { useDashboard } from '../composables/useDashboard'
 import OnboardingModal from '../components/modals/onboarding/OnboardingModal.vue'
 import QuickAddModal from '../components/modals/dash/QuickAddModal.vue'
 import WorkoutModal from '../components/modals/dash/WorkoutModal.vue'
 import BiometricsModal from '../components/modals/dash/BiometricsModal.vue'
 import DashboardHeader from '../components/layout/DashboardHeader.vue'
 import DashboardSummaryCards from '../components/cards/DashboardSummaryCards.vue'
+import DashboardTrackersSection from '../components/sections/DashboardTrackersSection.vue'
 import DashboardTabSection from '../components/sections/DashboardTabSection.vue'
-import CalorieTrackerCard from '../components/cards/CalorieTrackerCard.vue'
-import WaterTrackerCard from '../components/cards/WaterTrackerCard.vue'
 import DatePickerPopover from '../components/atoms/DatePickerPopover.vue'
-import { getTodayDateString, getUserTimezone } from '../lib/dateUtils'
-import { offlineSync } from '../lib/offlineSync'
 import { Plus } from '@lucide/vue'
 
-const authStore = useAuthStore()
-const { navigate } = useRouter()
-
-const userProfile = ref<Profile | null>(null)
-const showOnboardingModal = ref<boolean>(false)
-const showAddModal = ref<boolean>(false)
-const showWorkoutModal = ref<boolean>(false)
-const showBiometricsModal = ref<boolean>(false)
-const selectedDate = ref<string>(getTodayDateString())
-const loggedDates = ref<string[]>([])
-
-const currentUserId = computed(() => authStore.user.value?.id)
-
-// Composables Architecture
 const {
+  userProfile,
+  authStore,
+  showOnboardingModal,
+  showAddModal,
+  showWorkoutModal,
+  showBiometricsModal,
+  selectedDate,
+  loggedDates,
+  loading,
+  activeTab,
+  isOnboardingPending,
   filteredWorkouts,
   totalActiveCalories,
-  fetchWorkouts,
-  addWorkout,
-  editWorkout,
-  deleteWorkout
-} = useWorkouts(currentUserId, selectedDate, loggedDates)
-
-const {
   biometrics,
   filteredBiometrics,
   latestWeight,
   latestBmi,
-  fetchBiometrics,
-  addBiometric,
-  editBiometric,
-  deleteBiometric
-} = useBiometrics(currentUserId, userProfile, selectedDate, loggedDates)
-
-const {
   formulaUsed,
   hasBodyFat,
   bmr,
   tdee,
-  recommendedCalories
-} = useEnergyExpenditure(userProfile, biometrics)
-
-const {
+  recommendedCalories,
   filteredWaterLogs,
   totalWaterMl,
-  fetchWater,
-  addWater,
-  editWater,
-  deleteWater,
-  undoLastWater,
-  updateWaterTarget
-} = useWater(currentUserId, userProfile, selectedDate, loggedDates)
-
-const {
   filteredMeals,
   totalCaloriesConsumed,
   totalProteinG,
   totalCarbsG,
   totalFatG,
-  fetchMeals,
+  refreshFetchers,
+  navigate,
+  onOnboardingCompleted,
+  handleUpdateProfilePrefs,
+  updateCalorieTarget,
+  handleSignOut,
+  addWorkout,
+  editWorkout,
+  deleteWorkout,
+  addBiometric,
+  editBiometric,
+  deleteBiometric,
+  addWater,
+  editWater,
+  deleteWater,
+  undoLastWater,
+  updateWaterTarget,
   editMeal,
   deleteMeal
-} = useMeals(currentUserId, selectedDate, loggedDates)
-
-const loading = ref(false)
-const activeTab = ref<'workouts' | 'biometrics' | 'meals' | 'water'>('workouts')
-
-const isOnboardingPending = computed(() => {
-  if (showOnboardingModal.value) return true
-  if (!userProfile.value) return false
-  return (userProfile.value.prefs & ProfilePrefs.ONBOARDING_COMPLETED) === 0
-})
-
-const fetchUserProfile = async (uid: string) => {
-  const { data } = await supabase
-    .from<Profile>('profiles')
-    .select()
-    .eq('id', uid)
-    .single()
-
-  if (data) {
-    userProfile.value = data
-  }
-}
-
-const onOnboardingCompleted = async (updated: Profile) => {
-  userProfile.value = updated
-  showOnboardingModal.value = false
-}
-
-const handleUpdateProfilePrefs = async (newPrefs: number) => {
-  if (!currentUserId.value) return
-  if (userProfile.value) {
-    userProfile.value = { ...userProfile.value, prefs: newPrefs }
-  }
-  try {
-    await supabase
-      .from('profiles')
-      .update({ prefs: newPrefs })
-      .eq('id', currentUserId.value)
-  } catch { }
-}
-
-const fetchAll = async (invalidate = false) => {
-  if (!currentUserId.value) return
-  if (invalidate) {
-    try {
-      localStorage.removeItem('mfit_recent_foods')
-    } catch { }
-  }
-  loading.value = true
-  await Promise.allSettled([
-    fetchUserProfile(currentUserId.value),
-    fetchWorkouts(currentUserId.value),
-    fetchBiometrics(currentUserId.value),
-    fetchMeals(currentUserId.value),
-    fetchWater(currentUserId.value)
-  ])
-  loading.value = false
-}
-
-const refreshFetchers = computed(() => {
-  const uid = currentUserId.value
-  if (!uid) return []
-  return [
-    () => fetchUserProfile(uid),
-    () => fetchWorkouts(uid),
-    () => fetchBiometrics(uid),
-    () => fetchMeals(uid),
-    () => fetchWater(uid)
-  ]
-})
-
-const updateCalorieTarget = async (targetCal: number) => {
-  if (!currentUserId.value || !userProfile.value) return
-  userProfile.value.target_cal = targetCal
-  try {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ target_cal: targetCal })
-      .eq('id', currentUserId.value)
-
-    if (error) {
-      offlineSync.enqueue('profiles', 'update', { id: currentUserId.value, target_cal: targetCal })
-    }
-  } catch {
-    offlineSync.enqueue('profiles', 'update', { id: currentUserId.value, target_cal: targetCal })
-  }
-}
-
-const handleSignOut = async () => {
-  await authStore.signOut()
-  navigate('/')
-}
-
-onMounted(async () => {
-  const userTimezone = getUserTimezone()
-
-  await fetchAll()
-
-  if (userProfile.value && userProfile.value.tz !== userTimezone) {
-    try {
-      await supabase
-        .from('profiles')
-        .update({ tz: userTimezone })
-        .eq('id', currentUserId.value)
-      userProfile.value.tz = userTimezone
-    } catch { }
-  }
-
-  supabase.channel('public:workouts')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'workouts' }, () => {
-      if (currentUserId.value) fetchWorkouts(currentUserId.value)
-    })
-    .subscribe()
-
-  supabase.channel('public:biometrics')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'biometrics' }, () => {
-      if (currentUserId.value) fetchBiometrics(currentUserId.value)
-    })
-    .subscribe()
-
-  supabase.channel('public:meals')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'meals' }, () => {
-      if (currentUserId.value) fetchMeals(currentUserId.value)
-    })
-    .subscribe()
-
-  supabase.channel('public:water_logs')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'water_logs' }, () => {
-      if (currentUserId.value) fetchWater(currentUserId.value)
-    })
-    .subscribe()
-})
+} = useDashboard()
 </script>
 
 <template>
   <div class="w-full">
     <!-- Progressive Onboarding Gate -->
-    <OnboardingModal v-if="isOnboardingPending" :initial-profile="userProfile" :latest-biometric="biometrics[0] || null"
-      @completed="onOnboardingCompleted" @dismiss="showOnboardingModal = false" />
+    <OnboardingModal
+      v-if="isOnboardingPending"
+      :initial-profile="userProfile"
+      :latest-biometric="biometrics[0] || null"
+      @completed="onOnboardingCompleted"
+      @dismiss="showOnboardingModal = false"
+    />
 
     <!-- Quick Add Modal -->
-    <QuickAddModal :show="showAddModal" @close="showAddModal = false" @select="(tab) => {
-      showAddModal = false
-      if (tab === 'meals') {
-        navigate('/meals', false, { logDate: selectedDate })
-      } else if (tab === 'workouts') {
-        activeTab = 'workouts'
-        showWorkoutModal = true
-      } else if (tab === 'biometrics') {
-        activeTab = 'biometrics'
-        showBiometricsModal = true
-      }
-    }" />
+    <QuickAddModal
+      :show="showAddModal"
+      @close="showAddModal = false"
+      @select="(tab) => {
+        showAddModal = false
+        if (tab === 'meals') {
+          navigate('/meals', false, { logDate: selectedDate })
+        } else if (tab === 'workouts') {
+          activeTab = 'workouts'
+          showWorkoutModal = true
+        } else if (tab === 'biometrics') {
+          activeTab = 'biometrics'
+          showBiometricsModal = true
+        }
+      }"
+    />
 
     <!-- Standalone Workout Modal triggered via Quick Add -->
-    <WorkoutModal :show="showWorkoutModal" @close="showWorkoutModal = false" @submit="addWorkout" />
+    <WorkoutModal
+      :show="showWorkoutModal"
+      @close="showWorkoutModal = false"
+      @submit="addWorkout"
+    />
 
     <!-- Standalone Biometrics Modal triggered via Quick Add -->
-    <BiometricsModal :show="showBiometricsModal" @close="showBiometricsModal = false" @submit="addBiometric" />
+    <BiometricsModal
+      :show="showBiometricsModal"
+      @close="showBiometricsModal = false"
+      @submit="addBiometric"
+    />
 
     <div class="max-w-4xl mx-auto px-4 py-8 space-y-8">
       <!-- App Header & Profile Menu Component -->
-      <DashboardHeader :user-profile="userProfile" :user-email="authStore.user.value?.email" :loading="loading"
-        :fetchers="refreshFetchers" @open-onboarding="showOnboardingModal = true" @sign-out="handleSignOut" />
+      <DashboardHeader
+        :user-profile="userProfile"
+        :user-email="authStore.user.value?.email"
+        :loading="loading"
+        :fetchers="refreshFetchers"
+        @open-onboarding="showOnboardingModal = true"
+        @sign-out="handleSignOut"
+      />
 
       <!-- Date Navigation Popover & Add Quick Action -->
       <div class="flex items-center justify-between gap-3">
         <DatePickerPopover v-model="selectedDate" :logged-dates="loggedDates" />
-        <button type="button" @click="showAddModal = true"
+        <button
+          type="button"
+          @click="showAddModal = true"
           class="flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition active:scale-95 shadow-md shadow-emerald-950/40 cursor-pointer"
-          title="Quick Log">
+          title="Quick Log"
+        >
           <Plus class="w-5 h-5 stroke-[2.5]" />
         </button>
       </div>
 
       <!-- Summary Cards Grid (Scoped to selected date) -->
-      <DashboardSummaryCards :total-active-calories="totalActiveCalories" :latest-weight="latestWeight"
-        :latest-bmi="latestBmi" :protein-g="totalProteinG" :carbs-g="totalCarbsG" :fat-g="totalFatG"
-        :is-loading="loading" />
+      <DashboardSummaryCards
+        :total-active-calories="totalActiveCalories"
+        :latest-weight="latestWeight"
+        :latest-bmi="latestBmi"
+        :protein-g="totalProteinG"
+        :carbs-g="totalCarbsG"
+        :fat-g="totalFatG"
+        :is-loading="loading"
+      />
 
-      <!-- Main Metric Trackers: Animated Calories & Water Gauges -->
-      <div class="space-y-4">
-        <CalorieTrackerCard :consumed="totalCaloriesConsumed" :expenditure="totalActiveCalories"
-          :target="userProfile?.target_cal || 2000" :recommended-target="recommendedCalories" :bmr="bmr" :tdee="tdee"
-          :formula-used="formulaUsed" :has-body-fat="hasBodyFat" :is-loading="loading"
-          @update-target="updateCalorieTarget"
-          @navigate-meals="navigate('/meals', false, { logDate: selectedDate, tab: 'summary' })" />
-        <WaterTrackerCard :current-ml="totalWaterMl" :target-ml="userProfile?.target_water_ml || 2500"
-          :can-undo="filteredWaterLogs.length > 0" :is-loading="loading" @add-water="addWater" @undo="undoLastWater"
-          @update-target="updateWaterTarget" />
-      </div>
+      <!-- Main Metric Trackers: Animated Calories & Water Gauges Section -->
+      <DashboardTrackersSection
+        :consumed="totalCaloriesConsumed"
+        :expenditure="totalActiveCalories"
+        :target-cal="userProfile?.target_cal || 2000"
+        :recommended-target="recommendedCalories"
+        :bmr="bmr"
+        :tdee="tdee"
+        :formula-used="formulaUsed"
+        :has-body-fat="hasBodyFat"
+        :current-water-ml="totalWaterMl"
+        :target-water-ml="userProfile?.target_water_ml || 2500"
+        :can-undo-water="filteredWaterLogs.length > 0"
+        :is-loading="loading"
+        @update-calorie-target="updateCalorieTarget"
+        @navigate-meals="navigate('/meals', false, { logDate: selectedDate, tab: 'summary' })"
+        @add-water="addWater"
+        @undo-water="undoLastWater"
+        @update-water-target="updateWaterTarget"
+      />
 
       <!-- Granular Tabbed Feature Sections Component (Scoped to selected date) -->
-      <DashboardTabSection v-model="activeTab" :target-date="selectedDate" :workouts="filteredWorkouts"
-        :biometrics="filteredBiometrics" :meals="filteredMeals" :water-logs="filteredWaterLogs"
-        :micros-opt="userProfile?.micros_opt" :prefs="userProfile?.prefs" @add-workout="addWorkout"
-        @edit-workout="editWorkout" @delete-workout="deleteWorkout" @add-biometric="addBiometric"
-        @edit-biometric="editBiometric" @delete-biometric="deleteBiometric" @update-prefs="handleUpdateProfilePrefs"
+      <DashboardTabSection
+        v-model="activeTab"
+        :target-date="selectedDate"
+        :workouts="filteredWorkouts"
+        :biometrics="filteredBiometrics"
+        :meals="filteredMeals"
+        :water-logs="filteredWaterLogs"
+        :micros-opt="userProfile?.micros_opt"
+        :prefs="userProfile?.prefs"
+        @add-workout="addWorkout"
+        @edit-workout="editWorkout"
+        @delete-workout="deleteWorkout"
+        @add-biometric="addBiometric"
+        @edit-biometric="editBiometric"
+        @delete-biometric="deleteBiometric"
+        @update-prefs="handleUpdateProfilePrefs"
         @log-meal="(slot) => navigate('/meals', false, { logDate: selectedDate, initialSlot: slot })"
-        @edit-meal="editMeal" @delete-meal="deleteMeal" @update-micros="(id, newMicros) => {
+        @edit-meal="editMeal"
+        @delete-meal="deleteMeal"
+        @update-micros="(id, newMicros) => {
           const m = filteredMeals.find(item => item.id === id)
           if (m) editMeal({ ...m, micros: newMicros })
-        }" @add-water="addWater" @edit-water="editWater" @delete-water="deleteWater" />
+        }"
+        @add-water="addWater"
+        @edit-water="editWater"
+        @delete-water="deleteWater"
+      />
     </div>
   </div>
 </template>
