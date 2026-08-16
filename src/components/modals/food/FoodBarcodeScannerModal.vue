@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import Modal from '../../../components/atoms/Modal.vue'
 import { QrCode } from '@lucide/vue'
 import { useI18n } from '../../../lib/i18n'
@@ -60,9 +60,13 @@ const stopCamera = () => {
   }
 }
 
-onMounted(() => {
-  startCamera()
-})
+watch(() => props.show, (isOpen) => {
+  if (isOpen) {
+    startCamera()
+  } else {
+    stopCamera()
+  }
+}, { immediate: true })
 
 onUnmounted(() => {
   stopCamera()
