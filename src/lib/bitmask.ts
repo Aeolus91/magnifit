@@ -12,6 +12,36 @@ export const ProfilePrefs = {
   SHOW_BIO_AVERAGE: 1 << 5      // Bit 5: 0=Off, 1=Show Average Aggregate
 } as const
 
+export const SexType = {
+  FEMALE: 0,
+  MALE: 1,
+  OTHER: 2
+} as const
+export type SexType = typeof SexType[keyof typeof SexType]
+
+export const ActivityLevel = {
+  SEDENTARY: 1,
+  LIGHT: 2,
+  MODERATE: 3,
+  ACTIVE: 4,
+  VERY_ACTIVE: 5
+} as const
+export type ActivityLevel = typeof ActivityLevel[keyof typeof ActivityLevel]
+
+export const getSexOptions = (t: (key: string) => string) => [
+  { value: SexType.MALE, label: t('onboarding.step2.sex_male') },
+  { value: SexType.FEMALE, label: t('onboarding.step2.sex_female') },
+  { value: SexType.OTHER, label: t('onboarding.step2.sex_other') }
+]
+
+export const getActivityOptions = (t: (key: string) => string) => [
+  { value: ActivityLevel.SEDENTARY, label: t('onboarding.step3.activity_sedentary') },
+  { value: ActivityLevel.LIGHT, label: t('onboarding.step3.activity_light') },
+  { value: ActivityLevel.MODERATE, label: t('onboarding.step3.activity_moderate') },
+  { value: ActivityLevel.ACTIVE, label: t('onboarding.step3.activity_active') },
+  { value: ActivityLevel.VERY_ACTIVE, label: t('onboarding.step3.activity_very_active') }
+]
+
 export const MicroNutrientFlags: Record<string, { bit: number; col: string }> = {
   SUGAR: { bit: 1 << 0, col: 'sugar_g' },
   ADDED_SUGAR: { bit: 1 << 1, col: 'added_sugar_g' },
