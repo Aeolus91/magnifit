@@ -1,0 +1,92 @@
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
+import Modal from '../../../modals/Modal.vue'
+import { QrCode } from '@lucide/vue'
+
+defineProps<{
+  show: boolean
+  scannerError: string | null
+}>()
+
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'detected', barcode: string): void
+}>()
+
+const videoRef = ref<HTMLVideoElement | null>(null)
+let stream: MediaStream | null = null
+let scanInterval: any = null
+
+const startCamera = async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    })
+    if (videoRef.value) {
+      videoRef.value.srcObject = stream
+      await videoRef.value.play()
+    }
+
+    // Attempt BarcodeDetector API if supported
+    if ('BarcodeDetector' in window) {
+      const detector = new (window as any).BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code']
+      })
+      scanInterval = setInterval(async () => {
+        if (!videoRef.value || videoRef.value.readyState < 2) return
+        try {
+          const barcodes = await detector.detect(videoRef.value)
+          if (barcodes.length > 0) {
+            emit('detected', barcodes[0].rawValue)
+          }
+        } catch { }
+      }, 500)
+    }
+  } catch (err: any) {
+    // Camera denied or unavailable
+  }
+}
+
+const stopCamera = () => {
+  if (scanInterval) {
+    clearInterval(scanInterval)
+    scanInterval = null
+  }
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop())
+    stream = null
+  }
+}
+
+onMounted(() => {
+  startCamera()
+})
+
+onUnmounted(() => {
+  stopCamera()
+})
+</script>
+
+<template>
+  <Modal v-if="show" title="Scan Product Barcode" :icon="QrCode" icon-color="text-amber-400" max-width-class="max-w-md"
+    @close="emit('close')">
+    <div class="space-y-4 text-center">
+      <div
+        class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+        <video ref="videoRef" autoplay playsinline muted class="w-full h-full object-cover"></video>
+
+        <!-- Scanner Target Reticle -->
+        <div
+          class="absolute inset-x-12 inset-y-8 border-2 border-dashed border-amber-400/80 rounded-xl pointer-events-none animate-pulse">
+        </div>
+      </div>
+
+      <div v-if="scannerError" class="p-3 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs">
+        {{ scannerError }}
+      </div>
+      <p v-else class="text-xs text-slate-400">
+        Center the UPC / EAN barcode in the viewfinder. The item will be recognized automatically.
+      </p>
+    </div>
+  </Modal>
+</template>
