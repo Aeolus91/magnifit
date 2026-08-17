@@ -167,8 +167,8 @@ const meta = computed(() => BIOMETRIC_TYPES[props.biometric.type])
         </div>
       </div>
 
-      <!-- Right Column: Measurement Values & Actions -->
-      <div class="flex flex-col items-end gap-1 shrink-0">
+      <!-- Right Column: Measurement Values & Actions (Flexed on Mobile, Inline on Desktop) -->
+      <div class="flex flex-col sm:flex-row items-end sm:items-center justify-center sm:justify-end gap-1 sm:gap-3 shrink-0">
         <div class="flex flex-col items-end text-right">
           <span class="font-bold text-purple-400 text-sm whitespace-nowrap">
             {{ measurement.primary }}
@@ -178,55 +178,25 @@ const meta = computed(() => BIOMETRIC_TYPES[props.biometric.type])
           </span>
         </div>
 
-        <div class="flex items-center gap-2">
-          <!-- Badges for screens <360px -->
-          <div class="flex min-[360px]:hidden items-center gap-1">
-            <span
-              v-if="getLateralityBadge(biometric.flags)"
-              class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-950/80 border border-purple-800/80 text-purple-300 shrink-0 whitespace-nowrap"
-            >
-              {{ getLateralityBadge(biometric.flags) }}
-            </span>
-            <span
-              v-if="hasFlag(biometric.flags || 0, BiometricFlags.FASTED)"
-              class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-950/80 border border-amber-800/80 text-amber-300 shrink-0 whitespace-nowrap"
-            >
-              Fasted
-            </span>
-            <span
-              v-if="hasFlag(biometric.flags || 0, BiometricFlags.POST_WORKOUT_PUMP)"
-              class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-950/80 border border-purple-800/80 text-purple-300 shrink-0 whitespace-nowrap"
-            >
-              Pumped
-            </span>
-            <span
-              v-if="hasFlag(biometric.flags || 0, BiometricFlags.RESTING)"
-              class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-950/80 border border-rose-800/80 text-rose-300 shrink-0 whitespace-nowrap"
-            >
-              Resting
-            </span>
-          </div>
-
-          <!-- Edit / Delete Actions -->
-          <div class="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
-            <button
-              type="button"
-              @click="emit('edit', biometric)"
-              class="p-1 rounded-lg text-slate-400 hover:text-purple-300 hover:bg-slate-800 transition cursor-pointer"
-              title="Edit Biometric"
-            >
-              <Pencil class="w-3.5 h-3.5" />
-            </button>
-            <button
-              v-if="biometric.id"
-              type="button"
-              @click="emit('delete', biometric.id)"
-              class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition cursor-pointer"
-              title="Delete Biometric"
-            >
-              <Trash2 class="w-3.5 h-3.5" />
-            </button>
-          </div>
+        <!-- Edit / Delete Actions -->
+        <div class="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
+          <button
+            type="button"
+            @click="emit('edit', biometric)"
+            class="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-purple-300 hover:bg-slate-800 transition cursor-pointer"
+            title="Edit Biometric"
+          >
+            <Pencil class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </button>
+          <button
+            v-if="biometric.id"
+            type="button"
+            @click="emit('delete', biometric.id)"
+            class="p-1 sm:p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 transition cursor-pointer"
+            title="Delete Biometric"
+          >
+            <Trash2 class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          </button>
         </div>
       </div>
     </div>

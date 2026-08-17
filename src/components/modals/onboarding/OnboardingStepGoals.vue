@@ -38,7 +38,7 @@ const activityOptions = computed(() => getActivityOptions(t))
       <FormInput
         v-model.number="targetWeightKg"
         type="number"
-        :label="isImperial ? t('onboarding.step3.target_weight_lbs') : t('onboarding.step3.target_weight_kg')"
+        :label="isImperial ? t('onboarding.step3.target_weight_imperial_label') : t('onboarding.step3.target_weight_metric_label')"
         :icon="Target"
         icon-position="field-left"
         icon-color="text-emerald-400"
@@ -51,16 +51,10 @@ const activityOptions = computed(() => getActivityOptions(t))
     </div>
 
     <!-- Micronutrients Tracking Opt-in Switch -->
-    <div class="p-3 bg-slate-950 border border-slate-800/80 rounded-xl flex items-center justify-between">
-      <div class="space-y-0.5">
-        <label class="text-xs font-semibold text-slate-200 block">{{ t('onboarding.step3.track_micros_label') }}</label>
-        <p class="text-[11px] text-slate-400">{{ t('onboarding.step3.track_micros_desc') }}</p>
-      </div>
-      <ToggleSwitch
-        v-model="trackMicros"
-        variant="emerald"
-        size="md"
-      />
-    </div>
+    <ToggleSwitch
+      v-model="trackMicros"
+      :label="t('onboarding.step3.micros_toggle_label')"
+      :description="t('onboarding.step3.micros_toggle_desc')"
+    />
   </div>
 </template>

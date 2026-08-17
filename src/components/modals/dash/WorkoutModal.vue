@@ -43,35 +43,40 @@ const isGpsTracked = ref<boolean>(false)
 
 const isEditing = computed(() => !!props.initialWorkout?.id)
 
-watch(
-  () => props.show,
-  (open) => {
-    if (open) {
-      if (props.initialWorkout) {
-        workoutType.value = props.initialWorkout.workout_type || 'Traditional Strength'
-        activeCalories.value = props.initialWorkout.active_cal ?? null
-        totalCalories.value = props.initialWorkout.total_cal ?? null
-        avgHeartRate.value = props.initialWorkout.avg_hr ?? null
-        effortLevel.value = props.initialWorkout.effort ?? null
+const syncWorkoutForm = () => {
+  if (props.initialWorkout) {
+    workoutType.value = props.initialWorkout.workout_type || 'Traditional Strength'
+    activeCalories.value = props.initialWorkout.active_cal ?? null
+    totalCalories.value = props.initialWorkout.total_cal ?? null
+    avgHeartRate.value = props.initialWorkout.avg_hr ?? null
+    effortLevel.value = props.initialWorkout.effort ?? null
 
-        const totalSec = props.initialWorkout.duration_sec || 0
-        durationHours.value = Math.floor(totalSec / 3600) || null
-        durationMins.value = Math.floor((totalSec % 3600) / 60) || null
-        durationSecs.value = totalSec % 60 || null
-      } else {
-        workoutType.value = 'Traditional Strength'
-        activeCalories.value = null
-        totalCalories.value = null
-        avgHeartRate.value = null
-        effortLevel.value = null
-        durationHours.value = null
-        durationMins.value = null
-        durationSecs.value = null
-        isOutdoor.value = false
-        isGpsTracked.value = false
-      }
-    }
+    const totalSec = props.initialWorkout.duration_sec || 0
+    durationHours.value = Math.floor(totalSec / 3600) || null
+    durationMins.value = Math.floor((totalSec % 3600) / 60) || null
+    durationSecs.value = totalSec % 60 || null
+  } else {
+    workoutType.value = 'Traditional Strength'
+    activeCalories.value = null
+    totalCalories.value = null
+    avgHeartRate.value = null
+    effortLevel.value = null
+    durationHours.value = null
+    durationMins.value = null
+    durationSecs.value = null
+    isOutdoor.value = false
+    isGpsTracked.value = false
   }
+}
+
+watch(
+  [() => props.show, () => props.initialWorkout],
+  ([open]) => {
+    if (open) {
+      syncWorkoutForm()
+    }
+  },
+  { immediate: true, deep: true }
 )
 
 const handleSubmit = () => {
@@ -117,16 +122,7 @@ const handleSubmit = () => {
           :placeholder="t('dash.workout.type_placeholder')" :disabled="isEditing" />
       </div>
 
-      <!-- Active Calories & Total Calories (Stacked on <360px, 2-col on >=360px) -->
-      <div class="flex flex-col min-[360px]:grid min-[360px]:grid-cols-2 gap-3">
-        <FormInput v-model="activeCalories" type="number" :label="`${t('dash.workout.active_cal_label')} (kcal)`"
-          :placeholder="t('dash.workout.active_cal_placeholder')" :min="0" :max="5000" :required="true" :icon="Flame"
-          icon-position="field-left" icon-color="text-emerald-400" />
-        <FormInput v-model="totalCalories" type="number" label="Total Cal (Optional)" placeholder="e.g. 380" :min="0"
-          :max="10000" :icon="Flame" icon-position="field-left" icon-color="text-amber-400" />
-      </div>
-
-      <!-- Duration (HH : MM : SS) Segmented Input -->
+      <!-- 1. Duration (HH : MM : SS) Segmented Input -->
       <div class="space-y-1.5">
         <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
           <Timer class="w-3.5 h-3.5 text-emerald-400" />
@@ -151,8 +147,17 @@ const handleSubmit = () => {
         </div>
       </div>
 
+      <!-- 2. Active Calories & Total Calories (Stacked on <360px, 2-col on >=360px) -->
+      <div class="flex flex-col min-[360px]:grid min-[360px]:grid-cols-2 gap-3">
+        <FormInput v-model="activeCalories" type="number" :label="`${t('dash.workout.active_cal_label')} (kcal)`"
+          :placeholder="t('dash.workout.active_cal_placeholder')" :min="0" :max="5000" :required="true" :icon="Flame"
+          icon-position="field-left" icon-color="text-emerald-400" />
+        <FormInput v-model="totalCalories" type="number" label="Total Cal (Optional)" placeholder="e.g. 380" :min="0"
+          :max="10000" :icon="Flame" icon-position="field-left" icon-color="text-amber-400" />
+      </div>
+
       <!-- Avg Heart Rate & Perceived Effort (RPE) (Stacked on <360px, 2-col on >=360px) -->
-      <div class="space-y-3 pt-1 border-t border-slate-800/80">
+      <div class="space-y-3">
         <div class="flex flex-col min-[360px]:grid min-[360px]:grid-cols-2 gap-3">
           <FormInput v-model="avgHeartRate" type="number" label="Avg Heart Rate (bpm)" placeholder="e.g. 142" :min="30"
             :max="260" :icon="Heart" icon-position="field-left" icon-color="text-rose-400" />
@@ -172,7 +177,7 @@ const handleSubmit = () => {
       </div>
 
       <!-- Attributes 2-Column ToggleSwitch Layout (Stacked on <360px, 2-col on >=360px) -->
-      <div class="flex flex-col min-[360px]:grid min-[360px]:grid-cols-2 gap-3 pt-1">
+      <div class="flex flex-col min-[360px]:grid min-[360px]:grid-cols-2 gap-3 pt-3 border-t border-slate-800/80">
         <ToggleSwitch v-model="isOutdoor" label="Outdoor" :icon="Trees" active-color="text-emerald-400" />
         <ToggleSwitch v-model="isGpsTracked" label="GPS Tracked" :icon="Navigation" active-color="text-emerald-400" />
       </div>

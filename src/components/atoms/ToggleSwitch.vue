@@ -49,35 +49,8 @@ const toggle = () => {
       </div>
     </div>
 
-    <!-- Switch & Closely-Coupled Options -->
-    <div class="flex items-center gap-2">
-      <!-- Left/Right Segmented Label with Subtitle Wrap -->
-      <div v-if="leftLabel || rightLabel" class="flex items-center text-xs font-semibold text-right">
-        <!-- Left Label -->
-        <div class="flex flex-col items-center">
-          <span :class="!modelValue ? 'text-emerald-400' : 'text-slate-500'">
-            {{ leftLabel?.split('(')[0]?.trim() }}
-          </span>
-          <span v-if="leftLabel?.includes('(')" class="text-[10px] font-normal"
-            :class="!modelValue ? 'text-emerald-400/70' : 'text-slate-600'">
-            ({{ leftLabel.split('(')[1] }}
-          </span>
-        </div>
-
-        <span class="text-slate-700 mx-1.5 self-center">/</span>
-
-        <!-- Right Label -->
-        <div class="flex flex-col items-center">
-          <span :class="modelValue ? 'text-emerald-400' : 'text-slate-500'">
-            {{ rightLabel?.split('(')[0]?.trim() }}
-          </span>
-          <span v-if="rightLabel?.includes('(')" class="text-[10px] font-normal"
-            :class="modelValue ? 'text-emerald-400/70' : 'text-slate-600'">
-            ({{ rightLabel.split('(')[1] }}
-          </span>
-        </div>
-      </div>
-
+    <!-- Switch & Closely-Coupled Options (Stacked Vertically) -->
+    <div class="flex flex-col items-end gap-1 shrink-0">
       <!-- Compact Toggle Switch -->
       <button type="button" role="switch" :aria-checked="modelValue" :disabled="disabled"
         class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
@@ -86,6 +59,21 @@ const toggle = () => {
           class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-950 shadow ring-0 transition duration-200 ease-in-out mt-px ml-px"
           :class="modelValue ? 'translate-x-4' : 'translate-x-0'" />
       </button>
+
+      <!-- Left/Right Segmented Label Underneath Switch -->
+      <div v-if="leftLabel || rightLabel" class="flex items-center text-[10px] font-semibold tracking-tight">
+        <!-- Left Label -->
+        <span :class="!modelValue ? 'text-emerald-400 font-bold' : 'text-slate-500'">
+          {{ leftLabel?.split('(')[0]?.trim() }}
+        </span>
+
+        <span class="text-slate-700 mx-1">/</span>
+
+        <!-- Right Label -->
+        <span :class="modelValue ? 'text-emerald-400 font-bold' : 'text-slate-500'">
+          {{ rightLabel?.split('(')[0]?.trim() }}
+        </span>
+      </div>
     </div>
   </div>
 </template>

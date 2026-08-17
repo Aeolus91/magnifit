@@ -5,10 +5,12 @@ import { Calendar, ChevronDown, Check } from '@lucide/vue'
 const props = withDefaults(
   defineProps<{
     modelValue: number
+    label?: string
     minYear?: number
     maxYear?: number
   }>(),
   {
+    label: '',
     minYear: 1930,
     maxYear: () => new Date().getFullYear() - 12
   }
@@ -71,7 +73,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="containerRef" @focusout="handleFocusOut" class="relative w-full">
+  <div ref="containerRef" @focusout="handleFocusOut" class="space-y-1.5 w-full relative">
+    <!-- Optional Label -->
+    <label v-if="label" class="text-xs font-semibold text-slate-300 block">
+      {{ label }}
+    </label>
+
     <!-- Trigger Input Button -->
     <button
       type="button"

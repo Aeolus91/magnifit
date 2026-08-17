@@ -47,10 +47,16 @@ export function useWorkouts(userId: Ref<string | undefined>, selectedDate: Ref<s
     if (!userId.value) return
     const id = workoutData.id || uuidv7()
     const payload: Workout = {
-      ...workoutData,
       id,
       user_id: userId.value,
-      log_date: selectedDate.value
+      log_date: selectedDate.value,
+      workout_type: workoutData.workout_type,
+      active_cal: workoutData.active_cal,
+      total_cal: workoutData.total_cal || workoutData.active_cal,
+      duration_sec: workoutData.duration_sec,
+      avg_hr: workoutData.avg_hr || null,
+      effort: workoutData.effort || null,
+      ts: workoutData.ts || new Date().toISOString()
     }
     workouts.value.unshift(payload)
     if (!loggedDates.value.includes(selectedDate.value)) {
@@ -58,7 +64,7 @@ export function useWorkouts(userId: Ref<string | undefined>, selectedDate: Ref<s
     }
 
     try {
-      const { error } = await supabase.from<Workout>('workouts').insert([payload])
+      const { error } = await supabase.from('workouts').insert([payload])
       if (error) {
         offlineSync.enqueue('workouts', 'insert', payload)
       }
@@ -80,15 +86,14 @@ export function useWorkouts(userId: Ref<string | undefined>, selectedDate: Ref<s
 
     const idx = workouts.value.findIndex(w => w.id === workoutData.id)
     if (idx !== -1) {
-      workouts.value[idx] = { ...workouts.value[idx], ...workoutData }
+      workouts.value[idx] = { ...workouts.value[idx], ...updatePayload }
     }
 
     try {
       const { error } = await supabase
-        .from<Workout>('workouts')
+        .from('workouts')
         .update(updatePayload)
         .eq('id', workoutData.id)
-
       if (error) {
         offlineSync.enqueue('workouts', 'update', { id: workoutData.id, ...updatePayload })
       }

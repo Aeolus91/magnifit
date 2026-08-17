@@ -51,18 +51,12 @@ const handleUnitToggle = (val: boolean) => {
     </div>
 
     <!-- Metric vs Imperial System Picker -->
-    <div class="p-3 bg-slate-950 border border-slate-800/80 rounded-xl flex items-center justify-between">
-      <div class="space-y-0.5">
-        <label class="text-xs font-semibold text-slate-200 block">{{ t('onboarding.step2.unit_system_label') }}</label>
-        <p class="text-[11px] text-slate-400">{{ isImperial ? t('onboarding.step2.unit_imperial_desc') : t('onboarding.step2.unit_metric_desc') }}</p>
-      </div>
-      <ToggleSwitch
-        :model-value="isImperial"
-        @update:model-value="handleUnitToggle"
-        variant="emerald"
-        size="md"
-      />
-    </div>
+    <ToggleSwitch
+      :model-value="isImperial"
+      @update:model-value="handleUnitToggle"
+      :label="t('onboarding.step2.units_toggle_label')"
+      :description="t('onboarding.step2.units_toggle_desc')"
+    />
 
     <div class="grid grid-cols-2 gap-4">
       <FormInput

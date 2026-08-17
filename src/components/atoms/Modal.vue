@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, type Component } from 'vue'
+import { onMounted, onUnmounted, useSlots, type Component } from 'vue'
 import { X, Loader2 } from '@lucide/vue'
+
+const slots = useSlots()
 
 interface Props {
   title?: string
@@ -85,7 +87,7 @@ const variantClassMap: Record<string, string> = {
         ]"
       >
         <!-- Header (Fixed at top of modal) -->
-        <div v-if="props.title || props.showClose" class="pb-3 border-b border-slate-800/60 shrink-0">
+        <div v-if="props.title || props.showClose || !!slots.header" class="pb-3 border-b border-slate-800/60 shrink-0">
           <slot name="header">
             <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
               <div class="flex items-center gap-2" :class="props.iconColor">
@@ -111,7 +113,7 @@ const variantClassMap: Record<string, string> = {
         </div>
 
         <!-- Footer (Fixed at bottom if provided via slot or built-in actions) -->
-        <div v-if="props.confirmText || props.showConfirm" class="pt-3 border-t border-slate-800/80 shrink-0">
+        <div v-if="!!slots.footer || props.confirmText || props.showConfirm" class="pt-3 border-t border-slate-800/80 shrink-0">
           <slot name="footer">
             <div class="flex items-center justify-end gap-2">
               <button
