@@ -97,7 +97,7 @@ const slotLabel = computed(() => {
         title: meal.name,
         subtitle: meal.brand || undefined,
         serving_size: meal.serving_size 
-          ? (meal.servings && meal.servings !== 1 ? `${meal.servings}x ${meal.serving_size}${meal.serving_unit || 'g'}` : `${meal.serving_size}${meal.serving_unit || 'g'}`)
+          ? `${meal.serving_size}${meal.serving_unit || 'g'}`
           : undefined,
         serving_unit: meal.serving_unit || 'g',
         servings: meal.servings || 1,

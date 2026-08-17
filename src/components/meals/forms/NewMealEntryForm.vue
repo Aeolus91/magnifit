@@ -67,6 +67,7 @@ const handleFoodSelected = (food: {
   serving_unit?: string
   servings?: number
   template_id?: string
+  type?: string
   micros?: Record<string, number>
 }) => {
   let formattedName = food.name.trim()
@@ -79,6 +80,10 @@ const handleFoodSelected = (food: {
     formattedName = `${formattedName} ${servingDetail}`
   }
 
+  const isRecipe = food.type === 'recipe'
+  let finalFlags = selectedMealSlot.value
+  if (isRecipe) finalFlags |= 512
+
   emit('submit', {
     name: formattedName,
     brand: food.brand || null,
@@ -90,7 +95,7 @@ const handleFoodSelected = (food: {
     serving_unit: food.serving_size ? (food.serving_unit || 'g') : 'g',
     servings: food.servings || 1,
     template_id: food.template_id || null,
-    flags: selectedMealSlot.value,
+    flags: finalFlags,
     micros: food.micros && Object.keys(food.micros).length > 0 ? food.micros : undefined,
     log_date: props.logDate
   })

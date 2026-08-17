@@ -76,18 +76,23 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       loggedDates.value.push(payload.log_date || selectedDate.value);
     }
 
+    const isRecipe = !!((mealData.flags || 0) & 512);
+    const isTemplated = !!mealData.template_id && !isRecipe;
+    let finalFlags = mealData.flags || 0;
+    if (isRecipe) finalFlags |= 512;
+
     const mealInsertPayload: any = {
       id,
       user_id: userId.value,
-      name: mealData.name,
-      brand: mealData.brand || null,
-      cal: Math.round(mealData.cal || mealData.calories || 0),
-      prot_g: Math.round((mealData.prot_g || mealData.protein_g || 0) * 10) / 10,
-      carb_g: Math.round((mealData.carb_g || mealData.carbs_g || 0) * 10) / 10,
-      fat_g: Math.round((mealData.fat_g || 0) * 10) / 10,
-      flags: mealData.flags || 0,
-      serving_size: mealData.serving_size || null,
-      serving_unit: mealData.serving_unit || null,
+      name: (isTemplated || isRecipe) ? null : mealData.name,
+      brand: (isTemplated || isRecipe) ? null : (mealData.brand || null),
+      cal: (isTemplated || isRecipe) ? null : Math.round(mealData.cal || mealData.calories || 0),
+      prot_g: (isTemplated || isRecipe) ? null : (Math.round((mealData.prot_g || mealData.protein_g || 0) * 10) / 10),
+      carb_g: (isTemplated || isRecipe) ? null : (Math.round((mealData.carb_g || mealData.carbs_g || 0) * 10) / 10),
+      fat_g: (isTemplated || isRecipe) ? null : (Math.round((mealData.fat_g || 0) * 10) / 10),
+      flags: finalFlags,
+      serving_size: (isTemplated || isRecipe) ? null : (mealData.serving_size || null),
+      serving_unit: (isTemplated || isRecipe) ? null : (mealData.serving_unit || null),
       servings: mealData.servings || 1,
       template_id: mealData.template_id || null,
       log_date: payload.log_date,
@@ -112,19 +117,65 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
 
   const editMeal = async (mealData: Meal) => {
     if (!userId.value || !mealData.id) return;
-    const updatePayload: any = {
-      name: mealData.name,
-      brand: mealData.brand || null,
-      cal: Math.round(mealData.cal || mealData.calories || 0),
-      prot_g: Math.round((mealData.prot_g || mealData.protein_g || 0) * 10) / 10,
-      carb_g: Math.round((mealData.carb_g || mealData.carbs_g || 0) * 10) / 10,
-      fat_g: Math.round((mealData.fat_g || 0) * 10) / 10,
-      flags: mealData.flags || 0,
-      serving_size: mealData.serving_size || null,
-      serving_unit: mealData.serving_unit || null,
-      servings: mealData.servings || 1,
-      template_id: mealData.template_id || null,
-    };
+    const oldMeal = meals.value.find((m) => m.id === mealData.id);
+    const isRecipe = !!((mealData.flags || 0) & 512);
+    const isTemplated = !!mealData.template_id && !isRecipe;
+    let finalFlags = mealData.flags || 0;
+    if (isRecipe) finalFlags |= 512;
+
+    let updatePayload: any = {};
+
+    if (isTemplated || isRecipe) {
+      if (oldMeal) {
+        const ratio = (mealData.servings || 1) / (oldMeal.servings || 1);
+        const calMatches = Math.abs((mealData.cal || 0) - (oldMeal.cal || 0) * ratio) < 1.5;
+        const protMatches = Math.abs((mealData.prot_g || 0) - (oldMeal.prot_g || 0) * ratio) < 0.15;
+        const carbMatches = Math.abs((mealData.carb_g || 0) - (oldMeal.carb_g || 0) * ratio) < 0.15;
+        const fatMatches = Math.abs((mealData.fat_g || 0) - (oldMeal.fat_g || 0) * ratio) < 0.15;
+
+        updatePayload = {
+          name: mealData.name === oldMeal.name ? null : mealData.name,
+          brand: mealData.brand === oldMeal.brand ? null : (mealData.brand || null),
+          cal: calMatches ? null : Math.round(mealData.cal || 0),
+          prot_g: protMatches ? null : (Math.round((mealData.prot_g || 0) * 10) / 10),
+          carb_g: carbMatches ? null : (Math.round((mealData.carb_g || 0) * 10) / 10),
+          fat_g: fatMatches ? null : (Math.round((mealData.fat_g || 0) * 10) / 10),
+          flags: finalFlags,
+          serving_size: mealData.serving_size === oldMeal.serving_size ? null : (mealData.serving_size || null),
+          serving_unit: mealData.serving_unit === oldMeal.serving_unit ? null : (mealData.serving_unit || null),
+          servings: mealData.servings || 1,
+          template_id: mealData.template_id || null,
+        };
+      } else {
+        updatePayload = {
+          name: null,
+          brand: null,
+          cal: null,
+          prot_g: null,
+          carb_g: null,
+          fat_g: null,
+          flags: finalFlags,
+          serving_size: null,
+          serving_unit: null,
+          servings: mealData.servings || 1,
+          template_id: mealData.template_id || null,
+        };
+      }
+    } else {
+      updatePayload = {
+        name: mealData.name,
+        brand: mealData.brand || null,
+        cal: Math.round(mealData.cal || mealData.calories || 0),
+        prot_g: Math.round((mealData.prot_g || mealData.protein_g || 0) * 10) / 10,
+        carb_g: Math.round((mealData.carb_g || mealData.carbs_g || 0) * 10) / 10,
+        fat_g: Math.round((mealData.fat_g || 0) * 10) / 10,
+        flags: finalFlags,
+        serving_size: mealData.serving_size || null,
+        serving_unit: mealData.serving_unit || null,
+        servings: mealData.servings || 1,
+        template_id: null,
+      };
+    }
 
     const idx = meals.value.findIndex((m) => m.id === mealData.id);
     if (idx !== -1) {
@@ -357,22 +408,40 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
     if (!userId.value) return;
     const mealPayload: Meal = {
       user_id: userId.value,
-      name: multiplier !== 1 ? `${recipe.name} (${multiplier}x)` : recipe.name,
+      name: recipe.name,
       brand: (recipe as any).brand || null,
-      cal: Math.round(recipe.cal * multiplier),
-      prot_g: Math.round(recipe.prot_g * multiplier * 10) / 10,
-      carb_g: Math.round(recipe.carb_g * multiplier * 10) / 10,
-      fat_g: Math.round(recipe.fat_g * multiplier * 10) / 10,
+      cal: recipe.cal,
+      prot_g: recipe.prot_g,
+      carb_g: recipe.carb_g,
+      fat_g: recipe.fat_g,
       serving_size: recipe.serving_size ? recipe.serving_size : undefined,
       serving_unit: recipe.serving_unit || 'g',
       servings: multiplier,
+      template_id: recipe.id,
+      flags: targetSlot | 512,
+      log_date: dateStr || selectedDate.value,
+      micros: recipe.micros,
+    };
+    await addMeal(mealPayload);
+  };
+
+  const logTemplateAsMeal = async (template: any, targetSlot: number, dateStr?: string, multiplier: number = 1) => {
+    if (!userId.value) return;
+    const mealPayload: Meal = {
+      user_id: userId.value,
+      name: template.name,
+      brand: template.brand || null,
+      cal: template.cal,
+      prot_g: template.prot_g,
+      carb_g: template.carb_g,
+      fat_g: template.fat_g,
+      serving_size: template.serving_size ? template.serving_size : undefined,
+      serving_unit: template.serving_unit || 'g',
+      servings: multiplier,
+      template_id: template.id,
       flags: targetSlot,
       log_date: dateStr || selectedDate.value,
-      micros: recipe.micros
-        ? Object.fromEntries(
-            Object.entries(recipe.micros).map(([k, v]) => [k, Math.round((v || 0) * multiplier * 10) / 10]),
-          )
-        : undefined,
+      micros: template.micros,
     };
     await addMeal(mealPayload);
   };
@@ -387,7 +456,6 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
         p_recipe_id: recipeId,
         p_target_handle: handle.trim().replace(/^@/, ''),
       });
-
       if (error) {
         return { success: false, error: error.message || 'Failed to share recipe' };
       }
@@ -422,6 +490,6 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
     shareRecipeToHandle,
     shareTemplateToHandle: shareRecipeToHandle,
     logRecipeAsMeal,
-    logTemplateAsMeal: logRecipeAsMeal,
+    logTemplateAsMeal,
   };
 }

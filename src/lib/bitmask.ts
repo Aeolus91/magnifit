@@ -99,7 +99,9 @@ export const MealFlags = {
   VEGAN: 1 << 4,      // 16
   VEGETARIAN: 1 << 5, // 32
   KETO: 1 << 6,       // 64
-  GLUTEN_FREE: 1 << 7 // 128
+  GLUTEN_FREE: 1 << 7, // 128
+  OVERRIDDEN: 1 << 8,  // 256
+  RECIPE: 1 << 9       // 512
 } as const
 
 export const WORKOUT_CATEGORIES: Record<number, string> = {

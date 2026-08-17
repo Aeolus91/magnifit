@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Utensils, Info, Pencil, Check } from '@lucide/vue'
+import { Utensils, Info, Pencil, Check, X } from '@lucide/vue'
 import { filterTrackedMicroLabels, isMicroColumnTracked } from '../../../lib/bitmask'
 import Modal from '../../atoms/Modal.vue'
 import FormInput from '../../atoms/FormInput.vue'
@@ -181,30 +181,36 @@ const handleSave = () => {
     max-width-class="max-w-md" @close="emit('close')">
     <div class="space-y-4">
       <!-- Title & Subtitle Header -->
-      <div class="p-3 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <div class="font-bold text-slate-100 text-sm">{{ data.title }}</div>
-            <div v-if="data.subtitle" class="text-xs text-slate-400 mt-0.5">{{ data.subtitle }}</div>
-          </div>
-          <div v-if="data.serving_size && !isEditing" class="text-[11px] font-mono text-amber-400/90 shrink-0">
-            Serving: {{ data.serving_size }}
-          </div>
+      <div class="space-y-1">
+        <h3 class="text-lg font-bold text-slate-100 leading-tight">{{ data.title }}</h3>
+        <p v-if="data.subtitle" class="text-xs text-slate-400 font-medium">{{ data.subtitle }}</p>
+      </div>
+      <!-- Servings & Base size Row -->
+      <div class="flex items-center justify-between gap-3 py-1.5 border-b border-slate-800/60 pb-3">
+        <div class="text-xs font-semibold text-slate-300">
+          <span v-if="data.serving_size">Serving Size: <span class="font-mono text-slate-400 font-normal ml-1">{{ data.serving_size }}</span></span>
+          <span v-else>Servings</span>
         </div>
 
-        <!-- Editable Servings Field (Step 0.1 for 1.5, 0.5, etc.) -->
-        <div v-if="isEditing" class="pt-1.5 border-t border-slate-800/80 flex items-center justify-between gap-3">
-          <div class="text-xs text-slate-300 font-semibold">
-            Servings <span v-if="data.serving_size" class="text-[11px] text-slate-500 font-normal">({{ data.serving_size
-              }} base)</span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <FormInput v-model="editableServings" type="number" step="any" min="0.1" max="50"
+        <div class="flex items-center gap-1.5">
+          <template v-if="isEditing">
+            <FormInput
+              v-model="editableServings"
+              type="number"
+              step="any"
+              min="0.1"
+              max="50"
               @input="handleServingsChange"
               input-class="bg-slate-900 border-amber-500 rounded-lg px-2.5 py-1 text-xs font-mono font-bold !text-amber-300 text-right"
-              class="w-20" />
+              class="w-20"
+            />
             <span class="text-xs text-slate-400">x</span>
-          </div>
+          </template>
+          <template v-else>
+            <span class="text-xs font-bold font-mono text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 rounded-md">
+              {{ data.servings || 1 }} serving{{ (data.servings || 1) !== 1 ? 's' : '' }}
+            </span>
+          </template>
         </div>
       </div>
 
@@ -273,13 +279,19 @@ const handleSave = () => {
 
         <!-- Editable Form Mode -->
         <div v-if="isEditing"
-          class="max-h-60 overflow-y-auto space-y-2 pr-1 border border-slate-800/80 rounded-xl p-2.5 bg-slate-950/60">
-          <div v-for="(meta, key) in microLabels" :key="key"
-            class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs">
-            <label class="text-slate-300 truncate">{{ meta.label }} ({{ meta.unit }})</label>
-            <FormInput v-model="editableMicros[key]" type="number" step="any" min="0" placeholder="0"
-              input-class="bg-slate-950 border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono !text-amber-300 text-right"
-              class="w-24 shrink-0" />
+          class="max-h-60 overflow-y-auto border border-slate-800/80 rounded-xl p-3 bg-slate-950/60">
+          <div class="grid grid-cols-2 gap-3">
+            <FormInput
+              v-for="(meta, key) in microLabels"
+              :key="key"
+              v-model="editableMicros[key]"
+              type="number"
+              step="any"
+              min="0"
+              :label="`${meta.label} (${meta.unit})`"
+              placeholder="0"
+              input-class="focus:border-amber-500 font-mono text-xs py-1.5 px-2.5"
+            />
           </div>
         </div>
 

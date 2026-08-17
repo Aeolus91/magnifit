@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useFoodTemplates } from './useFoodTemplates'
 import { MicroNutrientFlags } from '../lib/bitmask'
 import type { MealTemplate, Meal } from '../types/fitness'
-
+import { supabase } from '../lib/supabaseClient'
 export interface FoodSearchResult {
   id?: string
   template_id?: string
@@ -256,40 +256,103 @@ export function useFoodSearchLookup(
 
       if (/^\d{8,14}$/.test(q)) {
         try {
-          const offBarcodeUrl = `https://world.openfoodfacts.org/api/v0/product/${q}.json`
-          const offRes = await fetch(offBarcodeUrl)
-          if (offRes.ok) {
-            const offData = await offRes.json()
-            if (offData.status === 1 && offData.product) {
-              const p = offData.product
-              const nut = p.nutriments || {}
-              const cal = Number(nut['energy-kcal_100g'] ?? nut['energy-kcal'] ?? nut['energy-kcal_value'] ?? 0)
-              const prot = Number(nut.proteins_100g ?? nut.proteins ?? 0)
-              const carb = Number(nut.carbohydrates_100g ?? nut.carbohydrates ?? 0)
-              const fat = Number(nut.fat_100g ?? nut.fat ?? 0)
+          const { data: cachedTmpl } = await supabase
+            .from('meal_templates')
+            .select('*, meal_template_micronutrients(*)')
+            .eq('barcode', q)
+            .maybeSingle();
 
-              const micros: Record<string, number> = {}
-              if (nut.sugars_100g !== undefined) micros[MicroNutrientFlags.SUGAR.col] = Number(nut.sugars_100g)
-              if (nut['saturated-fat_100g'] !== undefined) micros[MicroNutrientFlags.SAT_FAT.col] = Number(nut['saturated-fat_100g'])
-              if (nut['trans-fat_100g'] !== undefined) micros[MicroNutrientFlags.TRANS_FAT.col] = Number(nut['trans-fat_100g'])
-              if (nut.sodium_100g !== undefined) micros[MicroNutrientFlags.SODIUM.col] = Math.round(Number(nut.sodium_100g) * 1000)
-              if (nut.potassium_100g !== undefined) micros[MicroNutrientFlags.POTASSIUM.col] = Math.round(Number(nut.potassium_100g) * 1000)
-              if (nut.cholesterol_100g !== undefined) micros[MicroNutrientFlags.CHOLESTEROL.col] = Math.round(Number(nut.cholesterol_100g) * 1000)
-              if (nut.caffeine_100g !== undefined) micros[MicroNutrientFlags.CAFFEINE.col] = Math.round(Number(nut.caffeine_100g) * 1000)
-              if (nut.calcium_100g !== undefined) micros[MicroNutrientFlags.CALCIUM.col] = Math.round(Number(nut.calcium_100g) * 1000)
-              if (nut.iron_100g !== undefined) micros[MicroNutrientFlags.IRON.col] = Math.round(Number(nut.iron_100g) * 1000)
+          if (cachedTmpl) {
+            const rawMicros = cachedTmpl.meal_template_micronutrients || {};
+            const micros: Record<string, number> = {};
+            Object.entries(rawMicros).forEach(([k, v]) => {
+              if (v !== null && v !== undefined && k !== 'template_id') {
+                micros[k] = Number(v);
+              }
+            });
+            results.push({
+              template_id: cachedTmpl.id,
+              name: cachedTmpl.name,
+              brand: cachedTmpl.brand || undefined,
+              cal_100g: cachedTmpl.cal,
+              prot_100g: cachedTmpl.prot_g,
+              carb_100g: cachedTmpl.carb_g,
+              fat_100g: cachedTmpl.fat_g,
+              serving_size_g: cachedTmpl.serving_size || 100,
+              serving_label: `${cachedTmpl.serving_size || 100}${cachedTmpl.serving_unit || 'g'}`,
+              type: 'template',
+              micros
+            });
+          } else {
+            const offBarcodeUrl = `https://world.openfoodfacts.org/api/v0/product/${q}.json`
+            const offRes = await fetch(offBarcodeUrl)
+            if (offRes.ok) {
+              const offData = await offRes.json()
+              if (offData.status === 1 && offData.product) {
+                const p = offData.product
+                const nut = p.nutriments || {}
+                const cal = Number(nut['energy-kcal_100g'] ?? nut['energy-kcal'] ?? nut['energy-kcal_value'] ?? 0)
+                const prot = Number(nut.proteins_100g ?? nut.proteins ?? 0)
+                const carb = Number(nut.carbohydrates_100g ?? nut.carbohydrates ?? 0)
+                const fat = Number(nut.fat_100g ?? nut.fat ?? 0)
 
-              results.push({
-                name: p.product_name || p.product_name_en || `Barcode ${q}`,
-                brand: p.brands || undefined,
-                cal_100g: Math.round(cal),
-                prot_100g: Math.round(prot * 10) / 10,
-                carb_100g: Math.round(carb * 10) / 10,
-                fat_100g: Math.round(fat * 10) / 10,
-                serving_size_g: p.serving_quantity ? Number(p.serving_quantity) : 100,
-                serving_label: p.serving_size || '100g',
-                micros
-              })
+                const micros: Record<string, number> = {}
+                if (nut.sugars_100g !== undefined) micros[MicroNutrientFlags.SUGAR.col] = Number(nut.sugars_100g)
+                if (nut['saturated-fat_100g'] !== undefined) micros[MicroNutrientFlags.SAT_FAT.col] = Number(nut['saturated-fat_100g'])
+                if (nut['trans-fat_100g'] !== undefined) micros[MicroNutrientFlags.TRANS_FAT.col] = Number(nut['trans-fat_100g'])
+                if (nut.sodium_100g !== undefined) micros[MicroNutrientFlags.SODIUM.col] = Math.round(Number(nut.sodium_100g) * 1000)
+                if (nut.potassium_100g !== undefined) micros[MicroNutrientFlags.POTASSIUM.col] = Math.round(Number(nut.potassium_100g) * 1000)
+                if (nut.cholesterol_100g !== undefined) micros[MicroNutrientFlags.CHOLESTEROL.col] = Math.round(Number(nut.cholesterol_100g) * 1000)
+                if (nut.caffeine_100g !== undefined) micros[MicroNutrientFlags.CAFFEINE.col] = Math.round(Number(nut.caffeine_100g) * 1000)
+                if (nut.calcium_100g !== undefined) micros[MicroNutrientFlags.CALCIUM.col] = Math.round(Number(nut.calcium_100g) * 1000)
+                if (nut.iron_100g !== undefined) micros[MicroNutrientFlags.IRON.col] = Math.round(Number(nut.iron_100g) * 1000)
+
+                const name = p.product_name || p.product_name_en || `Barcode ${q}`
+                const brand = p.brands || null
+                const servingSizeVal = p.serving_quantity ? Number(p.serving_quantity) : 100
+                const servingUnitVal = 'g'
+
+                const { data: newTmpl } = await supabase
+                  .from('meal_templates')
+                  .insert([{
+                    user_id: null,
+                    name,
+                    brand,
+                    cal: Math.round(cal),
+                    prot_g: Math.round(prot * 10) / 10,
+                    carb_g: Math.round(carb * 10) / 10,
+                    fat_g: Math.round(fat * 10) / 10,
+                    serving_size: servingSizeVal,
+                    serving_unit: servingUnitVal,
+                    is_public: true,
+                    barcode: q
+                  }])
+                  .select()
+                  .single();
+
+                if (newTmpl && Object.keys(micros).length > 0) {
+                  await supabase
+                    .from('meal_template_micronutrients')
+                    .insert([{
+                      template_id: newTmpl.id,
+                      ...micros
+                    }]);
+                }
+
+                results.push({
+                  template_id: newTmpl?.id,
+                  name,
+                  brand: brand || undefined,
+                  cal_100g: Math.round(cal),
+                  prot_100g: Math.round(prot * 10) / 10,
+                  carb_100g: Math.round(carb * 10) / 10,
+                  fat_100g: Math.round(fat * 10) / 10,
+                  serving_size_g: servingSizeVal,
+                  serving_label: p.serving_size || '100g',
+                  type: 'template',
+                  micros
+                })
+              }
             }
           }
         } catch {}

@@ -41,6 +41,7 @@ export interface Meal {
   serving_unit?: string | null
   servings?: number | null
   template_id?: string | null
+  is_overridden?: boolean
   micros?: Micronutrients
   // Legacy compatibility fields
   calories?: number
