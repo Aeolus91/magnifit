@@ -73,8 +73,8 @@ const onInput = (event: Event) => {
       <!-- Native Input -->
       <input
         :type="type"
-        :inputmode="inputmode || (type === 'number' ? (step && String(step).includes('.') ? 'decimal' : 'numeric') : undefined)"
-        :pattern="pattern || (type === 'number' ? '[0-9]*' : undefined)"
+        :inputmode="inputmode || (type === 'number' ? (step === 'any' || !step || String(step).includes('.') || (typeof step === 'number' && step % 1 !== 0) ? 'decimal' : 'numeric') : undefined)"
+        :pattern="pattern || (type === 'number' ? (step === 'any' || !step || String(step).includes('.') || (typeof step === 'number' && step % 1 !== 0) ? undefined : '[0-9]*') : undefined)"
         :value="modelValue ?? ''"
         :placeholder="placeholder"
         :required="required"

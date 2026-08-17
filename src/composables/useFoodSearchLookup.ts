@@ -159,7 +159,7 @@ export function useFoodSearchLookup(
 
     if (recentMeals.length > 0) {
       for (const m of recentMeals) {
-        const cleanName = (m.meal_name || '').trim()
+        const cleanName = (m.name || '').trim()
         if (!cleanName) continue
 
         const lower = cleanName.toLowerCase()
@@ -184,6 +184,7 @@ export function useFoodSearchLookup(
           id: `db-${m.id || lower}`,
           template_id: m.template_id || undefined,
           name: isRecipeMatch && matchedRecipe ? matchedRecipe.name : cleanName,
+          brand: m.brand || matchedRecipe?.brand || undefined,
           type: isRecipeMatch ? 'recipe' : 'recent',
           cal: m.cal || m.calories || matchedRecipe?.cal || 0,
           prot_g: m.prot_g || m.protein_g || matchedRecipe?.prot_g || 0,

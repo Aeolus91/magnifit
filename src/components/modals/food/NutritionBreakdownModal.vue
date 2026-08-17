@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { Utensils, Info, Pencil, Check } from '@lucide/vue'
 import { filterTrackedMicroLabels, isMicroColumnTracked } from '../../../lib/bitmask'
 import Modal from '../../atoms/Modal.vue'
+import FormInput from '../../atoms/FormInput.vue'
 
 interface NutritionData {
   title: string
@@ -198,9 +199,10 @@ const handleSave = () => {
               }} base)</span>
           </div>
           <div class="flex items-center gap-1.5">
-            <input type="number" step="any" min="0.1" max="50" v-model.number="editableServings"
+            <FormInput v-model="editableServings" type="number" step="any" min="0.1" max="50"
               @input="handleServingsChange"
-              class="w-20 bg-slate-900 border border-amber-500 rounded-lg px-2.5 py-1 text-xs font-mono font-bold text-amber-300 text-right focus:outline-none" />
+              input-class="bg-slate-900 border-amber-500 rounded-lg px-2.5 py-1 text-xs font-mono font-bold !text-amber-300 text-right"
+              class="w-20" />
             <span class="text-xs text-slate-400">x</span>
           </div>
         </div>
@@ -275,8 +277,9 @@ const handleSave = () => {
           <div v-for="(meta, key) in microLabels" :key="key"
             class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs">
             <label class="text-slate-300 truncate">{{ meta.label }} ({{ meta.unit }})</label>
-            <input type="number" step="any" min="0" v-model.number="editableMicros[key]" placeholder="0"
-              class="w-24 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono text-amber-300 text-right focus:outline-none" />
+            <FormInput v-model="editableMicros[key]" type="number" step="any" min="0" placeholder="0"
+              input-class="bg-slate-950 border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono !text-amber-300 text-right"
+              class="w-24 shrink-0" />
           </div>
         </div>
 

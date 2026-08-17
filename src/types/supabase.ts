@@ -347,36 +347,39 @@ export type Database = {
       meals: {
         Row: {
           cal: number
+          brand: string | null
           carb_g: number
           fat_g: number
           flags: number
           id: string
           log_date: string
-          meal_name: string
+          name: string
           prot_g: number
           ts: string
           user_id: string
         }
         Insert: {
+          brand?: string | null
           cal: number
           carb_g: number
           fat_g: number
           flags?: number
           id?: string
           log_date?: string
-          meal_name: string
+          name: string
           prot_g: number
           ts?: string
           user_id?: string
         }
         Update: {
+          brand?: string | null
           cal?: number
           carb_g?: number
           fat_g?: number
           flags?: number
           id?: string
           log_date?: string
-          meal_name?: string
+          name?: string
           prot_g?: number
           ts?: string
           user_id?: string
@@ -1026,35 +1029,38 @@ export type Database = {
       }
       v_my_meals: {
         Row: {
+          brand: string | null
           cal: number | null
           carb_g: number | null
           fat_g: number | null
           flags: number | null
           id: string | null
           log_date: string | null
-          meal_name: string | null
+          name: string | null
           prot_g: number | null
           ts: string | null
         }
         Insert: {
+          brand?: string | null
           cal?: number | null
           carb_g?: number | null
           fat_g?: number | null
           flags?: number | null
           id?: string | null
           log_date?: string | null
-          meal_name?: string | null
+          name?: string | null
           prot_g?: number | null
           ts?: string | null
         }
         Update: {
+          brand?: string | null
           cal?: number | null
           carb_g?: number | null
           fat_g?: number | null
           flags?: number | null
           id?: string | null
           log_date?: string | null
-          meal_name?: string | null
+          name?: string | null
           prot_g?: number | null
           ts?: string | null
         }

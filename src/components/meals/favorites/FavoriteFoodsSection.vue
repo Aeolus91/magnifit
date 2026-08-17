@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { Star, Search, Plus, Info, Loader2, Utensils, X } from '@lucide/vue'
 import Modal from '../../atoms/Modal.vue'
+import FormInput from '../../atoms/FormInput.vue'
 import EmptySectionPlaceholder from '../../atoms/EmptySectionPlaceholder.vue'
 import NutritionBreakdownModal from '../../modals/food/NutritionBreakdownModal.vue'
 import { useI18n } from '../../../lib/i18n'
@@ -26,6 +27,7 @@ const emit = defineEmits<{
   (e: 'log-favorite', item: {
     template_id: string
     name: string
+    brand?: string | null
     cal: number
     prot_g: number
     carb_g: number
@@ -105,6 +107,7 @@ const confirmLogFavorite = () => {
   emit('log-favorite', {
     template_id: t.id,
     name: formattedName,
+    brand: t.brand || null,
     cal: scaledCal,
     prot_g: scaledProt,
     carb_g: scaledCarb,
@@ -262,13 +265,17 @@ const confirmLogFavorite = () => {
         </div>
 
         <!-- Servings Multiplier -->
-        <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-slate-300">Number of Servings</label>
-          <div class="flex items-center gap-2">
-            <input type="number" v-model.number="logServings" min="0.1" step="0.25"
-              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none transition font-mono" />
-            <span class="text-xs text-slate-400 shrink-0 font-medium">servings</span>
-          </div>
+        <div class="flex items-end gap-2">
+          <FormInput
+            v-model="logServings"
+            type="number"
+            label="Number of Servings"
+            min="0.1"
+            step="0.25"
+            input-class="focus:border-amber-500 font-mono py-2"
+            class="flex-1"
+          />
+          <span class="text-xs text-slate-400 shrink-0 font-medium pb-3">servings</span>
         </div>
 
         <!-- Live Scaled Nutrition Summary -->

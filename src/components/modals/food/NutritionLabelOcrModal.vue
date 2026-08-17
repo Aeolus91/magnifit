@@ -5,7 +5,8 @@ import { useI18n } from '../../../lib/i18n'
 
 const emit = defineEmits<{
   (e: 'autofill', data: {
-    meal_name?: string
+    name?: string
+    brand?: string
     cal?: number
     prot_g?: number
     carb_g?: number
@@ -126,7 +127,7 @@ const handleApply = () => {
     prot_g: detectedMacros.value.prot_g || undefined,
     carb_g: detectedMacros.value.carb_g || undefined,
     fat_g: detectedMacros.value.fat_g || undefined,
-    meal_name: detectedMacros.value.serving_size ? `Scanned Item (${detectedMacros.value.serving_size})` : undefined
+    name: detectedMacros.value.serving_size ? `Scanned Item (${detectedMacros.value.serving_size})` : undefined
   })
 }
 </script>

@@ -161,17 +161,11 @@ const handleSubmit = () => {
         <div class="flex flex-col min-[360px]:grid min-[360px]:grid-cols-2 gap-3">
           <FormInput v-model="avgHeartRate" type="number" label="Avg Heart Rate (bpm)" placeholder="e.g. 142" :min="30"
             :max="260" :icon="Heart" icon-position="field-left" icon-color="text-rose-400" />
-          <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-              <Zap class="w-3.5 h-3.5 text-amber-400" />
-              <span>Effort (RPE 1-10)</span>
-            </label>
-            <div class="relative">
-              <input type="number" v-model.number="effortLevel" min="1" max="10" placeholder="e.g. 7"
-                class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-3.5 text-base sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-amber-500 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-mono" />
-              <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-500 pointer-events-none">/
-                10</span>
-            </div>
+          <div class="relative">
+            <FormInput v-model="effortLevel" type="number" label="Effort (RPE 1-10)" :min="1" :max="10"
+              placeholder="e.g. 7" :icon="Zap" icon-position="label-left" icon-color="text-amber-400"
+              input-class="focus:border-amber-500 font-mono pr-12" />
+            <span class="absolute right-3.5 bottom-3 text-[11px] text-slate-500 pointer-events-none">/ 10</span>
           </div>
         </div>
       </div>

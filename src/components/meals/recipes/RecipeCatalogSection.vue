@@ -6,6 +6,7 @@ import { useI18n } from '../../../lib/i18n'
 import Modal from '../../atoms/Modal.vue'
 import SectionHeader from '../../atoms/SectionHeader.vue'
 import EmptySectionPlaceholder from '../../atoms/EmptySectionPlaceholder.vue'
+import FormInput from '../../atoms/FormInput.vue'
 import MicronutrientsAccordion from '../../atoms/MicronutrientsAccordion.vue'
 import FoodSearchLookup from '../forms/FoodSearchLookup.vue'
 import NutritionLabelOcrModal from '../../modals/food/NutritionLabelOcrModal.vue'
@@ -92,10 +93,10 @@ const addIngredient = () => {
   ingFat.value = null
 }
 
-const handleFoodSelectedForRecipe = (food: { meal_name: string; cal: number; prot_g: number; carb_g: number; fat_g: number }) => {
+const handleFoodSelectedForRecipe = (food: { name: string; brand?: string | null; cal: number; prot_g: number; carb_g: number; fat_g: number }) => {
   newIngredients.value.push({
-    item_name: food.meal_name,
-    name: food.meal_name,
+    item_name: food.name,
+    name: food.name,
     amount: 1,
     unit: 'serving',
     cal: food.cal,
@@ -105,11 +106,11 @@ const handleFoodSelectedForRecipe = (food: { meal_name: string; cal: number; pro
   })
 }
 
-const handleOcrSelectedForRecipe = (data: { meal_name?: string; cal?: number; prot_g?: number; carb_g?: number; fat_g?: number }) => {
+const handleOcrSelectedForRecipe = (data: { name?: string; brand?: string; cal?: number; prot_g?: number; carb_g?: number; fat_g?: number }) => {
   if (data.cal !== undefined) {
     newIngredients.value.push({
-      item_name: data.meal_name || 'Scanned Ingredient',
-      name: data.meal_name || 'Scanned Ingredient',
+      item_name: data.name || 'Scanned Ingredient',
+      name: data.name || 'Scanned Ingredient',
       amount: 1,
       unit: 'serving',
       cal: data.cal || 0,
@@ -374,25 +375,46 @@ const confirmLog = () => {
       max-width-class="max-w-xl" @close="showCreateModal = false">
       <form @submit.prevent="handleCreateTemplate" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-          <div class="sm:col-span-2 space-y-1">
-            <label class="text-xs font-semibold text-slate-300">Recipe Name</label>
-            <input type="text" v-model="newName" placeholder="e.g. Post-Workout Smoothie" required
-              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none" />
-          </div>
+          <FormInput
+            v-model="newName"
+            label="Recipe Name"
+            placeholder="e.g. Post-Workout Smoothie"
+            required
+            input-class="focus:border-amber-500 text-xs py-2.5 px-3.5"
+            class="sm:col-span-2"
+          />
 
-          <div class="space-y-1">
-            <label class="text-xs font-semibold text-slate-300">Yield (Servings)</label>
-            <input type="number" step="any" min="0.1" max="50" v-model.number="newServings" placeholder="1" required
-              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none text-center" />
-          </div>
+          <FormInput
+            v-model="newServings"
+            type="number"
+            step="any"
+            label="Yield (Servings)"
+            placeholder="1"
+            required
+            min="0.1"
+            max="50"
+            input-class="focus:border-amber-500 font-mono text-xs text-center py-2.5 px-3.5"
+          />
 
           <div class="space-y-1">
             <label class="text-xs font-semibold text-slate-300">Serving Size</label>
             <div class="flex gap-1">
-              <input type="number" step="any" min="0.1" v-model.number="newServingSize" placeholder="200"
-                class="w-14 shrink-0 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-2 py-2.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none text-center" />
-              <input type="text" v-model="newServingUnit" placeholder="g / qty"
-                class="flex-1 min-w-0 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-2 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none" />
+              <FormInput
+                v-model="newServingSize"
+                type="number"
+                step="any"
+                min="0.1"
+                placeholder="200"
+                input-class="focus:border-amber-500 font-mono text-xs text-center py-2.5 px-2"
+                class="w-16 shrink-0"
+              />
+              <FormInput
+                v-model="newServingUnit"
+                type="text"
+                placeholder="g / qty"
+                input-class="focus:border-amber-500 text-xs py-2.5 px-2"
+                class="flex-1 min-w-0"
+              />
             </div>
           </div>
         </div>
@@ -440,21 +462,22 @@ const confirmLog = () => {
           <!-- Mode 3: Manual Values -->
           <div v-else class="space-y-2">
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <input type="text" v-model="ingName" placeholder="Ingredient name"
-                class="col-span-2 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500" />
-              <input type="number" v-model.number="ingAmount" placeholder="Amount (100)"
-                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500" />
-              <input type="number" v-model.number="ingCal" placeholder="Calories"
-                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500" />
+              <FormInput v-model="ingName" placeholder="Ingredient name"
+                input-class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs"
+                class="col-span-2" />
+              <FormInput v-model="ingAmount" type="number" placeholder="Amount (100)"
+                input-class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono" />
+              <FormInput v-model="ingCal" type="number" placeholder="Calories"
+                input-class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono" />
             </div>
 
             <div class="grid grid-cols-4 gap-2">
-              <input type="number" v-model.number="ingProt" placeholder="Prot (g)"
-                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500" />
-              <input type="number" v-model.number="ingCarb" placeholder="Carb (g)"
-                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500" />
-              <input type="number" v-model.number="ingFat" placeholder="Fat (g)"
-                class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500" />
+              <FormInput v-model="ingProt" type="number" placeholder="Prot (g)"
+                input-class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono" />
+              <FormInput v-model="ingCarb" type="number" placeholder="Carb (g)"
+                input-class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono" />
+              <FormInput v-model="ingFat" type="number" placeholder="Fat (g)"
+                input-class="bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg px-2.5 py-1.5 text-xs font-mono" />
               <button type="button" @click="addIngredient"
                 class="rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-800 text-amber-300 text-xs font-bold py-1.5 transition active:scale-95 cursor-pointer">
                 + Add
@@ -552,14 +575,19 @@ const confirmLog = () => {
           </div>
         </div>
 
-        <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-slate-300">Number of Servings (Multiplier)</label>
-          <div class="flex items-center gap-3">
-            <input type="number" step="any" min="0.1" max="20" v-model.number="logMultiplier"
-              class="w-28 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
-            <div class="text-xs font-mono text-amber-400 font-bold">
-              = {{ Math.round(selectedTemplateForLog.cal * (logMultiplier || 1)) }} kcal total
-            </div>
+        <div class="flex items-end gap-3">
+          <FormInput
+            v-model="logMultiplier"
+            type="number"
+            step="any"
+            label="Number of Servings (Multiplier)"
+            min="0.1"
+            max="20"
+            input-class="focus:border-amber-500 font-mono py-2"
+            class="w-32"
+          />
+          <div class="text-xs font-mono text-amber-400 font-bold pb-3">
+            = {{ Math.round(selectedTemplateForLog.cal * (logMultiplier || 1)) }} kcal total
           </div>
         </div>
 
@@ -586,9 +614,9 @@ const confirmLog = () => {
         <div class="space-y-1.5">
           <label class="text-xs font-semibold text-slate-300">Recipient Username Handle</label>
           <div class="relative">
-            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-amber-400 font-bold font-mono">@</span>
-            <input type="text" v-model="shareHandle" placeholder="username" required
-              class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl pl-8 pr-3.5 py-2.5 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-amber-400 font-bold font-mono z-10">@</span>
+            <FormInput v-model="shareHandle" type="text" placeholder="username" required
+              input-class="focus:border-amber-500 pl-8 pr-3.5 py-2.5 text-sm font-mono" />
           </div>
         </div>
 

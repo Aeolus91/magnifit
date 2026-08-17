@@ -106,7 +106,8 @@ const handleLogFavorite = async (item: {
 }) => {
   isSaving.value = true
   await addMeal({
-    meal_name: item.name,
+    name: item.name,
+    brand: item.brand || null,
     cal: item.cal,
     prot_g: item.prot_g,
     carb_g: item.carb_g,

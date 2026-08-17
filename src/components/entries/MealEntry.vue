@@ -45,7 +45,8 @@ const slotLabel = computed(() => {
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="font-semibold text-slate-200 truncate">{{ meal.meal_name }}</span>
+          <span v-if="meal.brand" class="text-xs text-slate-400 font-medium shrink-0">[{{ meal.brand }}]</span>
+          <span class="font-semibold text-slate-200 truncate">{{ meal.name }}</span>
           <span
             v-if="showSlotBadge && slotLabel"
             class="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700/60 text-[10px] font-semibold text-amber-400/90 tracking-wide uppercase"
@@ -93,7 +94,8 @@ const slotLabel = computed(() => {
       :is-editable="true"
       :micros-opt="microsOpt"
       :data="{
-        title: meal.meal_name,
+        title: meal.name,
+        subtitle: meal.brand || undefined,
         serving_size: meal.serving_size 
           ? (meal.servings && meal.servings !== 1 ? `${meal.servings}x ${meal.serving_size}${meal.serving_unit || 'g'}` : `${meal.serving_size}${meal.serving_unit || 'g'}`)
           : undefined,

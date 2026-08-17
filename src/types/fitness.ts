@@ -28,7 +28,8 @@ export interface Biometric {
 export interface Meal {
   id?: string
   user_id?: string
-  meal_name: string
+  name: string
+  brand?: string | null
   cal: number
   prot_g: number
   carb_g: number

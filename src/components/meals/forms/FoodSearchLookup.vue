@@ -25,7 +25,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (e: 'select-food', food: {
-    meal_name: string
+    name: string
+    brand?: string | null
     cal: number
     prot_g: number
     carb_g: number
@@ -83,7 +84,8 @@ const handleConfirmFoodServing = (details: {
     : selectedFood.value.name
 
   const foodPayload = {
-    meal_name: `${fullName} (${details.totalGrams}g)`,
+    name: `${fullName} (${details.totalGrams}g)`,
+    brand: selectedFood.value.brand || null,
     cal: details.scaledCal,
     prot_g: details.scaledProt,
     carb_g: details.scaledCarb,
@@ -144,7 +146,8 @@ const handleConfirmQuickPickServing = () => {
   }
 
   emit('select-food', {
-    meal_name: formattedName,
+    name: formattedName,
+    brand: (item as any).brand || null,
     cal: scaledCal,
     prot_g: scaledProt,
     carb_g: scaledCarb,

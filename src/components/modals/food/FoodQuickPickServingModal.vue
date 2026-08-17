@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import Modal from '../../../components/atoms/Modal.vue'
 import { Utensils, Info, Plus } from '@lucide/vue'
 import { useI18n } from '../../../lib/i18n'
+import FormInput from '../../atoms/FormInput.vue'
 import type { QuickPickItem } from '../../../composables/useFoodSearchLookup'
 
 const props = defineProps<{
@@ -59,8 +60,9 @@ const scaledFat = computed(() => Math.round((props.item?.fat_g || 0) * (servings
             class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 active:scale-95 text-slate-200 font-bold flex items-center justify-center transition cursor-pointer text-xs shrink-0">
             -¼
           </button>
-          <input type="number" v-model.number="servings" step="0.25" min="0.1" max="50"
-            class="flex-1 bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-center text-sm font-mono text-slate-100 focus:outline-none" />
+          <FormInput v-model="servings" type="number" step="0.25" min="0.1" max="50"
+            input-class="focus:border-amber-500 text-center text-sm font-mono py-2"
+            class="flex-1" />
           <button type="button" @click="servings = Math.round(((servings || 1) + 0.25) * 100) / 100"
             class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 active:scale-95 text-slate-200 font-bold flex items-center justify-center transition cursor-pointer text-xs shrink-0">
             +¼

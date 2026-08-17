@@ -79,7 +79,8 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
     const mealInsertPayload: any = {
       id,
       user_id: userId.value,
-      meal_name: mealData.meal_name,
+      name: mealData.name,
+      brand: mealData.brand || null,
       cal: Math.round(mealData.cal || mealData.calories || 0),
       prot_g: Math.round((mealData.prot_g || mealData.protein_g || 0) * 10) / 10,
       carb_g: Math.round((mealData.carb_g || mealData.carbs_g || 0) * 10) / 10,
@@ -112,7 +113,8 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
   const editMeal = async (mealData: Meal) => {
     if (!userId.value || !mealData.id) return;
     const updatePayload: any = {
-      meal_name: mealData.meal_name,
+      name: mealData.name,
+      brand: mealData.brand || null,
       cal: Math.round(mealData.cal || mealData.calories || 0),
       prot_g: Math.round((mealData.prot_g || mealData.protein_g || 0) * 10) / 10,
       carb_g: Math.round((mealData.carb_g || mealData.carbs_g || 0) * 10) / 10,
@@ -355,7 +357,8 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
     if (!userId.value) return;
     const mealPayload: Meal = {
       user_id: userId.value,
-      meal_name: multiplier !== 1 ? `${recipe.name} (${multiplier}x)` : recipe.name,
+      name: multiplier !== 1 ? `${recipe.name} (${multiplier}x)` : recipe.name,
+      brand: (recipe as any).brand || null,
       cal: Math.round(recipe.cal * multiplier),
       prot_g: Math.round(recipe.prot_g * multiplier * 10) / 10,
       carb_g: Math.round(recipe.carb_g * multiplier * 10) / 10,

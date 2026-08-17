@@ -7,6 +7,7 @@ import { getSuggestedMealSlot } from '../../../lib/dateUtils'
 import FoodSearchLookup from './FoodSearchLookup.vue'
 import NutritionLabelOcrModal from '../../modals/food/NutritionLabelOcrModal.vue'
 import MicronutrientsAccordion from '../../atoms/MicronutrientsAccordion.vue'
+import FormInput from '../../atoms/FormInput.vue'
 import type { Meal, MealTemplate } from '../../../types/fitness'
 
 const props = withDefaults(defineProps<{
@@ -30,6 +31,7 @@ const { t } = useI18n()
 
 const activeMode = ref<'manual' | 'search' | 'ocr'>('search')
 const mealName = ref('')
+const brand = ref('')
 const calories = ref<number | null>(null)
 const proteinG = ref<number | null>(null)
 const carbsG = ref<number | null>(null)
@@ -55,7 +57,8 @@ const mealSlotOptions = [
 const mealMicros = ref<Record<string, number>>({})
 
 const handleFoodSelected = (food: {
-  meal_name: string
+  name: string
+  brand?: string | null
   cal: number
   prot_g: number
   carb_g: number
@@ -66,7 +69,7 @@ const handleFoodSelected = (food: {
   template_id?: string
   micros?: Record<string, number>
 }) => {
-  let formattedName = food.meal_name.trim()
+  let formattedName = food.name.trim()
   if (food.serving_size && !formattedName.includes('(')) {
     const sUnit = food.serving_unit || 'g'
     const sCount = food.servings || 1
@@ -77,7 +80,8 @@ const handleFoodSelected = (food: {
   }
 
   emit('submit', {
-    meal_name: formattedName,
+    name: formattedName,
+    brand: food.brand || null,
     cal: food.cal || 0,
     prot_g: food.prot_g || 0,
     carb_g: food.carb_g || 0,
@@ -92,8 +96,9 @@ const handleFoodSelected = (food: {
   })
 }
 
-const handleOcrAutofill = (data: { meal_name?: string; cal?: number; prot_g?: number; carb_g?: number; fat_g?: number }) => {
-  if (data.meal_name) mealName.value = data.meal_name
+const handleOcrAutofill = (data: { name?: string; brand?: string; cal?: number; prot_g?: number; carb_g?: number; fat_g?: number }) => {
+  if (data.name) mealName.value = data.name
+  if (data.brand) brand.value = data.brand
   if (data.cal !== undefined) calories.value = data.cal
   if (data.prot_g !== undefined) proteinG.value = data.prot_g
   if (data.carb_g !== undefined) carbsG.value = data.carb_g
@@ -113,7 +118,8 @@ const handleSubmit = () => {
   }
 
   emit('submit', {
-    meal_name: formattedName,
+    name: formattedName,
+    brand: brand.value.trim() || null,
     cal: calories.value || 0,
     prot_g: proteinG.value || 0,
     carb_g: carbsG.value || 0,
@@ -128,11 +134,13 @@ const handleSubmit = () => {
 
   // Reset form
   mealName.value = ''
+  brand.value = ''
   calories.value = null
   proteinG.value = null
   carbsG.value = null
   fatG.value = null
   servingSize.value = null
+  servingUnit.value = 'g'
   servingsCount.value = 1
   mealMicros.value = {}
 }
@@ -206,61 +214,93 @@ const handleSubmit = () => {
     <!-- Manual / Finalized Entry Form -->
     <form v-else @submit.prevent="handleSubmit" class="space-y-5">
 
-      <!-- Item Name & Total Energy -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="sm:col-span-2 space-y-1.5">
-          <label class="text-xs font-semibold text-slate-300">{{ t('meals.item_name_label') }}</label>
-          <input type="text" v-model="mealName" :placeholder="t('meals.item_name_placeholder')" required
-            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition" />
-        </div>
+      <!-- Item Name, Brand & Total Energy -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <FormInput
+          v-model="mealName"
+          :label="t('meals.item_name_label')"
+          :placeholder="t('meals.item_name_placeholder')"
+          required
+          input-class="focus:border-amber-500"
+          class="sm:col-span-2"
+        />
 
-        <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-slate-300">{{ t('meals.cal_label') }}</label>
-          <input type="number" v-model.number="calories" placeholder="550" min="0" max="10000" required
-            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
-        </div>
+        <FormInput
+          v-model="brand"
+          label="Brand (Optional)"
+          placeholder="e.g. Quaker"
+          input-class="focus:border-amber-500"
+        />
+
+        <FormInput
+          v-model="calories"
+          type="number"
+          :label="t('meals.cal_label')"
+          placeholder="550"
+          :min="0"
+          :max="10000"
+          required
+          input-class="focus:border-amber-500 font-mono"
+        />
       </div>
 
       <!-- Optional Serving Configuration -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
-        <div class="space-y-1">
-          <label class="text-[11px] font-medium text-slate-400">Serving Size (Optional)</label>
-          <input type="number" v-model.number="servingSize" placeholder="100" min="1"
-            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none" />
-        </div>
+        <FormInput
+          v-model="servingSize"
+          type="number"
+          label="Serving Size (Optional)"
+          placeholder="100"
+          :min="1"
+          input-class="bg-slate-900 focus:border-amber-500 py-2 text-xs font-mono"
+        />
 
-        <div class="space-y-1">
-          <label class="text-[11px] font-medium text-slate-400">Unit</label>
-          <input type="text" v-model="servingUnit" placeholder="g / ml / scoop"
-            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none" />
-        </div>
+        <FormInput
+          v-model="servingUnit"
+          type="text"
+          label="Unit"
+          placeholder="g / ml / scoop"
+          input-class="bg-slate-900 focus:border-amber-500 py-2 text-xs"
+        />
 
-        <div class="space-y-1">
-          <label class="text-[11px] font-medium text-slate-400"># of Servings</label>
-          <input type="number" step="0.25" v-model.number="servingsCount" min="0.25"
-            class="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-lg px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-600 focus:outline-none" />
-        </div>
+        <FormInput
+          v-model="servingsCount"
+          type="number"
+          step="0.25"
+          label="# of Servings"
+          min="0.25"
+          input-class="bg-slate-900 focus:border-amber-500 py-2 text-xs font-mono"
+        />
       </div>
 
       <!-- Macronutrients Row (P/C/F) -->
       <div class="grid grid-cols-3 gap-3">
-        <div class="space-y-1">
-          <label class="text-xs font-medium text-slate-400">{{ t('meals.prot_label') }}</label>
-          <input type="number" v-model.number="proteinG" placeholder="40" min="0"
-            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
-        </div>
+        <FormInput
+          v-model="proteinG"
+          type="number"
+          :label="t('meals.prot_label')"
+          placeholder="40"
+          :min="0"
+          input-class="focus:border-amber-500 font-mono"
+        />
 
-        <div class="space-y-1">
-          <label class="text-xs font-medium text-slate-400">{{ t('meals.carb_label') }}</label>
-          <input type="number" v-model.number="carbsG" placeholder="55" min="0"
-            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
-        </div>
+        <FormInput
+          v-model="carbsG"
+          type="number"
+          :label="t('meals.carb_label')"
+          placeholder="55"
+          :min="0"
+          input-class="focus:border-amber-500 font-mono"
+        />
 
-        <div class="space-y-1">
-          <label class="text-xs font-medium text-slate-400">{{ t('meals.fat_label') }}</label>
-          <input type="number" v-model.number="fatG" placeholder="15" min="0"
-            class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition" />
-        </div>
+        <FormInput
+          v-model="fatG"
+          type="number"
+          :label="t('meals.fat_label')"
+          placeholder="15"
+          :min="0"
+          input-class="focus:border-amber-500 font-mono"
+        />
       </div>
 
       <!-- Collapsible Tracked Micronutrients Accordion Section -->

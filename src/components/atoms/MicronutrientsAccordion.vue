@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { Info, ChevronDown } from '@lucide/vue'
 import { filterTrackedMicroLabels } from '../../lib/bitmask'
 import { useI18n } from '../../lib/i18n'
+import FormInput from './FormInput.vue'
 
 const { t } = useI18n()
 
@@ -81,8 +82,9 @@ const filledCount = computed(() => {
       <div v-for="(meta, key) in activeMicroLabels" :key="key"
         class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 text-xs">
         <label class="text-slate-300 truncate text-[11px]">{{ meta.label }} ({{ meta.unit }})</label>
-        <input type="number" step="any" min="0" v-model.number="micros[key]" placeholder="0"
-          class="w-24 bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono text-amber-300 text-right focus:outline-none" />
+        <FormInput v-model="micros[key]" type="number" step="any" min="0" placeholder="0"
+          input-class="bg-slate-950 border-slate-700 focus:border-amber-500 rounded-lg px-2 py-1 text-xs font-mono !text-amber-300 text-right"
+          class="w-24 shrink-0" />
       </div>
     </div>
   </div>
