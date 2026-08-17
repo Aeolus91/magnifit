@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
-import Modal from '../../../components/atoms/Modal.vue'
 import { QrCode } from '@lucide/vue'
+import { BarcodeDetector } from 'barcode-detector'
+import Modal from '../../../components/atoms/Modal.vue'
 import { useI18n } from '../../../lib/i18n'
 
-const props = defineProps<{
+interface Props {
   show: boolean
-  scannerError: string | null
-}>()
+  scannerError?: string | null
+}
+
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -24,26 +27,25 @@ const startCamera = async () => {
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' }
     })
+
     if (videoRef.value) {
       videoRef.value.srcObject = stream
       await videoRef.value.play()
     }
 
-    // Attempt BarcodeDetector API if supported
-    if ('BarcodeDetector' in window) {
-      const detector = new (window as any).BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code']
-      })
-      scanInterval = setInterval(async () => {
-        if (!videoRef.value || videoRef.value.readyState < 2) return
-        try {
-          const barcodes = await detector.detect(videoRef.value)
-          if (barcodes.length > 0) {
-            emit('detected', barcodes[0].rawValue)
-          }
-        } catch { }
-      }, 500)
-    }
+    const detector = new BarcodeDetector({
+      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code']
+    })
+
+    scanInterval = setInterval(async () => {
+      if (!videoRef.value || videoRef.value.readyState < 2) return
+      try {
+        const barcodes = await detector.detect(videoRef.value)
+        if (barcodes.length > 0) {
+          emit('detected', barcodes[0].rawValue)
+        }
+      } catch { }
+    }, 500)
   } catch (err: any) {
     // Camera denied or unavailable
   }
