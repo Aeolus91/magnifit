@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Plus, Dumbbell } from '@lucide/vue'
+import { Dumbbell } from '@lucide/vue'
 import { useI18n } from '../../lib/i18n'
 import type { Workout } from '../../types/fitness'
 import WorkoutModal from '../modals/dash/WorkoutModal.vue'

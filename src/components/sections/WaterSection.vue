@@ -6,7 +6,7 @@ import Modal from '../atoms/Modal.vue'
 import WaterEntry from '../entries/WaterEntry.vue'
 import SectionHeader from '../atoms/SectionHeader.vue'
 import EmptySectionPlaceholder from '../atoms/EmptySectionPlaceholder.vue'
-import { Droplets, Plus, Check } from '@lucide/vue'
+import { Droplets, Check } from '@lucide/vue'
 
 const { t } = useI18n()
 

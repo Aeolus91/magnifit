@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Plus, BookOpen, Trash2, Check, Utensils, X, Search, Camera, PenTool, Pencil, Share2, Loader2, AlertCircle } from '@lucide/vue'
+import { BookOpen, Trash2, Check, Utensils, X, Search, Camera, PenTool, Pencil, Share2, Loader2, AlertCircle } from '@lucide/vue'
 import { MealFlags } from '../../../lib/bitmask'
 import { useI18n } from '../../../lib/i18n'
 import Modal from '../../atoms/Modal.vue'
