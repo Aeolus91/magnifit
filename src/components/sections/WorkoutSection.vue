@@ -50,8 +50,6 @@ const handleWorkoutSubmit = (workout: Workout) => {
     <SectionHeader
       :title="t('dash.workout.title')"
       :description="t('dash.workout.desc')"
-      :action-label="t('dash.workout.add_entry')"
-      :action-icon="Plus"
       action-variant="emerald"
       @action="openCreateModal"
     />

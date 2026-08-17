@@ -50,36 +50,29 @@ const handleSaveEdit = () => {
 
 <template>
   <div class="space-y-4">
-    <!-- Section Header with Embedded Custom Water Form -->
+    <!-- Section Header with Custom Input in #controls and Action Button -->
     <SectionHeader
       :title="t('dash.water.title')"
       :description="t('dash.water.desc')"
+      action-variant="cyan"
+      @action="handleSubmit"
     >
       <template #controls>
-        <form @submit.prevent="handleSubmit" class="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
-          <div class="relative w-28 sm:w-32">
-            <input
-              type="text"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              v-model.number="customWaterAmount"
-              :placeholder="t('dash.water.custom_placeholder')"
-              class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl pl-3 pr-7 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-mono"
-              required
-            />
-            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 pointer-events-none">
-              ml
-            </span>
-          </div>
-
-          <button
-            type="submit"
-            class="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:scale-95 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-cyan-950/40 whitespace-nowrap"
-          >
-            <Plus class="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>{{ t('dash.water.custom_btn') }}</span>
-          </button>
-        </form>
+        <div class="relative w-full sm:w-28 shrink-0">
+          <input
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            v-model.number="customWaterAmount"
+            :placeholder="t('dash.water.custom_placeholder')"
+            class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl pl-2.5 pr-6 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-mono"
+            required
+            @keydown.enter.prevent="handleSubmit"
+          />
+          <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 pointer-events-none">
+            ml
+          </span>
+        </div>
       </template>
     </SectionHeader>
 

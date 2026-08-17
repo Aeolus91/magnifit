@@ -66,7 +66,6 @@ const handleBioSubmit = (bio: Biometric) => {
     <SectionHeader
       :title="t('dash.biometrics.title')"
       :description="t('dash.biometrics.desc')"
-      :action-label="t('dash.biometrics.add_entry')"
       action-variant="purple"
       @action="openCreateModal"
     >
@@ -76,15 +75,15 @@ const handleBioSubmit = (bio: Biometric) => {
           type="button"
           @click="toggleAverageAggregate"
           :class="[
-            'px-3 py-2 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 shrink-0',
+            'p-2 min-[360px]:px-3 min-[360px]:py-2 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto shadow-sm whitespace-nowrap',
             showAverageAggregate
-              ? 'bg-purple-950/70 border-purple-500 text-purple-300 shadow-sm'
+              ? 'bg-purple-950/70 border-purple-500 text-purple-300'
               : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-300 hover:border-slate-700'
           ]"
-          title="Toggle bilateral limb average display"
+          :title="showAverageAggregate ? t('dash.biometrics.showing_avg') : t('dash.biometrics.show_avg')"
         >
-          <Sparkles class="w-3.5 h-3.5" />
-          <span>{{ showAverageAggregate ? t('dash.biometrics.showing_avg') : t('dash.biometrics.show_avg') }}</span>
+          <Sparkles class="w-4 h-4 min-[360px]:w-3.5 min-[360px]:h-3.5 shrink-0" />
+          <span class="hidden min-[360px]:inline truncate">{{ showAverageAggregate ? t('dash.biometrics.showing_avg') : t('dash.biometrics.show_avg') }}</span>
         </button>
       </template>
     </SectionHeader>

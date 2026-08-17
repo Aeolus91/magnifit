@@ -55,7 +55,7 @@ const formatDuration = (totalSecs?: number): string => {
       </div>
 
       <!-- Column 2 (Badges): Telemetry Badges (Centered inline under Col 1 & 3 on <360px, between 1 & 3 on >=360px) -->
-      <div v-if="workout.avg_hr || workout.effort" class="col-span-2 min-[360px]:col-span-1 order-3 min-[360px]:order-2 min-w-0 flex flex-row min-[360px]:flex-col sm:flex-row items-center justify-center min-[360px]:items-end sm:items-center gap-1.5 min-[360px]:gap-1 shrink-0 pt-1 min-[360px]:pt-0 border-t border-slate-800/60 min-[360px]:border-t-0">
+      <div v-if="workout.avg_hr || workout.effort" class="col-span-2 min-[360px]:col-span-1 order-3 min-[360px]:order-2 min-w-0 flex flex-row min-[360px]:flex-col sm:flex-row items-center justify-center min-[360px]:items-end sm:items-center gap-1.5 min-[360px]:gap-1 shrink-0">
         <MetricBadge
           v-if="workout.avg_hr"
           :label="`${workout.avg_hr} bpm`"

@@ -285,8 +285,6 @@ const confirmLog = () => {
     <SectionHeader
       :title="t('meals.recipes.title')"
       :description="t('meals.recipes.desc')"
-      :action-label="t('meals.recipes.new_btn')"
-      :action-icon="Plus"
       action-variant="amber"
       @action="openCreateModal"
     />
