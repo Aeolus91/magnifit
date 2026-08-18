@@ -58,6 +58,14 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            if (id.includes('@zxing/browser') || id.includes('@zxing/library')) {
+              return 'scanner-zxing';
+            }
+
+            if (id.includes('node_modules/barcode-detector')) {
+              return 'scanner-polyfill';
+            }
+
             if (id.includes('node_modules')) {
               return 'vendor';
             }
