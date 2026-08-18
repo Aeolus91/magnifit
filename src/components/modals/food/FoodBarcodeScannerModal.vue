@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
 import { QrCode } from '@lucide/vue'
-import { BarcodeDetector } from 'barcode-detector'
 import Modal from '../../../components/atoms/Modal.vue'
 import { useI18n } from '../../../lib/i18n'
 
@@ -33,12 +32,17 @@ const startCamera = async () => {
       await videoRef.value.play()
     }
 
-    const detector = new BarcodeDetector({
-      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code']
+    // Universal BarcodeDetector: native API if available, else WASM polyfill
+    const DetectorClass = ('BarcodeDetector' in window)
+      ? (window as any).BarcodeDetector
+      : (await import('barcode-detector')).BarcodeDetector
+
+    const detector = new DetectorClass({
+      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'code_128', 'code_39']
     })
 
     scanInterval = setInterval(async () => {
-      if (!videoRef.value || videoRef.value.readyState < 2) return
+      if (!videoRef.value || videoRef.value.readyState < 2 || videoRef.value.paused) return
       try {
         const barcodes = await detector.detect(videoRef.value)
         if (barcodes.length > 0) {
