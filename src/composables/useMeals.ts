@@ -5,6 +5,10 @@ import { getLocalISODate } from '../lib/dateUtils';
 import { offlineSync } from '../lib/offlineSync';
 import type { Meal, Recipe, RecipeItem } from '../types/fitness';
 
+const r2 = (v: number | undefined | null) => Math.round((v || 0) * 100) / 100;
+const roundMicros = (m: object = {}): Record<string, number> =>
+  Object.fromEntries(Object.entries(m).map(([k, v]) => [k, typeof v === 'number' ? r2(v) : v]));
+
 export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<string>, loggedDates: Ref<string[]>) {
   const meals = ref<Meal[]>([]);
   const loading = ref(false);
@@ -87,9 +91,9 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       name: isTemplated || isRecipe ? null : mealData.name,
       brand: isTemplated || isRecipe ? null : mealData.brand || null,
       cal: isTemplated || isRecipe ? null : Math.round(mealData.cal || mealData.calories || 0),
-      prot_g: isTemplated || isRecipe ? null : Math.round((mealData.prot_g || mealData.protein_g || 0) * 10) / 10,
-      carb_g: isTemplated || isRecipe ? null : Math.round((mealData.carb_g || mealData.carbs_g || 0) * 10) / 10,
-      fat_g: isTemplated || isRecipe ? null : Math.round((mealData.fat_g || 0) * 10) / 10,
+      prot_g: isTemplated || isRecipe ? null : r2(mealData.prot_g || mealData.protein_g),
+      carb_g: isTemplated || isRecipe ? null : r2(mealData.carb_g || mealData.carbs_g),
+      fat_g: isTemplated || isRecipe ? null : r2(mealData.fat_g),
       flags: finalFlags,
       serving_size: isTemplated || isRecipe ? null : mealData.serving_size || null,
       serving_unit: isTemplated || isRecipe ? null : mealData.serving_unit || null,
@@ -106,7 +110,7 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
         await supabase.from('micronutrients').insert([
           {
             meal_id: id,
-            ...mealData.micros,
+            ...roundMicros(mealData.micros),
           },
         ]);
       }
@@ -137,9 +141,9 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
           name: mealData.name === oldMeal.name ? null : mealData.name,
           brand: mealData.brand === oldMeal.brand ? null : mealData.brand || null,
           cal: calMatches ? null : Math.round(mealData.cal || 0),
-          prot_g: protMatches ? null : Math.round((mealData.prot_g || 0) * 10) / 10,
-          carb_g: carbMatches ? null : Math.round((mealData.carb_g || 0) * 10) / 10,
-          fat_g: fatMatches ? null : Math.round((mealData.fat_g || 0) * 10) / 10,
+          prot_g: protMatches ? null : r2(mealData.prot_g),
+          carb_g: carbMatches ? null : r2(mealData.carb_g),
+          fat_g: fatMatches ? null : r2(mealData.fat_g),
           flags: finalFlags,
           serving_size: mealData.serving_size === oldMeal.serving_size ? null : mealData.serving_size || null,
           serving_unit: mealData.serving_unit === oldMeal.serving_unit ? null : mealData.serving_unit || null,
@@ -166,9 +170,9 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
         name: mealData.name,
         brand: mealData.brand || null,
         cal: Math.round(mealData.cal || mealData.calories || 0),
-        prot_g: Math.round((mealData.prot_g || mealData.protein_g || 0) * 10) / 10,
-        carb_g: Math.round((mealData.carb_g || mealData.carbs_g || 0) * 10) / 10,
-        fat_g: Math.round((mealData.fat_g || 0) * 10) / 10,
+        prot_g: r2(mealData.prot_g || mealData.protein_g),
+        carb_g: r2(mealData.carb_g || mealData.carbs_g),
+        fat_g: r2(mealData.fat_g),
         flags: finalFlags,
         serving_size: mealData.serving_size || null,
         serving_unit: mealData.serving_unit || null,
@@ -190,7 +194,7 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       } else if (mealData.micros && Object.keys(mealData.micros).length > 0) {
         await supabase.from('micronutrients').upsert({
           meal_id: mealData.id,
-          ...mealData.micros,
+          ...roundMicros(mealData.micros),
         });
       }
     } catch {
@@ -273,9 +277,9 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       name: recipeData.name || 'Custom Meal Combo',
       description: recipeData.description || null,
       cal: Math.round(recipeData.cal || 0),
-      prot_g: Math.round((recipeData.prot_g || 0) * 10) / 10,
-      carb_g: Math.round((recipeData.carb_g || 0) * 10) / 10,
-      fat_g: Math.round((recipeData.fat_g || 0) * 10) / 10,
+      prot_g: Math.round((recipeData.prot_g || 0) * 100) / 100,
+      carb_g: Math.round((recipeData.carb_g || 0) * 100) / 100,
+      fat_g: Math.round((recipeData.fat_g || 0) * 100) / 100,
       servings: Math.max(0.1, Math.round(Number(recipeData.servings || 1) * 10) / 10),
       serving_size: recipeData.serving_size !== undefined ? recipeData.serving_size : null,
       serving_unit: recipeData.serving_unit || 'g',
@@ -305,13 +309,13 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
             id: item.id || uuidv7(),
             recipe_id: id,
             template_id: item.template_id || null,
-            item_name: hasTemplate ? null : (item.item_name || item.name || 'Ingredient'),
+            item_name: hasTemplate ? null : item.item_name || item.name || 'Ingredient',
             amount: Number(item.amount) || 1,
             unit: item.unit || 'g',
             cal: hasTemplate ? null : Math.round(item.cal || 0),
-            prot_g: hasTemplate ? null : Math.round((item.prot_g || 0) * 10) / 10,
-            carb_g: hasTemplate ? null : Math.round((item.carb_g || 0) * 10) / 10,
-            fat_g: hasTemplate ? null : Math.round((item.fat_g || 0) * 10) / 10,
+            prot_g: hasTemplate ? null : r2(item.prot_g),
+            carb_g: hasTemplate ? null : r2(item.carb_g),
+            fat_g: hasTemplate ? null : r2(item.fat_g),
           };
           await supabase.from('recipe_items').insert(itemPayload);
         }
@@ -321,7 +325,7 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       if (recipeData.micros && Object.keys(recipeData.micros).length > 0) {
         await supabase.from('recipe_micronutrients').insert({
           recipe_id: id,
-          ...recipeData.micros,
+          ...roundMicros(recipeData.micros),
         });
       }
     } catch {
@@ -336,9 +340,9 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       name: recipeData.name,
       description: recipeData.description || null,
       cal: Math.round(recipeData.cal || 0),
-      prot_g: Math.round((recipeData.prot_g || 0) * 10) / 10,
-      carb_g: Math.round((recipeData.carb_g || 0) * 10) / 10,
-      fat_g: Math.round((recipeData.fat_g || 0) * 10) / 10,
+      prot_g: r2(recipeData.prot_g),
+      carb_g: r2(recipeData.carb_g),
+      fat_g: r2(recipeData.fat_g),
       servings: Math.max(0.1, Math.round(Number(recipeData.servings || 1) * 10) / 10),
       serving_size: recipeData.serving_size !== undefined ? recipeData.serving_size : null,
       serving_unit: recipeData.serving_unit || 'g',
@@ -364,13 +368,13 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
             id: item.id || uuidv7(),
             recipe_id: recipeData.id,
             template_id: item.template_id || null,
-            item_name: hasTemplate ? null : (item.item_name || item.name || 'Ingredient'),
+            item_name: hasTemplate ? null : item.item_name || item.name || 'Ingredient',
             amount: item.amount || 1,
             unit: item.unit || 'serving',
-            cal: hasTemplate ? null : (item.cal || 0),
-            prot_g: hasTemplate ? null : (item.prot_g || 0),
-            carb_g: hasTemplate ? null : (item.carb_g || 0),
-            fat_g: hasTemplate ? null : (item.fat_g || 0),
+            cal: hasTemplate ? null : Math.round(item.cal || 0),
+            prot_g: hasTemplate ? null : r2(item.prot_g),
+            carb_g: hasTemplate ? null : r2(item.carb_g),
+            fat_g: hasTemplate ? null : r2(item.fat_g),
           };
           await supabase.from('recipe_items').insert(itemPayload);
         }
@@ -382,7 +386,7 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
         if (Object.keys(recipeData.micros).length > 0) {
           await supabase.from('recipe_micronutrients').insert({
             recipe_id: recipeData.id,
-            ...recipeData.micros,
+            ...roundMicros(recipeData.micros),
           });
         }
       }

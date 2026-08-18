@@ -46,6 +46,12 @@ const carbsCal = computed(() => (props.carbsG || 0) * 4)
 const fatCal = computed(() => (props.fatG || 0) * 9)
 const totalMacroCal = computed(() => proteinCal.value + carbsCal.value + fatCal.value)
 
+// Display values rounded to 2dp
+const r2 = (v: number) => Math.round(v * 100) / 100
+const proteinDisplay = computed(() => r2(props.proteinG || 0))
+const carbsDisplay = computed(() => r2(props.carbsG || 0))
+const fatDisplay = computed(() => r2(props.fatG || 0))
+
 const proteinPct = computed(() =>
   totalMacroCal.value > 0 ? Math.min(100, Math.round((proteinCal.value / totalMacroCal.value) * 100)) : 0
 )
@@ -58,83 +64,58 @@ const fatPct = computed(() =>
 </script>
 
 <template>
-  <div
-    class="relative bg-slate-900 border border-slate-800 rounded-xl overflow-hidden grid grid-cols-3 divide-x divide-slate-800/80 h-full transition-all duration-300">
-    <!-- Protein Column Pane -->
-    <div
-      class="relative flex flex-col justify-between items-center p-1.5 sm:p-2.5 overflow-hidden select-none active:scale-[0.98] transition-transform">
-      <!-- Animated Fluid Layer (Upwards Fill) -->
+  <div class="relative bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col divide-y divide-slate-800/80 transition-all duration-300 h-full">
+
+    <!-- Protein Row -->
+    <div class="relative flex flex-1 items-center gap-2 px-2.5 overflow-hidden select-none">
       <div
-        class="absolute inset-x-0 bottom-0 bg-linear-to-t from-emerald-500/25 via-emerald-500/15 to-emerald-500/5 border-t border-emerald-400/50 transition-all duration-700 ease-out pointer-events-none"
-        :style="{ height: isActivated && !isLoading ? `${proteinPct}%` : '0%' }">
-        <!-- Glowing surface edge -->
-        <div class="absolute top-0 inset-x-0 h-0.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+        class="absolute inset-0 bg-linear-to-r from-emerald-500/20 to-emerald-500/5 border-r border-emerald-400/40 transition-all duration-700 ease-out pointer-events-none"
+        :style="{ width: isActivated && !isLoading ? `${proteinPct}%` : '0%' }">
+        <div class="absolute top-0 right-0 inset-y-0 w-0.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
       </div>
-
-      <!-- Top Label -->
-      <span
-        class="relative z-10 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-emerald-400 leading-none">P</span>
-
-      <!-- Center Grams Metric -->
-      <div class="relative z-10 flex flex-col items-center justify-center my-auto leading-none">
-        <span v-if="isLoading" class="text-[10px] text-slate-500 font-bold">--</span>
-        <span v-else class="text-xs min-[360px]:text-sm sm:text-base font-black text-slate-100 drop-shadow">{{ proteinG
-          }}g</span>
-      </div>
-
-      <!-- Bottom Calorie Share -->
-      <span
-        class="relative z-10 text-[8px] min-[360px]:text-[9px] sm:text-[10px] font-bold text-slate-400 leading-none">
+      <span class="relative z-10 text-[10px] font-black uppercase tracking-widest text-emerald-400 w-4 shrink-0">P</span>
+      <span class="relative z-10 flex-1 text-sm font-black text-slate-100 tabular-nums">
+        <span v-if="isLoading" class="text-slate-500">--</span>
+        <span v-else>{{ proteinDisplay }}g</span>
+      </span>
+      <span class="relative z-10 text-[10px] font-bold text-slate-400 tabular-nums shrink-0">
         {{ isLoading ? '--' : `${proteinPct}%` }}
       </span>
     </div>
 
-    <!-- Carbs Column Pane -->
-    <div
-      class="relative flex flex-col justify-between items-center p-1.5 sm:p-2.5 overflow-hidden select-none active:scale-[0.98] transition-transform">
+    <!-- Carbs Row -->
+    <div class="relative flex flex-1 items-center gap-2 px-2.5 overflow-hidden select-none">
       <div
-        class="absolute inset-x-0 bottom-0 bg-linear-to-t from-amber-500/25 via-amber-500/15 to-amber-500/5 border-t border-amber-400/50 transition-all duration-700 ease-out pointer-events-none"
-        :style="{ height: isActivated && !isLoading ? `${carbsPct}%` : '0%' }">
-        <div class="absolute top-0 inset-x-0 h-0.5 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
+        class="absolute inset-0 bg-linear-to-r from-amber-500/20 to-amber-500/5 border-r border-amber-400/40 transition-all duration-700 ease-out pointer-events-none"
+        :style="{ width: isActivated && !isLoading ? `${carbsPct}%` : '0%' }">
+        <div class="absolute top-0 right-0 inset-y-0 w-0.5 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.7)]" />
       </div>
-
-      <span
-        class="relative z-10 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-amber-400 leading-none">C</span>
-
-      <div class="relative z-10 flex flex-col items-center justify-center my-auto leading-none">
-        <span v-if="isLoading" class="text-[10px] text-slate-500 font-bold">--</span>
-        <span v-else class="text-xs min-[360px]:text-sm sm:text-base font-black text-slate-100 drop-shadow">{{ carbsG
-          }}g</span>
-      </div>
-
-      <span
-        class="relative z-10 text-[8px] min-[360px]:text-[9px] sm:text-[10px] font-bold text-slate-400 leading-none">
+      <span class="relative z-10 text-[10px] font-black uppercase tracking-widest text-amber-400 w-4 shrink-0">C</span>
+      <span class="relative z-10 flex-1 text-sm font-black text-slate-100 tabular-nums">
+        <span v-if="isLoading" class="text-slate-500">--</span>
+        <span v-else>{{ carbsDisplay }}g</span>
+      </span>
+      <span class="relative z-10 text-[10px] font-bold text-slate-400 tabular-nums shrink-0">
         {{ isLoading ? '--' : `${carbsPct}%` }}
       </span>
     </div>
 
-    <!-- Fat Column Pane -->
-    <div
-      class="relative flex flex-col justify-between items-center p-1.5 sm:p-2.5 overflow-hidden select-none active:scale-[0.98] transition-transform">
+    <!-- Fat Row -->
+    <div class="relative flex flex-1 items-center gap-2 px-2.5 overflow-hidden select-none">
       <div
-        class="absolute inset-x-0 bottom-0 bg-linear-to-t from-rose-500/25 via-rose-500/15 to-rose-500/5 border-t border-rose-400/50 transition-all duration-700 ease-out pointer-events-none"
-        :style="{ height: isActivated && !isLoading ? `${fatPct}%` : '0%' }">
-        <div class="absolute top-0 inset-x-0 h-0.5 bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+        class="absolute inset-0 bg-linear-to-r from-rose-500/20 to-rose-500/5 border-r border-rose-400/40 transition-all duration-700 ease-out pointer-events-none"
+        :style="{ width: isActivated && !isLoading ? `${fatPct}%` : '0%' }">
+        <div class="absolute top-0 right-0 inset-y-0 w-0.5 bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
       </div>
-
-      <span
-        class="relative z-10 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-rose-400 leading-none">F</span>
-
-      <div class="relative z-10 flex flex-col items-center justify-center my-auto leading-none">
-        <span v-if="isLoading" class="text-[10px] text-slate-500 font-bold">--</span>
-        <span v-else class="text-xs min-[360px]:text-sm sm:text-base font-black text-slate-100 drop-shadow">{{ fatG
-          }}g</span>
-      </div>
-
-      <span
-        class="relative z-10 text-[8px] min-[360px]:text-[9px] sm:text-[10px] font-bold text-slate-400 leading-none">
+      <span class="relative z-10 text-[10px] font-black uppercase tracking-widest text-rose-400 w-4 shrink-0">F</span>
+      <span class="relative z-10 flex-1 text-sm font-black text-slate-100 tabular-nums">
+        <span v-if="isLoading" class="text-slate-500">--</span>
+        <span v-else>{{ fatDisplay }}g</span>
+      </span>
+      <span class="relative z-10 text-[10px] font-bold text-slate-400 tabular-nums shrink-0">
         {{ isLoading ? '--' : `${fatPct}%` }}
       </span>
     </div>
+
   </div>
 </template>
