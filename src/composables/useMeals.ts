@@ -18,13 +18,13 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
     meals.value.filter((m) => (m.log_date || getLocalISODate(m.ts)) === selectedDate.value),
   );
 
-  // Computed total nutritional macros on selectedDate
+  // Computed total nutritional macros on selectedDate — DB stores per-serving values; multiply here
   const totalCaloriesConsumed = computed(() =>
-    filteredMeals.value.reduce((acc, m) => acc + (m.cal || m.calories || 0), 0),
+    filteredMeals.value.reduce((acc, m) => acc + (m.cal || m.calories || 0) * (m.servings || 1), 0),
   );
-  const totalProteinG = computed(() => filteredMeals.value.reduce((acc, m) => acc + (m.prot_g || m.protein_g || 0), 0));
-  const totalCarbsG = computed(() => filteredMeals.value.reduce((acc, m) => acc + (m.carb_g || m.carbs_g || 0), 0));
-  const totalFatG = computed(() => filteredMeals.value.reduce((acc, m) => acc + (m.fat_g || 0), 0));
+  const totalProteinG = computed(() => filteredMeals.value.reduce((acc, m) => acc + (m.prot_g || m.protein_g || 0) * (m.servings || 1), 0));
+  const totalCarbsG = computed(() => filteredMeals.value.reduce((acc, m) => acc + (m.carb_g || m.carbs_g || 0) * (m.servings || 1), 0));
+  const totalFatG = computed(() => filteredMeals.value.reduce((acc, m) => acc + (m.fat_g || 0) * (m.servings || 1), 0));
 
   const fetchMeals = async (uid?: string) => {
     const targetUid = uid || userId.value;

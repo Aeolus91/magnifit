@@ -35,9 +35,6 @@ const handleSubmit = async () => {
 
       <!-- Brand Header -->
       <div class="text-center space-y-2">
-        <h1 class="text-3xl font-extrabold bg-linear-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
-          mFit Tracker
-        </h1>
         <p class="text-slate-400 text-sm">
           {{ mode === 'signin' ? 'Sign in to access your dashboard' : 'Create your account to start tracking' }}
         </p>

@@ -23,16 +23,16 @@ const emit = defineEmits<{
 
 const r2 = (v: number) => Math.round(v * 100) / 100
 const slotCalories = computed(() =>
-  props.meals.reduce((acc, m) => acc + (m.cal || m.calories || 0), 0)
+  props.meals.reduce((acc, m) => acc + (m.cal || m.calories || 0) * (m.servings || 1), 0)
 )
 const slotProt = computed(() =>
-  r2(props.meals.reduce((acc, m) => acc + (m.prot_g || m.protein_g || 0), 0))
+  r2(props.meals.reduce((acc, m) => acc + (m.prot_g || m.protein_g || 0) * (m.servings || 1), 0))
 )
 const slotCarb = computed(() =>
-  r2(props.meals.reduce((acc, m) => acc + (m.carb_g || m.carbs_g || 0), 0))
+  r2(props.meals.reduce((acc, m) => acc + (m.carb_g || m.carbs_g || 0) * (m.servings || 1), 0))
 )
 const slotFat = computed(() =>
-  r2(props.meals.reduce((acc, m) => acc + (m.fat_g || 0), 0))
+  r2(props.meals.reduce((acc, m) => acc + (m.fat_g || 0) * (m.servings || 1), 0))
 )
 </script>
 
