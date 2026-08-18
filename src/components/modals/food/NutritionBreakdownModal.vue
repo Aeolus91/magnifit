@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Utensils, Info, Pencil, Check, X } from '@lucide/vue'
+import { Utensils, Info, Pencil, Check } from '@lucide/vue'
 import { filterTrackedMicroLabels, isMicroColumnTracked } from '../../../lib/bitmask'
 import Modal from '../../atoms/Modal.vue'
 import FormInput from '../../atoms/FormInput.vue'

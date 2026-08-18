@@ -94,6 +94,7 @@ const handleAddMealFromForm = async (mealData: Meal) => {
 const handleLogFavorite = async (item: {
   template_id: string
   name: string
+  brand?: string | null
   cal: number
   prot_g: number
   carb_g: number

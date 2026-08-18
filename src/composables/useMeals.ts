@@ -84,15 +84,15 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
     const mealInsertPayload: any = {
       id,
       user_id: userId.value,
-      name: (isTemplated || isRecipe) ? null : mealData.name,
-      brand: (isTemplated || isRecipe) ? null : (mealData.brand || null),
-      cal: (isTemplated || isRecipe) ? null : Math.round(mealData.cal || mealData.calories || 0),
-      prot_g: (isTemplated || isRecipe) ? null : (Math.round((mealData.prot_g || mealData.protein_g || 0) * 10) / 10),
-      carb_g: (isTemplated || isRecipe) ? null : (Math.round((mealData.carb_g || mealData.carbs_g || 0) * 10) / 10),
-      fat_g: (isTemplated || isRecipe) ? null : (Math.round((mealData.fat_g || 0) * 10) / 10),
+      name: isTemplated || isRecipe ? null : mealData.name,
+      brand: isTemplated || isRecipe ? null : mealData.brand || null,
+      cal: isTemplated || isRecipe ? null : Math.round(mealData.cal || mealData.calories || 0),
+      prot_g: isTemplated || isRecipe ? null : Math.round((mealData.prot_g || mealData.protein_g || 0) * 10) / 10,
+      carb_g: isTemplated || isRecipe ? null : Math.round((mealData.carb_g || mealData.carbs_g || 0) * 10) / 10,
+      fat_g: isTemplated || isRecipe ? null : Math.round((mealData.fat_g || 0) * 10) / 10,
       flags: finalFlags,
-      serving_size: (isTemplated || isRecipe) ? null : (mealData.serving_size || null),
-      serving_unit: (isTemplated || isRecipe) ? null : (mealData.serving_unit || null),
+      serving_size: isTemplated || isRecipe ? null : mealData.serving_size || null,
+      serving_unit: isTemplated || isRecipe ? null : mealData.serving_unit || null,
       servings: mealData.servings || 1,
       template_id: mealData.template_id || null,
       log_date: payload.log_date,
@@ -135,14 +135,14 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
 
         updatePayload = {
           name: mealData.name === oldMeal.name ? null : mealData.name,
-          brand: mealData.brand === oldMeal.brand ? null : (mealData.brand || null),
+          brand: mealData.brand === oldMeal.brand ? null : mealData.brand || null,
           cal: calMatches ? null : Math.round(mealData.cal || 0),
-          prot_g: protMatches ? null : (Math.round((mealData.prot_g || 0) * 10) / 10),
-          carb_g: carbMatches ? null : (Math.round((mealData.carb_g || 0) * 10) / 10),
-          fat_g: fatMatches ? null : (Math.round((mealData.fat_g || 0) * 10) / 10),
+          prot_g: protMatches ? null : Math.round((mealData.prot_g || 0) * 10) / 10,
+          carb_g: carbMatches ? null : Math.round((mealData.carb_g || 0) * 10) / 10,
+          fat_g: fatMatches ? null : Math.round((mealData.fat_g || 0) * 10) / 10,
           flags: finalFlags,
-          serving_size: mealData.serving_size === oldMeal.serving_size ? null : (mealData.serving_size || null),
-          serving_unit: mealData.serving_unit === oldMeal.serving_unit ? null : (mealData.serving_unit || null),
+          serving_size: mealData.serving_size === oldMeal.serving_size ? null : mealData.serving_size || null,
+          serving_unit: mealData.serving_unit === oldMeal.serving_unit ? null : mealData.serving_unit || null,
           servings: mealData.servings || 1,
           template_id: mealData.template_id || null,
         };
@@ -230,7 +230,7 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
 
     if (recipeData && recipeData.length > 0) {
       const [itemsRes, microsRes] = await Promise.all([
-        supabase.from<RecipeItem>('recipe_items').select().get(),
+        supabase.from<RecipeItem>('v_recipe_items').select().get(),
         supabase.from<any>('recipe_micronutrients').select().get(),
       ]);
 
@@ -300,16 +300,18 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       // Insert constituent items if present
       if (recipeData.items && recipeData.items.length > 0) {
         for (const item of recipeData.items) {
+          const hasTemplate = !!item.template_id;
           const itemPayload = {
             id: item.id || uuidv7(),
             recipe_id: id,
-            item_name: item.item_name || item.name || 'Ingredient',
+            template_id: item.template_id || null,
+            item_name: hasTemplate ? null : (item.item_name || item.name || 'Ingredient'),
             amount: Number(item.amount) || 1,
             unit: item.unit || 'g',
-            cal: Math.round(item.cal || 0),
-            prot_g: Math.round((item.prot_g || 0) * 10) / 10,
-            carb_g: Math.round((item.carb_g || 0) * 10) / 10,
-            fat_g: Math.round((item.fat_g || 0) * 10) / 10,
+            cal: hasTemplate ? null : Math.round(item.cal || 0),
+            prot_g: hasTemplate ? null : Math.round((item.prot_g || 0) * 10) / 10,
+            carb_g: hasTemplate ? null : Math.round((item.carb_g || 0) * 10) / 10,
+            fat_g: hasTemplate ? null : Math.round((item.fat_g || 0) * 10) / 10,
           };
           await supabase.from('recipe_items').insert(itemPayload);
         }
@@ -357,16 +359,18 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
       if (recipeData.items) {
         await supabase.from('recipe_items').delete().eq('recipe_id', recipeData.id);
         for (const item of recipeData.items) {
+          const hasTemplate = !!item.template_id;
           const itemPayload: RecipeItem = {
             id: item.id || uuidv7(),
             recipe_id: recipeData.id,
-            item_name: item.item_name || item.name || 'Ingredient',
+            template_id: item.template_id || null,
+            item_name: hasTemplate ? null : (item.item_name || item.name || 'Ingredient'),
             amount: item.amount || 1,
             unit: item.unit || 'serving',
-            cal: item.cal || 0,
-            prot_g: item.prot_g || 0,
-            carb_g: item.carb_g || 0,
-            fat_g: item.fat_g || 0,
+            cal: hasTemplate ? null : (item.cal || 0),
+            prot_g: hasTemplate ? null : (item.prot_g || 0),
+            carb_g: hasTemplate ? null : (item.carb_g || 0),
+            fat_g: hasTemplate ? null : (item.fat_g || 0),
           };
           await supabase.from('recipe_items').insert(itemPayload);
         }
@@ -409,7 +413,7 @@ export function useMeals(userId: Ref<string | undefined>, selectedDate: Ref<stri
     const mealPayload: Meal = {
       user_id: userId.value,
       name: recipe.name,
-      brand: (recipe as any).brand || null,
+      brand: null,
       cal: recipe.cal,
       prot_g: recipe.prot_g,
       carb_g: recipe.carb_g,

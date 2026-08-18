@@ -58,6 +58,7 @@ const ingredientInputMode = ref<'search' | 'manual' | 'ocr'>('search')
 
 // New Template Model
 const newName = ref('')
+const newBrand = ref('')
 const newDescription = ref('')
 const newServings = ref<number>(1)
 const newServingSize = ref<number | null>(null)
@@ -193,6 +194,7 @@ const handleCreateTemplate = () => {
 
   const recipePayload = {
     name: newName.value.trim(),
+    brand: newBrand.value.trim(),
     description: newDescription.value.trim() || null,
     cal: perServingTotals.value.cal,
     prot_g: perServingTotals.value.prot_g,
@@ -283,22 +285,13 @@ const confirmLog = () => {
 <template>
   <div class="space-y-6">
     <!-- Header with Create Button -->
-    <SectionHeader
-      :title="t('meals.recipes.title')"
-      :description="t('meals.recipes.desc')"
-      action-variant="amber"
-      @action="openCreateModal"
-    />
+    <SectionHeader :title="t('meals.recipes.title')" :description="t('meals.recipes.desc')" action-variant="amber"
+      @action="openCreateModal" />
 
     <!-- Empty State -->
-    <EmptySectionPlaceholder
-      v-if="templates.length === 0"
-      :title="t('meals.empty.recipes_title')"
-      :description="t('meals.empty.recipes_desc')"
-      :icon="BookOpen"
-      icon-color-class="text-amber-400"
-      icon-bg-class="bg-amber-950/60 border border-amber-800/60"
-    />
+    <EmptySectionPlaceholder v-if="templates.length === 0" :title="t('meals.empty.recipes_title')"
+      :description="t('meals.empty.recipes_desc')" :icon="BookOpen" icon-color-class="text-amber-400"
+      icon-bg-class="bg-amber-950/60 border border-amber-800/60" />
 
     <!-- Template Cards Grid -->
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -375,46 +368,19 @@ const confirmLog = () => {
       max-width-class="max-w-xl" @close="showCreateModal = false">
       <form @submit.prevent="handleCreateTemplate" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-          <FormInput
-            v-model="newName"
-            label="Recipe Name"
-            placeholder="e.g. Post-Workout Smoothie"
-            required
-            input-class="focus:border-amber-500 text-xs py-2.5 px-3.5"
-            class="sm:col-span-2"
-          />
+          <FormInput v-model="newName" label="Recipe Name" placeholder="e.g. Post-Workout Smoothie" required
+            input-class="focus:border-amber-500 text-xs py-2.5 px-3.5" class="sm:col-span-2" />
 
-          <FormInput
-            v-model="newServings"
-            type="number"
-            step="any"
-            label="Yield (Servings)"
-            placeholder="1"
-            required
-            min="0.1"
-            max="50"
-            input-class="focus:border-amber-500 font-mono text-xs text-center py-2.5 px-3.5"
-          />
+          <FormInput v-model="newServings" type="number" step="any" label="Yield (Servings)" placeholder="1" required
+            min="0.1" max="50" input-class="focus:border-amber-500 font-mono text-xs text-center py-2.5 px-3.5" />
 
           <div class="space-y-1">
             <label class="text-xs font-semibold text-slate-300">Serving Size</label>
             <div class="flex gap-1">
-              <FormInput
-                v-model="newServingSize"
-                type="number"
-                step="any"
-                min="0.1"
-                placeholder="200"
-                input-class="focus:border-amber-500 font-mono text-xs text-center py-2.5 px-2"
-                class="w-16 shrink-0"
-              />
-              <FormInput
-                v-model="newServingUnit"
-                type="text"
-                placeholder="g / qty"
-                input-class="focus:border-amber-500 text-xs py-2.5 px-2"
-                class="flex-1 min-w-0"
-              />
+              <FormInput v-model="newServingSize" type="number" step="any" min="0.1" placeholder="200"
+                input-class="focus:border-amber-500 font-mono text-xs text-center py-2.5 px-2" class="w-16 shrink-0" />
+              <FormInput v-model="newServingUnit" type="text" placeholder="g / qty"
+                input-class="focus:border-amber-500 text-xs py-2.5 px-2" class="flex-1 min-w-0" />
             </div>
           </div>
         </div>
@@ -576,16 +542,8 @@ const confirmLog = () => {
         </div>
 
         <div class="flex items-end gap-3">
-          <FormInput
-            v-model="logMultiplier"
-            type="number"
-            step="any"
-            label="Number of Servings (Multiplier)"
-            min="0.1"
-            max="20"
-            input-class="focus:border-amber-500 font-mono py-2"
-            class="w-32"
-          />
+          <FormInput v-model="logMultiplier" type="number" step="any" label="Number of Servings (Multiplier)" min="0.1"
+            max="20" input-class="focus:border-amber-500 font-mono py-2" class="w-32" />
           <div class="text-xs font-mono text-amber-400 font-bold pb-3">
             = {{ Math.round(selectedTemplateForLog.cal * (logMultiplier || 1)) }} kcal total
           </div>
@@ -614,7 +572,8 @@ const confirmLog = () => {
         <div class="space-y-1.5">
           <label class="text-xs font-semibold text-slate-300">Recipient Username Handle</label>
           <div class="relative">
-            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-amber-400 font-bold font-mono z-10">@</span>
+            <span
+              class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-amber-400 font-bold font-mono z-10">@</span>
             <FormInput v-model="shareHandle" type="text" placeholder="username" required
               input-class="focus:border-amber-500 pl-8 pr-3.5 py-2.5 text-sm font-mono" />
           </div>
